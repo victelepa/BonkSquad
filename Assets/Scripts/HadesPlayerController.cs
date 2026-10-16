@@ -25,7 +25,7 @@ public class HadesPlayerController : MonoBehaviour
     void Update()
     {
         Vector2 input = Vector2.zero;
-#if ENABLE_INPUT_SYSTEM
+        
         if (Keyboard.current != null)
         {
             input.x = (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed ? 1f : 0f)
@@ -33,10 +33,7 @@ public class HadesPlayerController : MonoBehaviour
             input.y = (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed ? 1f : 0f)
                     - (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed ? 1f : 0f);
         }
-#else
-        input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-#endif
-
+        
         Vector3 forward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;
         Vector3 right = cameraTransform != null ? cameraTransform.right : Vector3.right;
         forward.y = 0f;
@@ -59,17 +56,5 @@ public class HadesPlayerController : MonoBehaviour
             Quaternion targetRotation = Quaternion.LookRotation(move);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
         }
-    }
-
-    void LateUpdate()
-    {
-        if (cameraTransform == null && Camera.main != null)
-            cameraTransform = Camera.main.transform;
-        if (cameraTransform == null)
-            return;
-
-        cameraTransform.SetPositionAndRotation(
-            transform.position + cameraOffset,
-            Quaternion.Euler(cameraRotation));
     }
 }
