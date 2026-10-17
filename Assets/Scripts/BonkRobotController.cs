@@ -4,6 +4,9 @@ using UnityEngine.InputSystem;
 
 public class BonkRobotController : MonoBehaviour
 {
+    [Header("Phase 1")]
+    [SerializeField] private BonkGameTuning tuning;
+
     [Header("Forms")]
     [SerializeField] private GameObject standingForm;
     [SerializeField] private GameObject ballForm;
@@ -27,6 +30,25 @@ public class BonkRobotController : MonoBehaviour
     [SerializeField] private float cameraSmoothTime = 0.2f;
 
     public bool IsBallForm { get; private set; }
+    public int CurrentHealth { get; private set; }
+    public int MaxHealth => Tuning.playerHealth;
+    public BonkGameTuning Tuning
+    {
+        get
+        {
+            if (tuning == null)
+            {
+                tuning = BonkGameTuning.CreateRuntimeDefaults();
+            }
+
+            return tuning;
+        }
+    }
+    public Transform StandingTransform => standingForm != null ? standingForm.transform : null;
+    public Transform BallTransform => ballForm != null ? ballForm.transform : null;
+    public BouncingBallController BallController => ballController;
+
+    private float nextDamageTime;
 
     private Transform cameraTarget;
     private Vector3 cameraVelocity;
@@ -49,6 +71,16 @@ public class BonkRobotController : MonoBehaviour
             standingController = standingForm.GetComponent<HadesPlayerController>();
         }
 
+        CurrentHealth = Tuning.playerHealth;
+        if (ballController != null)
+        {
+            ballController.Configure(Tuning);
+        }
+        if (standingController != null)
+        {
+            standingController.Configure(this);
+        }
+
         IsBallForm = startAsBall;
 
         standingForm.SetActive(!IsBallForm);
@@ -57,6 +89,49 @@ public class BonkRobotController : MonoBehaviour
         cameraTarget = IsBallForm
             ? ballForm.transform
             : standingForm.transform;
+    }
+
+    public bool TryTakeDamage(Vector3 sourcePosition)
+    {
+        if (IsBallForm || Time.time < nextDamageTime || CurrentHealth <= 0)
+        {
+            return false;
+        }
+
+        CurrentHealth--;
+        nextDamageTime = Time.time + Tuning.damageInvulnerability;
+
+        Vector3 away = Vector3.ProjectOnPlane(
+            standingForm.transform.position - sourcePosition,
+            Vector3.up).normalized;
+        if (away.sqrMagnitude < 0.01f)
+        {
+            away = -standingForm.transform.forward;
+        }
+
+        if (standingController != null)
+        {
+            standingController.ApplyKnockback(away * Tuning.damageKnockback);
+        }
+
+        if (CurrentHealth <= 0)
+        {
+            RestartPlayer();
+        }
+
+        return true;
+    }
+
+    private void RestartPlayer()
+    {
+        CurrentHealth = Tuning.playerHealth;
+        nextDamageTime = Time.time + Tuning.damageInvulnerability;
+        if (IsBallForm)
+        {
+            ToggleForm();
+        }
+        standingForm.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+        standingController.EnterStandingMode(Vector3.zero);
     }
 
     private void OnEnable()

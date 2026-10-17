@@ -33,8 +33,21 @@ public class HadesPlayerController : MonoBehaviour
     float verticalVelocity;
     Vector3 planarVelocity;
     bool isDrifting;
+    BonkRobotController robot;
 
     public Vector3 CurrentPlanarVelocity { get; private set; }
+
+    public void Configure(BonkRobotController owner)
+    {
+        robot = owner;
+    }
+
+    public void ApplyKnockback(Vector3 velocity)
+    {
+        planarVelocity = Vector3.ProjectOnPlane(velocity, Vector3.up);
+        CurrentPlanarVelocity = planarVelocity;
+        isDrifting = true;
+    }
 
     public void EnterStandingMode(Vector3 inheritedVelocity)
     {
@@ -49,6 +62,19 @@ public class HadesPlayerController : MonoBehaviour
         controller = GetComponent<CharacterController>();
         if (Camera.main != null)
             cameraTransform = Camera.main.transform;
+    }
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        if (robot == null)
+        {
+            robot = GetComponentInParent<BonkRobotController>();
+        }
+
+        if (robot != null && hit.collider.TryGetComponent(out EnemyBumper enemy))
+        {
+            robot.TryTakeDamage(enemy.transform.position);
+        }
     }
 
     void Update()

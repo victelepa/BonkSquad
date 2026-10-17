@@ -5,7 +5,10 @@ public class ControlsOverlay : MonoBehaviour
 {
     [TextArea(3, 5)]
     [SerializeField] private string instructions =
-        "WASD - Accelerate\nSPACE - Switch form\nHit small enemies in ball form to eliminate them.";
+        "WASD - Move / Accelerate   SPACE - Switch form\nRed pillars boost ball speed. Fast hits defeat enemies. Human form takes damage.";
+
+    private Text statusLabel;
+    private BonkRobotController robot;
 
     private void Awake()
     {
@@ -55,5 +58,49 @@ public class ControlsOverlay : MonoBehaviour
         label.resizeTextMinSize = 14;
         label.resizeTextMaxSize = 22;
         label.raycastTarget = false;
+
+        GameObject statusObject = new GameObject("Phase 1 Status",
+            typeof(RectTransform), typeof(Text));
+        statusObject.transform.SetParent(canvasObject.transform, false);
+        RectTransform statusRect = statusObject.GetComponent<RectTransform>();
+        statusRect.anchorMin = new Vector2(0f, 1f);
+        statusRect.anchorMax = new Vector2(0f, 1f);
+        statusRect.pivot = new Vector2(0f, 1f);
+        statusRect.anchoredPosition = new Vector2(18f, -18f);
+        statusRect.sizeDelta = new Vector2(440f, 100f);
+
+        statusLabel = statusObject.GetComponent<Text>();
+        statusLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        statusLabel.fontSize = 24;
+        statusLabel.color = Color.white;
+        statusLabel.alignment = TextAnchor.UpperLeft;
+        statusLabel.raycastTarget = false;
+
+        robot = FindFirstObjectByType<BonkRobotController>();
+    }
+
+    private void Update()
+    {
+        if (robot == null)
+        {
+            robot = FindFirstObjectByType<BonkRobotController>();
+        }
+
+        if (robot == null || statusLabel == null)
+        {
+            return;
+        }
+
+        float speed = robot.BallController != null
+            ? robot.BallController.Speed
+            : 0f;
+        string tier = speed >= robot.Tuning.heavyEnemyKillSpeed
+            ? "HEAVY KILL"
+            : speed >= robot.Tuning.smallEnemyKillSpeed
+                ? "SMALL KILL"
+                : "TOO SLOW";
+        statusLabel.text =
+            $"HEALTH  {robot.CurrentHealth}/{robot.MaxHealth}\n" +
+            $"SPEED   {speed:0.0}   {tier}";
     }
 }

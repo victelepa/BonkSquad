@@ -18,10 +18,22 @@ public class BouncingBallController : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float maxSpeed = 18f;
 
+    [Header("Speed Feedback")]
+    [SerializeField] private Color lowSpeedColor = new Color(0.15f, 0.45f, 1f);
+    [SerializeField] private Color killSpeedColor = new Color(1f, 0.75f, 0.1f);
+    [SerializeField] private Color heavySpeedColor = new Color(1f, 0.15f, 0.05f);
+
     private Rigidbody rb;
     private Transform cameraTransform;
     private Vector3 lastMovingVelocity;
     private float lastMovingVelocityTime = -10f;
+    private BonkGameTuning tuning;
+    private Renderer ballRenderer;
+    private MaterialPropertyBlock materialProperties;
+
+    public float Speed => PlanarVelocity.magnitude;
+    public float SmallKillSpeed => tuning != null ? tuning.smallEnemyKillSpeed : 9f;
+    public float HeavyKillSpeed => tuning != null ? tuning.heavyEnemyKillSpeed : 19f;
 
     public Vector3 PlanarVelocity
     {
@@ -52,6 +64,30 @@ public class BouncingBallController : MonoBehaviour
         {
             cameraTransform = Camera.main.transform;
         }
+        ballRenderer = GetComponent<Renderer>();
+        materialProperties = new MaterialPropertyBlock();
+    }
+
+    public void Configure(BonkGameTuning gameTuning)
+    {
+        tuning = gameTuning;
+        acceleration = tuning.ballAcceleration;
+        steeringAcceleration = tuning.ballSteeringAcceleration;
+        brakingAcceleration = tuning.ballBrakingAcceleration;
+        maxSpeed = tuning.ballNormalSpeedCap;
+    }
+
+    public void AddSpeedBoost(float addedSpeed)
+    {
+        Vector3 planar = PlanarVelocity;
+        Vector3 direction = planar.sqrMagnitude > 0.01f
+            ? planar.normalized
+            : transform.forward;
+        float boostedSpeed = Mathf.Min(
+            tuning != null ? tuning.ballAbsoluteSpeedCap : maxSpeed,
+            planar.magnitude + Mathf.Max(0f, addedSpeed));
+        Vector3 velocity = rb.linearVelocity;
+        rb.linearVelocity = direction * boostedSpeed + Vector3.up * velocity.y;
     }
 
     public void EnterBallMode(Vector3 inheritedVelocity)
@@ -93,7 +129,27 @@ public class BouncingBallController : MonoBehaviour
         }
 
         ApplyLimitedControl();
+        ApplyNaturalSpeedLoss();
         LimitSpeed();
+        UpdateSpeedFeedback();
+    }
+
+    private void ApplyNaturalSpeedLoss()
+    {
+        Vector3 velocity = rb.linearVelocity;
+        Vector3 planar = new Vector3(velocity.x, 0f, velocity.z);
+        float loss = tuning != null ? tuning.ballNaturalSpeedLoss : 0.75f;
+        if (planar.magnitude > maxSpeed)
+        {
+            loss = tuning != null ? tuning.overcapSpeedLoss : 3f;
+        }
+
+        float nextSpeed = Mathf.MoveTowards(
+            planar.magnitude, 0f, loss * Time.fixedDeltaTime);
+        Vector3 nextPlanar = planar.sqrMagnitude > 0.001f
+            ? planar.normalized * nextSpeed
+            : Vector3.zero;
+        rb.linearVelocity = new Vector3(nextPlanar.x, velocity.y, nextPlanar.z);
     }
 
     private void ApplyLimitedControl()
@@ -140,7 +196,7 @@ public class BouncingBallController : MonoBehaviour
         float alignment = Vector3.Dot(inputDirection, travelDirection);
         Vector3 steering = inputDirection - travelDirection * alignment;
 
-        if (alignment > 0f)
+        if (alignment > 0f && speed < maxSpeed)
         {
             rb.AddForce(
                 travelDirection * alignment * acceleration,
@@ -166,10 +222,11 @@ public class BouncingBallController : MonoBehaviour
             velocity.z
         );
 
-        if (horizontalVelocity.sqrMagnitude > maxSpeed * maxSpeed)
+        float absoluteCap = tuning != null ? tuning.ballAbsoluteSpeedCap : maxSpeed;
+        if (horizontalVelocity.sqrMagnitude > absoluteCap * absoluteCap)
         {
             horizontalVelocity =
-                horizontalVelocity.normalized * maxSpeed;
+                horizontalVelocity.normalized * absoluteCap;
 
             rb.linearVelocity = new Vector3(
                 horizontalVelocity.x,
@@ -177,5 +234,23 @@ public class BouncingBallController : MonoBehaviour
                 horizontalVelocity.z
             );
         }
+    }
+
+    private void UpdateSpeedFeedback()
+    {
+        if (ballRenderer == null)
+        {
+            return;
+        }
+
+        Color color = Speed >= HeavyKillSpeed
+            ? heavySpeedColor
+            : Speed >= SmallKillSpeed
+                ? killSpeedColor
+                : lowSpeedColor;
+        ballRenderer.GetPropertyBlock(materialProperties);
+        materialProperties.SetColor("_BaseColor", color);
+        materialProperties.SetColor("_Color", color);
+        ballRenderer.SetPropertyBlock(materialProperties);
     }
 }

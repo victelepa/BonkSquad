@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 // Wanders independently of the player; contact response comes from the wall material.
@@ -21,8 +22,14 @@ public class EnemyBumper : MonoBehaviour
     private Rigidbody body;
     private CapsuleCollider capsule;
     private Vector3 direction;
+    private Vector3 knockbackVelocity;
     private float nextDirectionChange;
+    private float avoidUntil;
     private bool isDefeated;
+    private BonkRobotController robot;
+    private BonkGameTuning tuning;
+    private Renderer[] renderers;
+    private readonly MaterialPropertyBlock feedbackProperties = new MaterialPropertyBlock();
 
     private void Awake()
     {
@@ -32,6 +39,10 @@ public class EnemyBumper : MonoBehaviour
         body.useGravity = false;
         body.interpolation = RigidbodyInterpolation.Interpolate;
         body.constraints = RigidbodyConstraints.FreezeRotation;
+        robot = FindFirstObjectByType<BonkRobotController>();
+        tuning = robot != null ? robot.Tuning : BonkGameTuning.CreateRuntimeDefaults();
+        moveSpeed = destroyedByBall ? tuning.chaserSpeed : tuning.heavyChaserSpeed;
+        renderers = GetComponentsInChildren<Renderer>();
     }
 
     private void OnEnable()
@@ -60,6 +71,35 @@ public class EnemyBumper : MonoBehaviour
             ChooseDirection();
         }
 
+        if (robot == null)
+        {
+            robot = FindFirstObjectByType<BonkRobotController>();
+        }
+
+        if (Time.time >= avoidUntil &&
+            robot != null && !robot.IsBallForm && robot.StandingTransform != null)
+        {
+            Vector3 toPlayer = Vector3.ProjectOnPlane(
+                robot.StandingTransform.position - body.position,
+                Vector3.up);
+            if (toPlayer.sqrMagnitude > 0.01f)
+            {
+                direction = toPlayer.normalized;
+            }
+        }
+
+        if (knockbackVelocity.sqrMagnitude > 0.01f)
+        {
+            direction = knockbackVelocity.normalized;
+            moveSpeed = knockbackVelocity.magnitude;
+            knockbackVelocity = Vector3.MoveTowards(
+                knockbackVelocity, Vector3.zero, 12f * Time.fixedDeltaTime);
+        }
+        else
+        {
+            moveSpeed = destroyedByBall ? tuning.chaserSpeed : tuning.heavyChaserSpeed;
+        }
+
         float distance = moveSpeed * Time.fixedDeltaTime;
         Vector3 destination = body.position + direction * distance;
         if (destination.x < arenaMin.x || destination.x > arenaMax.x)
@@ -82,6 +122,7 @@ public class EnemyBumper : MonoBehaviour
                 continue;
 
             ChooseDirection();
+            avoidUntil = Time.time + 0.5f;
             return;
         }
 
@@ -90,7 +131,7 @@ public class EnemyBumper : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (!destroyedByBall || isDefeated || collision.rigidbody == null)
+        if (isDefeated || collision.rigidbody == null)
         {
             return;
         }
@@ -98,10 +139,58 @@ public class EnemyBumper : MonoBehaviour
         if (collision.rigidbody.TryGetComponent(out BouncingBallController ball) &&
             ball.isActiveAndEnabled)
         {
-            isDefeated = true;
-            // Collision callbacks run after the solver has applied the wall-material
-            // rebound. Defer removal to the end of the frame to preserve that response.
-            Destroy(gameObject);
+            float impactSpeed = Vector3.ProjectOnPlane(
+                collision.relativeVelocity, Vector3.up).magnitude;
+            float requiredSpeed = destroyedByBall
+                ? tuning.smallEnemyKillSpeed
+                : tuning.heavyEnemyKillSpeed;
+
+            Vector3 awayFromBall = Vector3.ProjectOnPlane(
+                transform.position - ball.transform.position,
+                Vector3.up).normalized;
+            if (awayFromBall.sqrMagnitude < 0.01f)
+            {
+                awayFromBall = -ball.PlanarVelocity.normalized;
+            }
+
+            if (impactSpeed >= requiredSpeed)
+            {
+                isDefeated = true;
+                knockbackVelocity = awayFromBall * tuning.strongHitKnockback;
+                Destroy(gameObject);
+            }
+            else
+            {
+                knockbackVelocity = awayFromBall * tuning.weakHitKnockback;
+                StopAllCoroutines();
+                StartCoroutine(ShowWeakHitFeedback());
+            }
+        }
+    }
+
+    private IEnumerator ShowWeakHitFeedback()
+    {
+        SetFeedbackColor(new Color(0.35f, 0.35f, 0.35f));
+        yield return new WaitForSeconds(0.15f);
+        ClearFeedbackColor();
+    }
+
+    private void SetFeedbackColor(Color color)
+    {
+        foreach (Renderer enemyRenderer in renderers)
+        {
+            enemyRenderer.GetPropertyBlock(feedbackProperties);
+            feedbackProperties.SetColor("_BaseColor", color);
+            feedbackProperties.SetColor("_Color", color);
+            enemyRenderer.SetPropertyBlock(feedbackProperties);
+        }
+    }
+
+    private void ClearFeedbackColor()
+    {
+        foreach (Renderer enemyRenderer in renderers)
+        {
+            enemyRenderer.SetPropertyBlock(null);
         }
     }
 }
