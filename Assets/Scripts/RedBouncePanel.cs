@@ -15,6 +15,22 @@ public class RedBouncePanel : MonoBehaviour
     private Renderer[] panelRenderers;
     private MaterialPropertyBlock properties;
 
+    public void Configure(
+        float addedSpeed,
+        Color activeColor,
+        Color recoveringColor,
+        float recoveryTime = 0.2f)
+    {
+        speedBoost = Mathf.Max(0f, addedSpeed);
+        readyColor = activeColor;
+        cooldownColor = recoveringColor;
+        cooldown = Mathf.Max(0f, recoveryTime);
+        if (properties != null && panelRenderers != null)
+        {
+            SetColor(readyColor);
+        }
+    }
+
     private void Awake()
     {
         properties = new MaterialPropertyBlock();

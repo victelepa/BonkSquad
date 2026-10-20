@@ -67,7 +67,7 @@ public class ControlsOverlay : MonoBehaviour
         statusRect.anchorMax = new Vector2(0f, 1f);
         statusRect.pivot = new Vector2(0f, 1f);
         statusRect.anchoredPosition = new Vector2(18f, -18f);
-        statusRect.sizeDelta = new Vector2(440f, 100f);
+        statusRect.sizeDelta = new Vector2(440f, 130f);
 
         statusLabel = statusObject.GetComponent<Text>();
         statusLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -99,12 +99,57 @@ public class ControlsOverlay : MonoBehaviour
             : speed >= robot.Tuning.smallEnemyKillSpeed
                 ? "SMALL KILL"
                 : "TOO SLOW";
+        string targetHint = BuildTargetHint();
         statusLabel.text =
             $"HEALTH  {robot.CurrentHealth}/{robot.MaxHealth}\n" +
             $"SPEED   {speed:0.0}   {tier}\n" +
             $"MONSTERS   {EnemyBumper.ActiveCount}" +
             (robot.StoredSpeedBoost > 0f
                 ? $"   STORED BOOST +{robot.StoredSpeedBoost:0}"
-                : string.Empty);
+                : string.Empty) + targetHint;
+    }
+
+    private string BuildTargetHint()
+    {
+        Transform playerTransform = robot.IsBallForm
+            ? robot.BallTransform
+            : robot.StandingTransform;
+        if (EnemyBumper.ActiveCount > 3 || playerTransform == null)
+        {
+            return string.Empty;
+        }
+
+        EnemyBumper nearest = null;
+        float nearestDistance = float.PositiveInfinity;
+        foreach (EnemyBumper enemy in EnemyBumper.ActiveEnemies)
+        {
+            if (enemy == null || enemy.IsDefeated)
+            {
+                continue;
+            }
+
+            float distance = Vector3.Distance(
+                playerTransform.position, enemy.transform.position);
+            if (distance < nearestDistance)
+            {
+                nearest = enemy;
+                nearestDistance = distance;
+            }
+        }
+
+        if (nearest == null)
+        {
+            return string.Empty;
+        }
+
+        Vector3 offset = nearest.transform.position - playerTransform.position;
+        string horizontal = Mathf.Abs(offset.x) > 2f
+            ? (offset.x > 0f ? "E" : "W")
+            : string.Empty;
+        string vertical = Mathf.Abs(offset.z) > 2f
+            ? (offset.z > 0f ? "N" : "S")
+            : string.Empty;
+        string direction = horizontal + vertical;
+        return $"\nTARGET   {nearestDistance:0}m {direction}";
     }
 }

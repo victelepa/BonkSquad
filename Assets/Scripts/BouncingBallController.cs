@@ -18,6 +18,15 @@ public class BouncingBallController : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float maxSpeed = 18f;
 
+    [Header("Aim Assistance")]
+    [Tooltip("Maximum angle in which nearby enemies gently attract the trajectory.")]
+    [Range(0f, 30f)]
+    [SerializeField] private float aimAssistAngle = 15f;
+    [Min(0f)]
+    [SerializeField] private float aimAssistRange = 14f;
+    [Min(0f)]
+    [SerializeField] private float aimAssistTurnSpeed = 24f;
+
     [Header("Speed Feedback")]
     [SerializeField] private Color lowSpeedColor = new Color(0.15f, 0.45f, 1f);
     [SerializeField] private Color killSpeedColor = new Color(1f, 0.75f, 0.1f);
@@ -158,6 +167,7 @@ public class BouncingBallController : MonoBehaviour
         }
 
         ApplyLimitedControl();
+        ApplyAimAssist();
         ApplyNaturalSpeedLoss();
         LimitSpeed();
         UpdateSpeedFeedback();
@@ -238,7 +248,84 @@ public class BouncingBallController : MonoBehaviour
                 ForceMode.Acceleration);
         }
 
-        rb.AddForce(steering * steeringAcceleration, ForceMode.Acceleration);
+        float speedRatio = Mathf.Clamp01(speed / Mathf.Max(0.01f, maxSpeed));
+        float steeringMultiplier = Mathf.Lerp(2.4f, 0.85f, speedRatio);
+        rb.AddForce(
+            steering * steeringAcceleration * steeringMultiplier,
+            ForceMode.Acceleration);
+    }
+
+    private void ApplyAimAssist()
+    {
+        Vector3 velocity = PlanarVelocity;
+        float speed = velocity.magnitude;
+        if (speed < 3f || EnemyBumper.ActiveCount == 0)
+        {
+            return;
+        }
+
+        Vector3 travelDirection = velocity / speed;
+        float minimumDot = Mathf.Cos(aimAssistAngle * Mathf.Deg2Rad);
+        EnemyBumper bestTarget = null;
+        Vector3 bestDirection = Vector3.zero;
+        float bestScore = float.NegativeInfinity;
+
+        foreach (EnemyBumper enemy in EnemyBumper.ActiveEnemies)
+        {
+            if (enemy == null || enemy.IsDefeated)
+            {
+                continue;
+            }
+
+            Vector3 offset = Vector3.ProjectOnPlane(
+                enemy.transform.position - transform.position, Vector3.up);
+            float distance = offset.magnitude;
+            if (distance < 0.5f || distance > aimAssistRange)
+            {
+                continue;
+            }
+
+            Vector3 direction = offset / distance;
+            float alignment = Vector3.Dot(travelDirection, direction);
+            if (alignment < minimumDot)
+            {
+                continue;
+            }
+
+            if (Physics.Linecast(
+                    transform.position,
+                    enemy.transform.position,
+                    out RaycastHit hit,
+                    Physics.DefaultRaycastLayers,
+                    QueryTriggerInteraction.Ignore) &&
+                hit.collider.GetComponentInParent<EnemyBumper>() != enemy)
+            {
+                continue;
+            }
+
+            float score = alignment * 2f - distance / aimAssistRange;
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestTarget = enemy;
+                bestDirection = direction;
+            }
+        }
+
+        if (bestTarget == null)
+        {
+            return;
+        }
+
+        float speedRatio = Mathf.Clamp01(speed / Mathf.Max(0.01f, maxSpeed));
+        float turnRate = aimAssistTurnSpeed * Mathf.Lerp(1f, 0.45f, speedRatio);
+        Vector3 assistedDirection = Vector3.RotateTowards(
+            travelDirection,
+            bestDirection,
+            turnRate * Mathf.Deg2Rad * Time.fixedDeltaTime,
+            0f);
+        rb.linearVelocity = assistedDirection.normalized * speed +
+            Vector3.up * rb.linearVelocity.y;
     }
 
     private void LimitSpeed()

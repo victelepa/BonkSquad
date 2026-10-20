@@ -1,16 +1,21 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 // Wanders independently of the player; contact response comes from the wall material.
 [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class EnemyBumper : MonoBehaviour
 {
+    private static readonly List<EnemyBumper> activeEnemies = new List<EnemyBumper>();
     public static int ActiveCount { get; private set; }
+    public static IReadOnlyList<EnemyBumper> ActiveEnemies => activeEnemies;
+    public bool IsDefeated => isDefeated;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetActiveCount()
     {
         ActiveCount = 0;
+        activeEnemies.Clear();
     }
 
     [Header("Ball Impact")]
@@ -57,12 +62,17 @@ public class EnemyBumper : MonoBehaviour
     private void OnEnable()
     {
         ActiveCount++;
+        if (!activeEnemies.Contains(this))
+        {
+            activeEnemies.Add(this);
+        }
         ChooseDirection();
     }
 
     private void OnDisable()
     {
         ActiveCount = Mathf.Max(0, ActiveCount - 1);
+        activeEnemies.Remove(this);
     }
 
     private void ChooseDirection()
