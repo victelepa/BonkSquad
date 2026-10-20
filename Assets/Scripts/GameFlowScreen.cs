@@ -136,10 +136,14 @@ public class GameFlowScreen : MonoBehaviour
         body.alignment = TextAnchor.UpperLeft;
         body.fontSize = 20;
         body.text =
+            "CONTROLS\n" +
+            "W / A / S / D or ARROW KEYS  —  Move and steer\n" +
+            "SPACE  —  Switch between robot and ball forms\n" +
+            "ENTER  —  Continue / start the game\n" +
+            "ESC  —  Return to the title screen\n\n" +
             "GOAL\nDefeat every monster. Build enough speed to destroy small enemies, " +
             "then reach maximum impact speed to defeat the large enemies.\n\n" +
-            "MOVEMENT\nWASD / ARROW KEYS  Move and steer\n" +
-            "SPACE  Switch between robot and ball forms\n" +
+            "FORMS\n" +
             "Robot form turns precisely but can take damage. Ball form carries momentum, " +
             "ricochets, and defeats enemies.\n\n" +
             "SPEED & SURFACES\nGray walls and barriers bounce you. Red bumpers bounce you faster. " +
