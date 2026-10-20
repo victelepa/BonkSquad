@@ -13,10 +13,11 @@ public class RedBouncePanel : MonoBehaviour
 
     private float nextReadyTime;
     private Renderer[] panelRenderers;
-    private readonly MaterialPropertyBlock properties = new MaterialPropertyBlock();
+    private MaterialPropertyBlock properties;
 
     private void Awake()
     {
+        properties = new MaterialPropertyBlock();
         panelRenderers = GetComponentsInChildren<Renderer>();
         SetColor(readyColor);
     }

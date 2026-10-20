@@ -76,14 +76,14 @@ public class ControlsOverlay : MonoBehaviour
         statusLabel.alignment = TextAnchor.UpperLeft;
         statusLabel.raycastTarget = false;
 
-        robot = FindFirstObjectByType<BonkRobotController>();
+        robot = FindAnyObjectByType<BonkRobotController>();
     }
 
     private void Update()
     {
         if (robot == null)
         {
-            robot = FindFirstObjectByType<BonkRobotController>();
+            robot = FindAnyObjectByType<BonkRobotController>();
         }
 
         if (robot == null || statusLabel == null)

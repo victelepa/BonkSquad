@@ -97,7 +97,7 @@ public class PowerupSpawner : MonoBehaviour
 
     private IEnumerator Start()
     {
-        robot = FindFirstObjectByType<BonkRobotController>();
+        robot = FindAnyObjectByType<BonkRobotController>();
         tuning = robot != null ? robot.Tuning : BonkGameTuning.CreateRuntimeDefaults();
 
         yield return new WaitForSeconds(2f);

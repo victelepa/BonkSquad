@@ -37,17 +37,18 @@ public class EnemyBumper : MonoBehaviour
     private BonkRobotController robot;
     private BonkGameTuning tuning;
     private Renderer[] renderers;
-    private readonly MaterialPropertyBlock feedbackProperties = new MaterialPropertyBlock();
+    private MaterialPropertyBlock feedbackProperties;
 
     private void Awake()
     {
+        feedbackProperties = new MaterialPropertyBlock();
         body = GetComponent<Rigidbody>();
         capsule = GetComponent<CapsuleCollider>();
         body.isKinematic = true;
         body.useGravity = false;
         body.interpolation = RigidbodyInterpolation.Interpolate;
         body.constraints = RigidbodyConstraints.FreezeRotation;
-        robot = FindFirstObjectByType<BonkRobotController>();
+        robot = FindAnyObjectByType<BonkRobotController>();
         tuning = robot != null ? robot.Tuning : BonkGameTuning.CreateRuntimeDefaults();
         moveSpeed = destroyedByBall ? tuning.chaserSpeed : tuning.heavyChaserSpeed;
         renderers = GetComponentsInChildren<Renderer>();
@@ -87,7 +88,7 @@ public class EnemyBumper : MonoBehaviour
 
         if (robot == null)
         {
-            robot = FindFirstObjectByType<BonkRobotController>();
+            robot = FindAnyObjectByType<BonkRobotController>();
         }
 
         if (Time.time >= avoidUntil &&
