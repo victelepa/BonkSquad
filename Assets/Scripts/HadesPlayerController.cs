@@ -41,6 +41,7 @@ public class HadesPlayerController : MonoBehaviour
     {
         robot = owner;
         moveSpeed = robot.Tuning.humanMoveSpeed;
+        cameraTransform = robot.CameraTransform;
     }
 
     public void ApplyKnockback(Vector3 velocity)
@@ -84,10 +85,17 @@ public class HadesPlayerController : MonoBehaviour
         
         if (Keyboard.current != null)
         {
-            input.x = (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed ? 1f : 0f)
-                    - (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed ? 1f : 0f);
-            input.y = (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed ? 1f : 0f)
-                    - (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed ? 1f : 0f);
+            bool playerTwo = robot != null && robot.PlayerNumber == 2;
+            input.x = playerTwo
+                ? (Keyboard.current.rightArrowKey.isPressed ? 1f : 0f) -
+                  (Keyboard.current.leftArrowKey.isPressed ? 1f : 0f)
+                : (Keyboard.current.dKey.isPressed ? 1f : 0f) -
+                  (Keyboard.current.aKey.isPressed ? 1f : 0f);
+            input.y = playerTwo
+                ? (Keyboard.current.upArrowKey.isPressed ? 1f : 0f) -
+                  (Keyboard.current.downArrowKey.isPressed ? 1f : 0f)
+                : (Keyboard.current.wKey.isPressed ? 1f : 0f) -
+                  (Keyboard.current.sKey.isPressed ? 1f : 0f);
         }
         
         Vector3 forward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;

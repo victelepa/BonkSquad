@@ -8,6 +8,7 @@ public class ControlsOverlay : MonoBehaviour
         "WASD - Move / Accelerate   SPACE - Switch form\nRed pillars boost ball speed. Fast hits defeat enemies. Human form takes damage.";
 
     private Text statusLabel;
+    private Text playerTwoStatusLabel;
     private BonkRobotController robot;
 
     private void Awake()
@@ -76,6 +77,24 @@ public class ControlsOverlay : MonoBehaviour
         statusLabel.alignment = TextAnchor.UpperLeft;
         statusLabel.raycastTarget = false;
 
+        GameObject playerTwoStatusObject = new GameObject("Player 2 Status",
+            typeof(RectTransform), typeof(Text));
+        playerTwoStatusObject.transform.SetParent(canvasObject.transform, false);
+        RectTransform playerTwoStatusRect =
+            playerTwoStatusObject.GetComponent<RectTransform>();
+        playerTwoStatusRect.anchorMin = new Vector2(1f, 1f);
+        playerTwoStatusRect.anchorMax = new Vector2(1f, 1f);
+        playerTwoStatusRect.pivot = new Vector2(1f, 1f);
+        playerTwoStatusRect.anchoredPosition = new Vector2(-18f, -18f);
+        playerTwoStatusRect.sizeDelta = new Vector2(440f, 130f);
+
+        playerTwoStatusLabel = playerTwoStatusObject.GetComponent<Text>();
+        playerTwoStatusLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        playerTwoStatusLabel.fontSize = 24;
+        playerTwoStatusLabel.color = new Color(0.8f, 0.5f, 1f);
+        playerTwoStatusLabel.alignment = TextAnchor.UpperRight;
+        playerTwoStatusLabel.raycastTarget = false;
+
         robot = FindAnyObjectByType<BonkRobotController>();
     }
 
@@ -91,29 +110,50 @@ public class ControlsOverlay : MonoBehaviour
             return;
         }
 
-        float speed = robot.BallController != null
-            ? robot.BallController.Speed
+        BonkRobotController playerTwo = null;
+        foreach (BonkRobotController player in BonkRobotController.Players)
+        {
+            if (player != null && player.PlayerNumber == 1)
+            {
+                robot = player;
+            }
+            else if (player != null && player.PlayerNumber == 2)
+            {
+                playerTwo = player;
+            }
+        }
+
+        statusLabel.text = BuildPlayerStatus(robot, "P1");
+        playerTwoStatusLabel.text = playerTwo != null
+            ? BuildPlayerStatus(playerTwo, "P2")
+            : string.Empty;
+    }
+
+    private string BuildPlayerStatus(BonkRobotController player, string label)
+    {
+        float speed = player.BallController != null
+            ? player.BallController.Speed
             : 0f;
-        string tier = speed >= robot.Tuning.heavyEnemyKillSpeed
+        string tier = speed >= player.Tuning.heavyEnemyKillSpeed
             ? "HEAVY KILL"
-            : speed >= robot.Tuning.smallEnemyKillSpeed
+            : speed >= player.Tuning.smallEnemyKillSpeed
                 ? "SMALL KILL"
                 : "TOO SLOW";
-        string targetHint = BuildTargetHint();
-        statusLabel.text =
-            $"HEALTH  {robot.CurrentHealth}/{robot.MaxHealth}\n" +
+        string targetHint = BuildTargetHint(player);
+        return
+            $"{label}   HEALTH  {player.CurrentHealth}/{player.MaxHealth}\n" +
             $"SPEED   {speed:0.0}   {tier}\n" +
             $"MONSTERS   {EnemyBumper.ActiveCount}" +
-            (robot.StoredSpeedBoost > 0f
-                ? $"   STORED BOOST +{robot.StoredSpeedBoost:0}"
+            (player.StoredSpeedBoost > 0f
+                ? $"   BOOST +{player.StoredSpeedBoost:0}"
                 : string.Empty) + targetHint;
     }
 
-    private string BuildTargetHint()
+    private string BuildTargetHint(BonkRobotController player)
     {
-        Transform playerTransform = robot.IsBallForm
-            ? robot.BallTransform
-            : robot.StandingTransform;
+        Transform playerTransform = player.IsBallForm
+            ? player.BallTransform
+            : player.StandingTransform;
         if (EnemyBumper.ActiveCount > 3 || playerTransform == null)
         {
             return string.Empty;

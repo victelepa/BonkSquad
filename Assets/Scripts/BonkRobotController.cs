@@ -1,9 +1,19 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class BonkRobotController : MonoBehaviour
 {
+    private static readonly List<BonkRobotController> players = new List<BonkRobotController>();
+    public static IReadOnlyList<BonkRobotController> Players => players;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetPlayers()
+    {
+        players.Clear();
+    }
+
     [Header("Phase 1")]
     [SerializeField] private BonkGameTuning tuning;
 
@@ -48,13 +58,17 @@ public class BonkRobotController : MonoBehaviour
     public Transform BallTransform => ballForm != null ? ballForm.transform : null;
     public BouncingBallController BallController => ballController;
     public float StoredSpeedBoost => storedSpeedBoost;
+    public int PlayerNumber => playerNumber;
+    public Transform CameraTransform => cameraTransform;
 
+    private int playerNumber = 1;
     private float nextDamageTime;
     private float storedSpeedBoost;
 
     private Transform cameraTarget;
     private Vector3 cameraVelocity;
     private Coroutine standingVelocityTransfer;
+    private Vector3 spawnPosition;
 
     private void Awake()
     {
@@ -76,7 +90,7 @@ public class BonkRobotController : MonoBehaviour
         CurrentHealth = Tuning.playerHealth;
         if (ballController != null)
         {
-            ballController.Configure(Tuning);
+            ballController.Configure(Tuning, this);
         }
         if (standingController != null)
         {
@@ -91,6 +105,22 @@ public class BonkRobotController : MonoBehaviour
         cameraTarget = IsBallForm
             ? ballForm.transform
             : standingForm.transform;
+        spawnPosition = transform.position;
+    }
+
+    public void ConfigureLocalPlayer(int number, Transform playerCamera)
+    {
+        playerNumber = Mathf.Clamp(number, 1, 2);
+        cameraTransform = playerCamera;
+        spawnPosition = transform.position;
+        if (ballController != null)
+        {
+            ballController.Configure(Tuning, this);
+        }
+        if (standingController != null)
+        {
+            standingController.Configure(this);
+        }
     }
 
     public bool TryTakeDamage(Vector3 sourcePosition)
@@ -152,36 +182,38 @@ public class BonkRobotController : MonoBehaviour
         {
             ToggleForm();
         }
+        transform.position = spawnPosition;
         standingForm.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
         standingController.EnterStandingMode(Vector3.zero);
     }
 
     private void OnEnable()
     {
-        if (switchFormAction == null)
+        if (!players.Contains(this))
         {
-            return;
+            players.Add(this);
         }
-
-        switchFormAction.action.performed += OnSwitchForm;
-        switchFormAction.action.Enable();
     }
 
     private void OnDisable()
     {
-        if (switchFormAction == null)
+        players.Remove(this);
+    }
+
+    private void Update()
+    {
+        if (Time.timeScale <= 0f || Keyboard.current == null)
         {
             return;
         }
 
-        switchFormAction.action.performed -= OnSwitchForm;
-        switchFormAction.action.Disable();
-    }
-
-    private void OnSwitchForm(
-        InputAction.CallbackContext context)
-    {
-        ToggleForm();
+        bool switchPressed = playerNumber == 1
+            ? Keyboard.current.qKey.wasPressedThisFrame
+            : Keyboard.current.spaceKey.wasPressedThisFrame;
+        if (switchPressed)
+        {
+            ToggleForm();
+        }
     }
 
     public void ToggleForm()

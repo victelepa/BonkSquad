@@ -39,6 +39,7 @@ public class BouncingBallController : MonoBehaviour
     private BonkGameTuning tuning;
     private Renderer ballRenderer;
     private MaterialPropertyBlock materialProperties;
+    private BonkRobotController owner;
 
     public float Speed => PlanarVelocity.magnitude;
     public Vector3 LastPlanarVelocity => lastMovingVelocity;
@@ -78,9 +79,20 @@ public class BouncingBallController : MonoBehaviour
         materialProperties = new MaterialPropertyBlock();
     }
 
-    public void Configure(BonkGameTuning gameTuning)
+    public void Configure(
+        BonkGameTuning gameTuning,
+        BonkRobotController playerOwner = null)
     {
         tuning = gameTuning;
+        owner = playerOwner;
+        if (owner != null)
+        {
+            cameraTransform = owner.CameraTransform;
+            if (owner.PlayerNumber == 2)
+            {
+                lowSpeedColor = new Color(0.7f, 0.25f, 1f);
+            }
+        }
         acceleration = tuning.ballAcceleration;
         steeringAcceleration = tuning.ballSteeringAcceleration;
         brakingAcceleration = tuning.ballBrakingAcceleration;
@@ -198,11 +210,18 @@ public class BouncingBallController : MonoBehaviour
             return;
         }
 
-        Vector2 input = new Vector2(
-            (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed ? 1f : 0f)
-            - (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed ? 1f : 0f),
-            (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed ? 1f : 0f)
-            - (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed ? 1f : 0f));
+        bool playerTwo = owner != null && owner.PlayerNumber == 2;
+        Vector2 input = playerTwo
+            ? new Vector2(
+                (Keyboard.current.rightArrowKey.isPressed ? 1f : 0f) -
+                (Keyboard.current.leftArrowKey.isPressed ? 1f : 0f),
+                (Keyboard.current.upArrowKey.isPressed ? 1f : 0f) -
+                (Keyboard.current.downArrowKey.isPressed ? 1f : 0f))
+            : new Vector2(
+                (Keyboard.current.dKey.isPressed ? 1f : 0f) -
+                (Keyboard.current.aKey.isPressed ? 1f : 0f),
+                (Keyboard.current.wKey.isPressed ? 1f : 0f) -
+                (Keyboard.current.sKey.isPressed ? 1f : 0f));
 
         if (input.sqrMagnitude < 0.01f)
         {

@@ -96,10 +96,7 @@ public class EnemyBumper : MonoBehaviour
             ChooseDirection();
         }
 
-        if (robot == null)
-        {
-            robot = FindAnyObjectByType<BonkRobotController>();
-        }
+        robot = FindClosestVulnerablePlayer();
 
         if (Time.time >= avoidUntil &&
             robot != null && !robot.IsBallForm && robot.StandingTransform != null)
@@ -152,6 +149,27 @@ public class EnemyBumper : MonoBehaviour
         }
 
         body.MovePosition(body.position + direction * distance);
+    }
+
+    private BonkRobotController FindClosestVulnerablePlayer()
+    {
+        BonkRobotController closest = null;
+        float closestDistance = float.PositiveInfinity;
+        foreach (BonkRobotController player in BonkRobotController.Players)
+        {
+            if (player == null || player.IsBallForm || player.StandingTransform == null)
+            {
+                continue;
+            }
+
+            float distance = (player.StandingTransform.position - transform.position).sqrMagnitude;
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                closest = player;
+            }
+        }
+        return closest;
     }
 
     private void OnCollisionEnter(Collision collision)

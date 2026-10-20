@@ -124,7 +124,8 @@ public class GameFlowScreen : MonoBehaviour
         body.alignment = TextAnchor.MiddleCenter;
         body.fontSize = 28;
         body.text =
-            "BUILD MOMENTUM. BECOME THE BALL.\nBONK EVERY MONSTER OUT OF THE ARENA.";
+            "TWO PLAYERS. TWO ROBOTS. ONE BONK SQUAD.\n" +
+            "BUILD MOMENTUM AND BONK EVERY MONSTER OUT OF THE ARENA.";
         prompt.text = "PRESS ENTER TO CONTINUE";
     }
 
@@ -137,8 +138,8 @@ public class GameFlowScreen : MonoBehaviour
         body.fontSize = 20;
         body.text =
             "CONTROLS\n" +
-            "W / A / S / D or ARROW KEYS  —  Move and steer\n" +
-            "SPACE  —  Switch between robot and ball forms\n" +
+            "PLAYER 1: W / A / S / D  —  Move and steer     Q  —  Switch form\n" +
+            "PLAYER 2: ARROW KEYS  —  Move and steer     SPACE  —  Switch form\n" +
             "ENTER  —  Continue / start the game\n" +
             "ESC  —  Return to the title screen\n\n" +
             "GOAL\nDefeat every monster. Build enough speed to destroy small enemies, " +
