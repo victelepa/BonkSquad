@@ -38,19 +38,23 @@ public class RedBouncePanel : MonoBehaviour
         Vector3 surfaceNormal = collision.contactCount > 0
             ? collision.GetContact(0).normal
             : -ball.PlanarVelocity.normalized;
+        Vector3 incomingVelocity = ball.LastPlanarVelocity;
         nextReadyTime = Time.time + cooldown;
-        StartCoroutine(BoostAfterPhysics(ball, surfaceNormal));
+        StartCoroutine(BoostAfterPhysics(
+            ball, incomingVelocity, surfaceNormal));
         StartCoroutine(ShowCooldown());
     }
 
     private IEnumerator BoostAfterPhysics(
         BouncingBallController ball,
+        Vector3 incomingVelocity,
         Vector3 surfaceNormal)
     {
         yield return new WaitForFixedUpdate();
         if (ball != null && ball.isActiveAndEnabled)
         {
-            ball.ApplyBoostedRicochet(surfaceNormal, speedBoost);
+            ball.ApplyBoostedRicochet(
+                incomingVelocity, surfaceNormal, speedBoost);
         }
     }
 

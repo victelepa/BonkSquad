@@ -32,6 +32,7 @@ public class BouncingBallController : MonoBehaviour
     private MaterialPropertyBlock materialProperties;
 
     public float Speed => PlanarVelocity.magnitude;
+    public Vector3 LastPlanarVelocity => lastMovingVelocity;
     public float SmallKillSpeed => tuning != null ? tuning.smallEnemyKillSpeed : 9f;
     public float HeavyKillSpeed => tuning != null ? tuning.heavyEnemyKillSpeed : 19f;
 
@@ -90,22 +91,31 @@ public class BouncingBallController : MonoBehaviour
         rb.linearVelocity = direction * boostedSpeed + Vector3.up * velocity.y;
     }
 
-    public void ApplyBoostedRicochet(Vector3 surfaceNormal, float addedSpeed)
+    public void ApplyBoostedRicochet(
+        Vector3 incomingVelocity,
+        Vector3 surfaceNormal,
+        float addedSpeed)
     {
-        Vector3 incoming = rb.linearVelocity;
-        if (incoming.sqrMagnitude < 0.01f || surfaceNormal.sqrMagnitude < 0.01f)
+        Vector3 incoming = Vector3.ProjectOnPlane(incomingVelocity, Vector3.up);
+        Vector3 planarNormal = Vector3.ProjectOnPlane(
+            surfaceNormal, Vector3.up);
+        if (incoming.sqrMagnitude < 0.01f || planarNormal.sqrMagnitude < 0.01f)
         {
             AddSpeedBoost(addedSpeed);
             return;
         }
 
-        Vector3 reflected = Vector3.Reflect(incoming, surfaceNormal.normalized);
+        // Wall boosts are a horizontal mirror-angle ricochet. Ignoring the
+        // vertical contact component prevents seams and bevels launching the ball.
+        Vector3 reflected = Vector3.Reflect(
+            incoming.normalized, planarNormal.normalized);
         float absoluteCap = tuning != null ? tuning.ballAbsoluteSpeedCap : maxSpeed;
         float targetSpeed = Mathf.Min(
             absoluteCap,
             incoming.magnitude + Mathf.Max(0f, addedSpeed));
         rb.linearVelocity = reflected.normalized * targetSpeed;
-        lastMovingVelocity = Vector3.ProjectOnPlane(rb.linearVelocity, Vector3.up);
+        rb.angularVelocity = Vector3.zero;
+        lastMovingVelocity = rb.linearVelocity;
         lastMovingVelocityTime = Time.time;
     }
 

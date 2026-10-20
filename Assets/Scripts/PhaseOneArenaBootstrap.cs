@@ -37,6 +37,19 @@ internal static class PhaseOneArenaBootstrap
             new Vector3(-15f, 1f, 0f), new Vector3(5f, 2f, 0.8f), 35f);
         CreateObstacle(root.transform, "Angled Barrier B",
             new Vector3(15f, 1f, 5f), new Vector3(5f, 2f, 0.8f), -35f);
+
+        CreateSpeedTile(root.transform, "Speed Tile West",
+            new Vector3(-18f, 0.08f, -8f), 90f);
+        CreateSpeedTile(root.transform, "Speed Tile South West",
+            new Vector3(-10f, 0.08f, -17f), 25f);
+        CreateSpeedTile(root.transform, "Speed Tile South East",
+            new Vector3(10f, 0.08f, -17f), -25f);
+        CreateSpeedTile(root.transform, "Speed Tile East",
+            new Vector3(18f, 0.08f, 8f), 90f);
+        CreateSpeedTile(root.transform, "Speed Tile North East",
+            new Vector3(10f, 0.08f, 17f), 25f);
+        CreateSpeedTile(root.transform, "Speed Tile North West",
+            new Vector3(-10f, 0.08f, 17f), -25f);
     }
 
     private static void CreateBoostPoint(
@@ -58,6 +71,15 @@ internal static class PhaseOneArenaBootstrap
         Transform parent, string name, Vector3 position, Vector3 scale, float yaw)
     {
         CreateBlock(parent, name, position, scale, yaw);
+    }
+
+    private static void CreateSpeedTile(
+        Transform parent, string name, Vector3 position, float yaw)
+    {
+        GameObject tile = CreateBlock(
+            parent, name, position, new Vector3(2.4f, 0.12f, 1.25f), yaw);
+        tile.GetComponent<BoxCollider>().isTrigger = true;
+        tile.AddComponent<YellowSpeedTile>();
     }
 
     private static GameObject CreateBlock(
