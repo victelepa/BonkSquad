@@ -101,6 +101,10 @@ public class ControlsOverlay : MonoBehaviour
                 : "TOO SLOW";
         statusLabel.text =
             $"HEALTH  {robot.CurrentHealth}/{robot.MaxHealth}\n" +
-            $"SPEED   {speed:0.0}   {tier}";
+            $"SPEED   {speed:0.0}   {tier}\n" +
+            $"MONSTERS   {EnemyBumper.ActiveCount}" +
+            (robot.StoredSpeedBoost > 0f
+                ? $"   STORED BOOST +{robot.StoredSpeedBoost:0}"
+                : string.Empty);
     }
 }

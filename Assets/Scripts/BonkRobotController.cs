@@ -47,8 +47,10 @@ public class BonkRobotController : MonoBehaviour
     public Transform StandingTransform => standingForm != null ? standingForm.transform : null;
     public Transform BallTransform => ballForm != null ? ballForm.transform : null;
     public BouncingBallController BallController => ballController;
+    public float StoredSpeedBoost => storedSpeedBoost;
 
     private float nextDamageTime;
+    private float storedSpeedBoost;
 
     private Transform cameraTarget;
     private Vector3 cameraVelocity;
@@ -122,6 +124,26 @@ public class BonkRobotController : MonoBehaviour
         return true;
     }
 
+    public void Heal(int amount)
+    {
+        CurrentHealth = Mathf.Min(MaxHealth, CurrentHealth + Mathf.Max(0, amount));
+    }
+
+    public void GrantSpeedBoost(float amount)
+    {
+        amount = Mathf.Max(0f, amount);
+        if (IsBallForm && ballController != null)
+        {
+            ballController.AddSpeedBoost(amount);
+        }
+        else
+        {
+            storedSpeedBoost = Mathf.Min(
+                Tuning.ballAbsoluteSpeedCap,
+                storedSpeedBoost + amount);
+        }
+    }
+
     private void RestartPlayer()
     {
         CurrentHealth = Tuning.playerHealth;
@@ -169,6 +191,10 @@ public class BonkRobotController : MonoBehaviour
             Vector3 inheritedVelocity = standingController != null
                 ? standingController.CurrentPlanarVelocity
                 : Vector3.zero;
+            if (inheritedVelocity.magnitude <= Tuning.humanMoveSpeed + 0.5f)
+            {
+                inheritedVelocity *= Tuning.launchMomentumMultiplier;
+            }
 
             ballForm.transform.SetPositionAndRotation(
                 standingForm.transform.position,
@@ -182,6 +208,11 @@ public class BonkRobotController : MonoBehaviour
             if (ballController != null)
             {
                 ballController.EnterBallMode(inheritedVelocity);
+                if (storedSpeedBoost > 0f)
+                {
+                    ballController.AddSpeedBoost(storedSpeedBoost);
+                    storedSpeedBoost = 0f;
+                }
             }
         }
         else

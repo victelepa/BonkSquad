@@ -90,6 +90,25 @@ public class BouncingBallController : MonoBehaviour
         rb.linearVelocity = direction * boostedSpeed + Vector3.up * velocity.y;
     }
 
+    public void ApplyBoostedRicochet(Vector3 surfaceNormal, float addedSpeed)
+    {
+        Vector3 incoming = rb.linearVelocity;
+        if (incoming.sqrMagnitude < 0.01f || surfaceNormal.sqrMagnitude < 0.01f)
+        {
+            AddSpeedBoost(addedSpeed);
+            return;
+        }
+
+        Vector3 reflected = Vector3.Reflect(incoming, surfaceNormal.normalized);
+        float absoluteCap = tuning != null ? tuning.ballAbsoluteSpeedCap : maxSpeed;
+        float targetSpeed = Mathf.Min(
+            absoluteCap,
+            incoming.magnitude + Mathf.Max(0f, addedSpeed));
+        rb.linearVelocity = reflected.normalized * targetSpeed;
+        lastMovingVelocity = Vector3.ProjectOnPlane(rb.linearVelocity, Vector3.up);
+        lastMovingVelocityTime = Time.time;
+    }
+
     public void EnterBallMode(Vector3 inheritedVelocity)
     {
         if (rb == null)

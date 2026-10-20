@@ -5,6 +5,14 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class EnemyBumper : MonoBehaviour
 {
+    public static int ActiveCount { get; private set; }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetActiveCount()
+    {
+        ActiveCount = 0;
+    }
+
     [Header("Ball Impact")]
     [Tooltip("Small enemies are defeated when hit by the player in ball form.")]
     [SerializeField] private bool destroyedByBall;
@@ -47,7 +55,13 @@ public class EnemyBumper : MonoBehaviour
 
     private void OnEnable()
     {
+        ActiveCount++;
         ChooseDirection();
+    }
+
+    private void OnDisable()
+    {
+        ActiveCount = Mathf.Max(0, ActiveCount - 1);
     }
 
     private void ChooseDirection()

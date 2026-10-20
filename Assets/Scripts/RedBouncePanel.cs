@@ -34,17 +34,22 @@ public class RedBouncePanel : MonoBehaviour
             return;
         }
 
+        Vector3 surfaceNormal = collision.contactCount > 0
+            ? collision.GetContact(0).normal
+            : -ball.PlanarVelocity.normalized;
         nextReadyTime = Time.time + cooldown;
-        StartCoroutine(BoostAfterPhysics(ball));
+        StartCoroutine(BoostAfterPhysics(ball, surfaceNormal));
         StartCoroutine(ShowCooldown());
     }
 
-    private IEnumerator BoostAfterPhysics(BouncingBallController ball)
+    private IEnumerator BoostAfterPhysics(
+        BouncingBallController ball,
+        Vector3 surfaceNormal)
     {
         yield return new WaitForFixedUpdate();
         if (ball != null && ball.isActiveAndEnabled)
         {
-            ball.AddSpeedBoost(speedBoost);
+            ball.ApplyBoostedRicochet(surfaceNormal, speedBoost);
         }
     }
 
@@ -63,24 +68,6 @@ public class RedBouncePanel : MonoBehaviour
             properties.SetColor("_BaseColor", color);
             properties.SetColor("_Color", color);
             panelRenderer.SetPropertyBlock(properties);
-        }
-    }
-}
-
-internal static class PhaseOneArenaBootstrap
-{
-    private static readonly string[] PanelNames = { "Pillar A", "Pillar B" };
-
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    private static void AddPrototypeBouncePanels()
-    {
-        foreach (string panelName in PanelNames)
-        {
-            GameObject panel = GameObject.Find(panelName);
-            if (panel != null && panel.GetComponent<RedBouncePanel>() == null)
-            {
-                panel.AddComponent<RedBouncePanel>();
-            }
         }
     }
 }

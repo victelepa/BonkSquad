@@ -40,6 +40,7 @@ public class HadesPlayerController : MonoBehaviour
     public void Configure(BonkRobotController owner)
     {
         robot = owner;
+        moveSpeed = robot.Tuning.humanMoveSpeed;
     }
 
     public void ApplyKnockback(Vector3 velocity)

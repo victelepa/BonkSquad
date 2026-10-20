@@ -8,14 +8,24 @@ public class BonkGameTuning : ScriptableObject
     [Min(0f)] public float damageInvulnerability = 1.1f;
     [Min(0f)] public float damageKnockback = 5f;
 
+    [Header("Human Movement")]
+    [Min(0f)] public float humanMoveSpeed = 6f;
+
     [Header("Ball Movement")]
-    [Min(0f)] public float ballAcceleration = 5f;
+    [Min(0f)] public float ballAcceleration = 8f;
     [Min(0f)] public float ballSteeringAcceleration = 3f;
     [Min(0f)] public float ballBrakingAcceleration = 4f;
-    [Min(0f)] public float ballNaturalSpeedLoss = 0.75f;
+    [Min(0f)] public float ballNaturalSpeedLoss = 0.35f;
     [Min(0f)] public float ballNormalSpeedCap = 18f;
     [Min(0f)] public float ballAbsoluteSpeedCap = 24f;
     [Min(0f)] public float overcapSpeedLoss = 3f;
+    [Min(1f)] public float launchMomentumMultiplier = 1.35f;
+
+    [Header("Powerups")]
+    [Min(0f)] public float speedPowerupBoost = 6f;
+    [Min(0f)] public float powerupMinimumDelay = 5f;
+    [Min(0f)] public float powerupMaximumDelay = 10f;
+    [Min(1)] public int maximumActivePowerups = 3;
 
     [Header("Impact Tiers")]
     [Min(0f)] public float smallEnemyKillSpeed = 9f;
