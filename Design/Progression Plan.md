@@ -14,6 +14,25 @@ Enter an arena, build momentum, defeat every monster, choose an upgrade, and ent
 
 This slice reuses the current mechanics and proves progression before additional levels are built.
 
+## Level unlock structure
+
+Use monster defeats to change the current arena, but require a full arena clear to unlock the next level:
+
+- **Early-wave defeats:** activate additional yellow boost tiles and open a shortcut.
+- **Wave cleared:** open the arena gate and release the next enemy group.
+- **Final wave cleared:** unlock the exit portal and the next level.
+- **Heavy enemy defeated:** award an upgrade choice or a large team momentum bonus.
+
+This gives every defeat visible value without letting players accidentally leave an unfinished encounter. The HUD should show `Wave 1/3`, remaining monsters, and the next unlock condition.
+
+Suggested initial level sequence:
+
+1. **Training Yard:** open layout, small enemies, one heavy finale.
+2. **Ricochet Factory:** narrow bounce lanes, moving barriers, charger enemies.
+3. **Launch Foundry:** ramps, pits, elevated routes, ranged enemies.
+4. **Crusher Arena:** timed hazards, shield enemies, multiple heavies.
+5. **Boss Core:** a multi-phase boss that changes the arena surfaces.
+
 ## Upgrade categories
 
 - **Momentum:** higher speed cap, lower natural speed loss, stronger wall boosts.

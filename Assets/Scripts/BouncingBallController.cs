@@ -44,7 +44,7 @@ public class BouncingBallController : MonoBehaviour
     public float Speed => PlanarVelocity.magnitude;
     public Vector3 LastPlanarVelocity => lastMovingVelocity;
     public float SmallKillSpeed => tuning != null ? tuning.smallEnemyKillSpeed : 9f;
-    public float HeavyKillSpeed => tuning != null ? tuning.heavyEnemyKillSpeed : 19f;
+    public float HeavyKillSpeed => tuning != null ? tuning.heavyEnemyKillSpeed : 16f;
 
     public Vector3 PlanarVelocity
     {

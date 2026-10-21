@@ -200,11 +200,16 @@ public class EnemyBumper : MonoBehaviour
             {
                 isDefeated = true;
                 knockbackVelocity = awayFromBall * tuning.strongHitKnockback;
+                ball.AddSpeedBoost(tuning.enemyDefeatSpeedReward);
                 Destroy(gameObject);
             }
             else
             {
                 knockbackVelocity = awayFromBall * tuning.weakHitKnockback;
+                if (!destroyedByBall)
+                {
+                    ball.AddSpeedBoost(tuning.heavyWeakHitSpeedReward);
+                }
                 StopAllCoroutines();
                 StartCoroutine(ShowWeakHitFeedback());
             }

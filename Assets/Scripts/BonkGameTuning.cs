@@ -29,9 +29,11 @@ public class BonkGameTuning : ScriptableObject
 
     [Header("Impact Tiers")]
     [Min(0f)] public float smallEnemyKillSpeed = 9f;
-    [Min(0f)] public float heavyEnemyKillSpeed = 19f;
+    [Min(0f)] public float heavyEnemyKillSpeed = 16f;
     [Min(0f)] public float weakHitKnockback = 5f;
     [Min(0f)] public float strongHitKnockback = 10f;
+    [Min(0f)] public float enemyDefeatSpeedReward = 2.5f;
+    [Min(0f)] public float heavyWeakHitSpeedReward = 1.5f;
 
     [Header("Enemies")]
     [Min(0f)] public float chaserSpeed = 4f;

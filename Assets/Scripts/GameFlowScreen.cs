@@ -16,6 +16,7 @@ public class GameFlowScreen : MonoBehaviour
     private Text heading;
     private Text body;
     private Text prompt;
+    private int selectedPlayerCount = 1;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Install()
@@ -50,6 +51,20 @@ public class GameFlowScreen : MonoBehaviour
             {
                 StartGame();
             }
+        }
+        else if (state == ScreenState.Title &&
+                 (Keyboard.current.leftArrowKey.wasPressedThisFrame ||
+                  Keyboard.current.aKey.wasPressedThisFrame))
+        {
+            selectedPlayerCount = 1;
+            RefreshTitleSelection();
+        }
+        else if (state == ScreenState.Title &&
+                 (Keyboard.current.rightArrowKey.wasPressedThisFrame ||
+                  Keyboard.current.dKey.wasPressedThisFrame))
+        {
+            selectedPlayerCount = 2;
+            RefreshTitleSelection();
         }
         else if (state == ScreenState.Instructions &&
                  Keyboard.current.escapeKey.wasPressedThisFrame)
@@ -124,9 +139,18 @@ public class GameFlowScreen : MonoBehaviour
         body.alignment = TextAnchor.MiddleCenter;
         body.fontSize = 28;
         body.text =
-            "TWO PLAYERS. TWO ROBOTS. ONE BONK SQUAD.\n" +
-            "BUILD MOMENTUM AND BONK EVERY MONSTER OUT OF THE ARENA.";
-        prompt.text = "PRESS ENTER TO CONTINUE";
+            "BUILD MOMENTUM AND BONK EVERY MONSTER OUT OF THE ARENA.\n\n" +
+            "CHOOSE GAME MODE";
+        RefreshTitleSelection();
+    }
+
+    private void RefreshTitleSelection()
+    {
+        string onePlayer = selectedPlayerCount == 1 ? "[  1 PLAYER  ]" : "   1 PLAYER   ";
+        string twoPlayer = selectedPlayerCount == 2 ? "[  2 PLAYERS  ]" : "   2 PLAYERS   ";
+        prompt.text =
+            $"{onePlayer}          {twoPlayer}\n" +
+            "A / D OR ← / → TO CHOOSE     •     ENTER TO CONTINUE";
     }
 
     private void ShowInstructions()
@@ -136,10 +160,13 @@ public class GameFlowScreen : MonoBehaviour
         heading.fontSize = 46;
         body.alignment = TextAnchor.UpperLeft;
         body.fontSize = 20;
+        string controls = selectedPlayerCount == 1
+            ? "PLAYER 1: W / A / S / D  —  Move and steer     Q  —  Switch form\n"
+            : "PLAYER 1: W / A / S / D  —  Move and steer     Q  —  Switch form\n" +
+              "PLAYER 2: ARROW KEYS  —  Move and steer     SPACE  —  Switch form\n";
         body.text =
             "CONTROLS\n" +
-            "PLAYER 1: W / A / S / D  —  Move and steer     Q  —  Switch form\n" +
-            "PLAYER 2: ARROW KEYS  —  Move and steer     SPACE  —  Switch form\n" +
+            controls +
             "ENTER  —  Continue / start the game\n" +
             "ESC  —  Return to the title screen\n\n" +
             "GOAL\nDefeat every monster. Build enough speed to destroy small enemies, " +
@@ -160,6 +187,7 @@ public class GameFlowScreen : MonoBehaviour
 
     private void StartGame()
     {
+        LocalCoopBootstrap.ConfigurePlayerCount(selectedPlayerCount);
         state = ScreenState.Playing;
         Time.timeScale = 1f;
         screenRoot.SetActive(false);

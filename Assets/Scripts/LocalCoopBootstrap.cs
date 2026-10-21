@@ -2,13 +2,19 @@ using UnityEngine;
 
 internal static class LocalCoopBootstrap
 {
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    private static void CreateSecondPlayer()
+    public static void ConfigurePlayerCount(int playerCount)
     {
         BonkRobotController playerOne = Object.FindAnyObjectByType<BonkRobotController>();
         Camera playerOneCamera = Camera.main;
         if (playerOne == null || playerOneCamera == null)
         {
+            return;
+        }
+
+        playerOne.ConfigureLocalPlayer(1, playerOneCamera.transform);
+        if (playerCount <= 1)
+        {
+            playerOneCamera.rect = new Rect(0f, 0f, 1f, 1f);
             return;
         }
 
@@ -31,7 +37,6 @@ internal static class LocalCoopBootstrap
 
         playerOne.transform.position += Vector3.left * 2f;
         playerTwoObject.transform.position += Vector3.right * 2f;
-        playerOne.ConfigureLocalPlayer(1, playerOneCamera.transform);
         BonkRobotController playerTwo =
             playerTwoObject.GetComponent<BonkRobotController>();
         playerTwo.ConfigureLocalPlayer(2, playerTwoCamera.transform);
