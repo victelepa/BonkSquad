@@ -175,7 +175,7 @@ public class GameFlowScreen : MonoBehaviour
             "Robot form turns precisely but can take damage. Ball form carries momentum, " +
             "ricochets, and defeats enemies.\n\n" +
             "SPEED & SURFACES\nGray walls and barriers bounce you. Red bumpers bounce you faster. " +
-            "Yellow floor tiles accelerate you forward. Blue ramps can be driven over to launch. " +
+            "Yellow floor tiles accelerate you forward. " +
             "Chain ricochets within three seconds to build pinball momentum. " +
             "Your ball changes color as it reaches stronger impact tiers.\n\n" +
             "POWER-UPS\nCyan capsule  Speed boost\nGreen sphere  Restore one health\n" +
