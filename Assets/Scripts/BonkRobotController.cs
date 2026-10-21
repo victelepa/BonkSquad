@@ -207,9 +207,11 @@ public class BonkRobotController : MonoBehaviour
             return;
         }
 
-        bool switchPressed = playerNumber == 1
-            ? Keyboard.current.qKey.wasPressedThisFrame
-            : Keyboard.current.spaceKey.wasPressedThisFrame;
+        bool switchPressed = LocalCoopBootstrap.CurrentPlayerCount == 1
+            ? Keyboard.current.spaceKey.wasPressedThisFrame
+            : playerNumber == 1
+                ? Keyboard.current.qKey.wasPressedThisFrame
+                : Keyboard.current.spaceKey.wasPressedThisFrame;
         if (switchPressed)
         {
             ToggleForm();

@@ -161,7 +161,7 @@ public class GameFlowScreen : MonoBehaviour
         body.alignment = TextAnchor.UpperLeft;
         body.fontSize = 20;
         string controls = selectedPlayerCount == 1
-            ? "PLAYER 1: W / A / S / D  —  Move and steer     Q  —  Switch form\n"
+            ? "W / A / S / D  —  Move and steer     SPACE  —  Switch form\n"
             : "PLAYER 1: W / A / S / D  —  Move and steer     Q  —  Switch form\n" +
               "PLAYER 2: ARROW KEYS  —  Move and steer     SPACE  —  Switch form\n";
         body.text =
@@ -176,6 +176,7 @@ public class GameFlowScreen : MonoBehaviour
             "ricochets, and defeats enemies.\n\n" +
             "SPEED & SURFACES\nGray walls and barriers bounce you. Red bumpers bounce you faster. " +
             "Yellow floor tiles accelerate you forward. Blue ramps can be driven over to launch. " +
+            "Chain ricochets within three seconds to build pinball momentum. " +
             "Your ball changes color as it reaches stronger impact tiers.\n\n" +
             "POWER-UPS\nCyan capsule  Speed boost\nGreen sphere  Restore one health\n" +
             "Power-ups appear at different locations over time. A collected speed boost is saved " +

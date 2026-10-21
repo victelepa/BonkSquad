@@ -27,6 +27,16 @@ public class BouncingBallController : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float aimAssistTurnSpeed = 24f;
 
+    [Header("Pinball Momentum")]
+    [Tooltip("Time allowed between ricochets to continue the bounce chain.")]
+    [Min(0f)]
+    [SerializeField] private float bounceChainWindow = 3f;
+    [Tooltip("Extra speed added for each consecutive ricochet.")]
+    [Min(0f)]
+    [SerializeField] private float bounceChainSpeedStep = 0.4f;
+    [Min(0f)]
+    [SerializeField] private float maximumBounceChainBonus = 3f;
+
     [Header("Speed Feedback")]
     [SerializeField] private Color lowSpeedColor = new Color(0.15f, 0.45f, 1f);
     [SerializeField] private Color killSpeedColor = new Color(1f, 0.75f, 0.1f);
@@ -40,11 +50,14 @@ public class BouncingBallController : MonoBehaviour
     private Renderer ballRenderer;
     private MaterialPropertyBlock materialProperties;
     private BonkRobotController owner;
+    private float lastBounceTime = -10f;
+    private int bounceChain;
 
     public float Speed => PlanarVelocity.magnitude;
     public Vector3 LastPlanarVelocity => lastMovingVelocity;
     public float SmallKillSpeed => tuning != null ? tuning.smallEnemyKillSpeed : 9f;
     public float HeavyKillSpeed => tuning != null ? tuning.heavyEnemyKillSpeed : 16f;
+    public int BounceChain => bounceChain;
 
     public Vector3 PlanarVelocity
     {
@@ -130,10 +143,17 @@ public class BouncingBallController : MonoBehaviour
         // vertical contact component prevents seams and bevels launching the ball.
         Vector3 reflected = Vector3.Reflect(
             incoming.normalized, planarNormal.normalized);
+        bounceChain = Time.time - lastBounceTime <= bounceChainWindow
+            ? bounceChain + 1
+            : 1;
+        lastBounceTime = Time.time;
+        float chainBonus = Mathf.Min(
+            maximumBounceChainBonus,
+            Mathf.Max(0, bounceChain - 1) * bounceChainSpeedStep);
         float absoluteCap = tuning != null ? tuning.ballAbsoluteSpeedCap : maxSpeed;
         float targetSpeed = Mathf.Min(
             absoluteCap,
-            incoming.magnitude + Mathf.Max(0f, addedSpeed));
+            incoming.magnitude + Mathf.Max(0f, addedSpeed) + chainBonus);
         rb.linearVelocity = reflected.normalized * targetSpeed;
         rb.angularVelocity = Vector3.zero;
         lastMovingVelocity = rb.linearVelocity;
@@ -170,6 +190,11 @@ public class BouncingBallController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (bounceChain > 0 && Time.time - lastBounceTime > bounceChainWindow)
+        {
+            bounceChain = 0;
+        }
+
         Vector3 velocity = rb.linearVelocity;
         Vector3 planarVelocity = new Vector3(velocity.x, 0f, velocity.z);
         if (planarVelocity.sqrMagnitude > 0.0625f)

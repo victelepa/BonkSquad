@@ -111,7 +111,7 @@ internal static class PhaseOneArenaBootstrap
     {
         RedBouncePanel bounce = obstacle.AddComponent<RedBouncePanel>();
         bounce.Configure(
-            1f,
+            1.5f,
             new Color(0.45f, 0.5f, 0.58f),
             new Color(0.2f, 0.23f, 0.28f));
     }

@@ -144,6 +144,9 @@ public class ControlsOverlay : MonoBehaviour
             $"{label}   HEALTH  {player.CurrentHealth}/{player.MaxHealth}\n" +
             $"SPEED   {speed:0.0}   {tier}\n" +
             $"MONSTERS   {EnemyBumper.ActiveCount}" +
+            (player.BallController != null && player.BallController.BounceChain > 1
+                ? $"   BOUNCE x{player.BallController.BounceChain}"
+                : string.Empty) +
             (player.StoredSpeedBoost > 0f
                 ? $"   BOOST +{player.StoredSpeedBoost:0}"
                 : string.Empty) + targetHint;

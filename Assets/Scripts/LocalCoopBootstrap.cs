@@ -2,8 +2,17 @@ using UnityEngine;
 
 internal static class LocalCoopBootstrap
 {
+    public static int CurrentPlayerCount { get; private set; } = 1;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetPlayerCount()
+    {
+        CurrentPlayerCount = 1;
+    }
+
     public static void ConfigurePlayerCount(int playerCount)
     {
+        CurrentPlayerCount = Mathf.Clamp(playerCount, 1, 2);
         BonkRobotController playerOne = Object.FindAnyObjectByType<BonkRobotController>();
         Camera playerOneCamera = Camera.main;
         if (playerOne == null || playerOneCamera == null)
@@ -12,7 +21,7 @@ internal static class LocalCoopBootstrap
         }
 
         playerOne.ConfigureLocalPlayer(1, playerOneCamera.transform);
-        if (playerCount <= 1)
+        if (CurrentPlayerCount <= 1)
         {
             playerOneCamera.rect = new Rect(0f, 0f, 1f, 1f);
             return;
