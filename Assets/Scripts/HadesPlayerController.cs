@@ -66,19 +66,6 @@ public class HadesPlayerController : MonoBehaviour
             cameraTransform = Camera.main.transform;
     }
 
-    private void OnControllerColliderHit(ControllerColliderHit hit)
-    {
-        if (robot == null)
-        {
-            robot = GetComponentInParent<BonkRobotController>();
-        }
-
-        if (robot != null && hit.collider.TryGetComponent(out EnemyBumper enemy))
-        {
-            robot.TryTakeDamage(enemy.transform.position);
-        }
-    }
-
     void Update()
     {
         Vector2 input = Vector2.zero;

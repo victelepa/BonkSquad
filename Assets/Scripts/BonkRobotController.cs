@@ -123,14 +123,14 @@ public class BonkRobotController : MonoBehaviour
         }
     }
 
-    public bool TryTakeDamage(Vector3 sourcePosition)
+    public bool TryTakeDamage(Vector3 sourcePosition, int damage = 1)
     {
         if (IsBallForm || Time.time < nextDamageTime || CurrentHealth <= 0)
         {
             return false;
         }
 
-        CurrentHealth--;
+        CurrentHealth = Mathf.Max(0, CurrentHealth - Mathf.Max(1, damage));
         nextDamageTime = Time.time + Tuning.damageInvulnerability;
 
         Vector3 away = Vector3.ProjectOnPlane(
