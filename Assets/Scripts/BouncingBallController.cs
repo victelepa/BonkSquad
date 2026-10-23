@@ -228,12 +228,8 @@ public class BouncingBallController : MonoBehaviour
 
         if (enemy != null)
         {
-            if (!resolvedEnemies.Add(enemy))
-                return;
-
-            if (enemy.TryDefeat(
-                    simulationVelocity.magnitude,
-                    SpeedSettings))
+            if (!resolvedEnemies.Add(enemy)) return;
+            if (enemy.TryDefeatFromBall(simulationVelocity.magnitude, SpeedSettings))
             {
                 SetPlanarVelocity(simulationVelocity);
                 return;
