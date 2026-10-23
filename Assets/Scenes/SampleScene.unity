@@ -1281,7 +1281,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4fe16ccf5b0bdec4faae8cd62e0b903e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HadesPlayerController
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   moveSpeed: 6
   turnSpeed: 14
   groundAcceleration: 28
@@ -3655,7 +3655,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 75ae92260c0340d3b107cd22064e35df, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::ControlsOverlay
-  instructions: "WASD - Accelerate\nSPACE - Switch form\nHit small enemies in ball form to eliminate them."
+  mediumEffectThreshold: 0.2
+  highEffectThreshold: 0.62
+  maximumGhostOffset: 13
+  maximumGhostOpacity: 0.85
+  maximumRippleOpacity: 0.95
+  ghostStrokeWidth: 4
+  slowPulseFrequency: 1.1
+  fastPulseFrequency: 4.2
+  movementHint: "BALL: WASD / Arrows = steer; align to accelerate\nROBOT: WASD / Arrows = steer | SPACE: switch form"
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

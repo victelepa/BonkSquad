@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 
 [RequireComponent(typeof(CharacterController))]
-public class HadesPlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour
 {
     [Header("Robot Steering")]
     [Min(0f)] [SerializeField] private float turnSpeed = 14f;
@@ -18,11 +18,21 @@ public class HadesPlayerController : MonoBehaviour
     private Vector3 planarVelocity;
     private bool carryingMomentum;
     private bool resolvedSideHit;
+    private bool controlLocked;
 
     public Vector3 CurrentPlanarVelocity => planarVelocity;
     public PlayerSpeedSettings SpeedSettings => speedSystem != null ? speedSystem.SpeedSettings : PlayerSpeedSettings.Default;
 
     public void Configure(BonkRobotController owner) => speedSystem = owner;
+
+    public void SetControlLocked(bool locked)
+    {
+        controlLocked = locked;
+        if (!locked) return;
+        planarVelocity = Vector3.zero;
+        carryingMomentum = false;
+        resolvedSideHit = false;
+    }
 
     public void Teleport(Vector3 position, Quaternion rotation)
     {
@@ -50,6 +60,15 @@ public class HadesPlayerController : MonoBehaviour
 
     private void Update()
     {
+        if (controlLocked)
+        {
+            // Gravity continues, but no horizontal movement or facing change is allowed.
+            planarVelocity = Vector3.zero;
+            if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = -2f;
+            verticalVelocity += Physics.gravity.y * Time.deltaTime;
+            controller.Move(Vector3.up * verticalVelocity * Time.deltaTime);
+            return;
+        }
         if (cameraTransform == null && Camera.main != null) cameraTransform = Camera.main.transform;
         Vector3 inputDirection = PlayerMovementMath.ReadInputDirection(cameraTransform);
         float speed = planarVelocity.magnitude;
@@ -89,6 +108,7 @@ public class HadesPlayerController : MonoBehaviour
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
+        if (controlLocked) return;
         EnemyBumper enemy = hit.collider.GetComponentInParent<EnemyBumper>();
         if (enemy != null && enemy.TryDefeat(planarVelocity.magnitude, SpeedSettings)) return;
         Vector3 normal = PlayerMovementMath.Planar(hit.normal);

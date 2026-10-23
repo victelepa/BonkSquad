@@ -7,6 +7,8 @@ public class BouncingBallController : MonoBehaviour
     [Header("Ball Movement")]
     [Tooltip("Speed gained per second while input is within the shared angle tolerance.")]
     [Min(0f)] [SerializeField] private float acceleration = 10f;
+    [Tooltip("Sideways acceleration used to gently steer the ball without changing its speed.")]
+    [Min(0f)] [SerializeField] private float steeringAcceleration = 3f;
 
     private Rigidbody rb;
     private Transform cameraTransform;
@@ -79,18 +81,27 @@ public class BouncingBallController : MonoBehaviour
         if (cameraTransform == null && Camera.main != null) cameraTransform = Camera.main.transform;
         Vector3 velocity = PlanarVelocity;
         float speed = velocity.magnitude;
+        Vector3 inputDirection = PlayerMovementMath.ReadInputDirection(cameraTransform);
         Vector3 travelDirection = speed > 0f
             ? velocity / speed
-            : PlayerMovementMath.Planar(transform.forward).normalized;
-        // At rest, the facing established in robot form is the initial direction.
-        // Input never supplies a new direction, even at very low speed.
-        Vector3 inputDirection = PlayerMovementMath.ReadInputDirection(cameraTransform);
-        if (speed < SpeedSettings.MaximumSpeed && PlayerMovementMath.AllowsAcceleration(
-            travelDirection, inputDirection, SpeedSettings.AccelerationAngleTolerance))
+            : inputDirection.sqrMagnitude > 0f
+                ? inputDirection
+                : PlayerMovementMath.Planar(transform.forward).normalized;
+        // Decide acceleration from the incoming direction, before steering changes it.
+        bool canAccelerate = PlayerMovementMath.AllowsAcceleration(
+            travelDirection, inputDirection, SpeedSettings.AccelerationAngleTolerance);
+        if (speed > 0f && inputDirection.sqrMagnitude > 0f)
+        {
+            Vector3 sidewaysInput = inputDirection - travelDirection * Vector3.Dot(inputDirection, travelDirection);
+            Vector3 steeredDirection = travelDirection + sidewaysInput * (steeringAcceleration * Time.fixedDeltaTime / speed);
+            if (steeredDirection.sqrMagnitude > 0f)
+                travelDirection = steeredDirection.normalized;
+        }
+        if (speed < SpeedSettings.MaximumSpeed && canAccelerate)
         {
             speed = Mathf.Min(SpeedSettings.MaximumSpeed, speed + acceleration * Time.fixedDeltaTime);
-            velocity = travelDirection * speed;
         }
+        velocity = travelDirection * speed;
         SetPlanarVelocity(velocity);
         // Capture AFTER acceleration and BEFORE the physics solver changes contact
         // velocity. Never use a recent-history/stale velocity for a kill decision.
