@@ -6,7 +6,7 @@ using UnityEngine.Serialization;
 public class EnemyBumper : MonoBehaviour
 {
     [Header("Enemy Size")]
-    [Tooltip("Checked = small enemy, unchecked = large enemy. Both player forms use speed thresholds.")]
+    [Tooltip("Checked = small enemy, unchecked = large enemy. Only the ball can defeat enemies at the matching speed threshold.")]
     [FormerlySerializedAs("destroyedByBall")]
     [SerializeField] private bool isSmallEnemy;
     public bool IsSmallEnemy => isSmallEnemy;
@@ -90,7 +90,7 @@ public class EnemyBumper : MonoBehaviour
         body.MovePosition(body.position + direction * distance);
     }
     
-    public bool TryDefeat(float incomingPlayerSpeed, PlayerSpeedSettings settings)
+    public bool TryDefeatFromBall(float incomingPlayerSpeed, PlayerSpeedSettings settings)
     {
         if (isDefeated) return true;
         if (!settings.CanKill(incomingPlayerSpeed, isSmallEnemy)) return false;

@@ -109,8 +109,6 @@ public class PlayerController : MonoBehaviour
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         if (controlLocked) return;
-        EnemyBumper enemy = hit.collider.GetComponentInParent<EnemyBumper>();
-        if (enemy != null && enemy.TryDefeat(planarVelocity.magnitude, SpeedSettings)) return;
         Vector3 normal = PlayerMovementMath.Planar(hit.normal);
         if (normal.sqrMagnitude < 0.0001f || Vector3.Dot(planarVelocity, normal) >= 0f) return;
         // CharacterController can report several contacts during one Move. Resolve

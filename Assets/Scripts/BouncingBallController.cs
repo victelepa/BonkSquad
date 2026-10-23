@@ -124,7 +124,7 @@ public class BouncingBallController : MonoBehaviour
         if (enemy != null)
         {
             if (!resolvedEnemies.Add(enemy)) return;
-            if (enemy.TryDefeat(simulationVelocity.magnitude, SpeedSettings))
+            if (enemy.TryDefeatFromBall(simulationVelocity.magnitude, SpeedSettings))
             {
                 // Ignore the solver's rebound on a defeated enemy. Killing changes
                 // neither the incoming direction nor the speed.
