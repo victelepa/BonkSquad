@@ -1,0 +1,70 @@
+<div id="arena-without-c03">
+<div class="viz-row"><strong>竞技场修订 · C03 已移除</strong><span class="text-small text-muted">全场64D × 64D；D＝球直径；X向右 / Y向上</span></div>
+<svg class="collision-map" role="img" aria-label="C03挡板已移除。中央周围保留八个实体碰撞物，正中央净空。北侧A1保留，原挡板位置开放通行。"></svg>
+<div class="viz-row text-small"><span>U1–U3 ○ 不限方向加速</span><span>A1 ↓ 定向触发加速</span><span>B 角落反弹板</span><span>T1–T2 ▧ 减速地面</span></div>
+<div class="viz-row collider-picker" role="group" aria-label="选择碰撞体"></div>
+<div class="text-small collider-detail" aria-live="polite"></div>
+</div>
+<style>
+#arena-without-c03 .collision-map{width:100%;display:block}
+#arena-without-c03 .collision-map text{font-size:12px;font-family:inherit;fill:var(--foreground)}
+#arena-without-c03 .collision-map .minor{fill:var(--muted-foreground)}
+#arena-without-c03 .collision-map .solid{fill:var(--muted);stroke:var(--foreground);stroke-width:1.6}
+#arena-without-c03 .collision-map .selected{fill:var(--viz-series-2);fill-opacity:.22;stroke:var(--viz-series-2);stroke-width:2.5}
+#arena-without-c03 .collider-picker{margin-top:12px;margin-bottom:10px}
+</style>
+<script>
+(()=>{
+const root=document.getElementById('arena-without-c03'),svg=root.querySelector('svg'),picker=root.querySelector('.collider-picker'),detail=root.querySelector('.collider-detail');
+const items=[
+{id:'C01',type:'削角长块',kind:'poly',pts:[[-16,12],[-8,12],[-6,14],[-6,16],[-16,16]],at:[-11.5,14.2],spec:'顶点依次为 (−16,12)、(−8,12)、(−6,14)、(−6,16)、(−16,16) D；凸多边形碰撞。内侧斜边为45°，与 C02 的纵向净距为3D。'},
+{id:'C02',type:'竖向短墙',kind:'box',x:-16,y:5,w:3,h:4,at:[-14.5,7],spec:'中心 (−14.5,7)D；尺寸3D×4D；轴对齐盒体。与 C01 留3D缺口，作为西北组的侧向入口。'},
+{id:'C04',type:'圆柱',kind:'circle',x:17,y:5.5,r:1.5,at:[17,5.5],spec:'中心 (17,5.5)D；直径3D；圆柱碰撞。下缘在Y=4D，恰好位于横向主通道边缘。'},
+{id:'C05',type:'削角横向块',kind:'poly',pts:[[7,-7],[16,-7],[16,-11],[9,-11],[7,-9]],at:[11.5,-9],spec:'顶点依次为 (7,−7)、(16,−7)、(16,−11)、(9,−11)、(7,−9) D；凸多边形碰撞。与 C06 的纵向净距为3.5D。'},
+{id:'C06',type:'横向短墙',kind:'box',x:13,y:-17.5,w:4,h:3,at:[15,-16],spec:'中心 (15,−16)D；尺寸4D×3D；轴对齐盒体。与 C05 留3.5D缺口，从东南组外侧可穿回内部。'},
+{id:'C07',type:'斜向反弹板',kind:'capsule',x:-11,y:-12,len:8,diam:2,angle:45,at:[-11,-12],spec:'中心 (−11,−12)D；总长8D、厚2D；长轴相对+X为+45°。采用胶囊碰撞轮廓，提供西南侧斜向反弹面。'},
+{id:'C08',type:'圆柱',kind:'circle',x:-6,y:-17,r:1.5,at:[-6,-17],spec:'中心 (−6,−17)D；直径3D。与 C07 的最近表面净距约4.6D；从南侧进入时，可选择直穿或借柱反弹。'},
+{id:'C09',type:'圆柱',kind:'circle',x:-17,y:-5.5,r:1.5,at:[-17,-5.5],spec:'中心 (−17,−5.5)D；直径3D。上缘在Y=−4D；与 C07 的最近表面净距约6.3D，为西南组保留第二个出口。'}
+];
+items.push(
+{id:'U1',type:'西侧不限方向加速',spec:'中心 (−23,0)D；圆形，直径5D。任意方向进入均沿当前移动方向加速，不改变方向。位于外围与中央横向通路的衔接处。'},
+{id:'U2',type:'南侧不限方向加速',spec:'中心 (0,−23)D；圆形，直径5D。任意方向进入均沿当前移动方向加速，不改变方向。连接南侧外围与中央纵向通路。'},
+{id:'U3',type:'东侧不限方向加速',spec:'中心 (23,1)D；圆形，直径5D。任意方向进入均沿当前移动方向加速，不改变方向。供穿场后继续冲刺或从东侧重新切入。'},
+{id:'A1',type:'北侧定向加速带',spec:'中心 (11,23)D；宽3D、长6D；箭头朝南。仅向南且满足角度容差时加速，不改变当前移动方向。原挡板位置现可直接通过。'},
+{id:'T1',type:'东北减速地面',spec:'X=14至19D，Y=15至19D；5D×4D；非实体触发区，可绕行。'},
+{id:'T2',type:'东南减速地面',spec:'X=7至11D，Y=−19至−15D；4D×4D；非实体触发区，可绕行。'}
+);
+let selected='U1';
+function select(id,save){selected=id;picker.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.textContent===id)));const i=items.find(a=>a.id===id);detail.textContent=`${i.id} · ${i.type}｜${i.spec}`;draw();if(save&&window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{selectedCollider:id},privateContent:null}).catch(()=>{});}
+items.forEach(i=>{const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=i.id;b.setAttribute('aria-label',`${i.id} ${i.type}`);b.onclick=()=>select(i.id,true);picker.appendChild(b);});
+function draw(){const w=root.clientWidth||736,m=24,s=(w-2*m)/68,X=x=>m+(x+34)*s,Y=y=>m+(34-y)*s;
+svg.setAttribute('viewBox',`0 0 ${w} ${w+24}`);
+const text=(x,y,t,cls='')=>`<text x="${X(x)}" y="${Y(y)}" text-anchor="middle" dominant-baseline="middle" class="${cls}">${t}</text>`;
+const line=(x,y,a,b,style)=>`<path d="M${X(x)} ${Y(y)}L${X(a)} ${Y(b)}" ${style}/>`;
+const rect=(x,y,ww,h,attr)=>`<rect x="${X(x)}" y="${Y(y+h)}" width="${ww*s}" height="${h*s}" ${attr}/>`;
+let out=`<title>竞技场修订：移除C03</title><desc>中央周围保留八块碰撞体与正中心净空。三个不限方向加速圆区、一个朝南定向加速带以及其他物件保持原位。原C03位置开放通行。</desc><defs><pattern id="collider-slow" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 8L8 0" stroke="var(--viz-series-3)" stroke-width="1" opacity=".5"/></pattern></defs>`;
+out+=rect(-32,-32,64,64,'fill="var(--muted)" fill-opacity=".15" stroke="var(--foreground)" stroke-width="2"');
+out+=rect(-20,-20,40,40,'fill="var(--muted)" fill-opacity=".2" stroke="var(--border)"');
+for(let v=-20;v<=20;v+=4){out+=line(v,-20,v,20,'stroke="var(--border)" stroke-width=".5"');out+=line(-20,v,20,v,'stroke="var(--border)" stroke-width=".5"');if(v%8===0&&w>=500){out+=text(v,-21.6,String(v),'minor');out+=text(-21.6,v,String(v),'minor');}}
+out+=rect(-20,-4,40,8,'fill="var(--viz-series-1)" fill-opacity=".06"');out+=rect(-4,-20,8,40,'fill="var(--viz-series-1)" fill-opacity=".06"');
+[-4,4].forEach(v=>{out+=line(-20,v,20,v,'stroke="var(--viz-series-1)" stroke-width="1" stroke-dasharray="5 5"');out+=line(v,-20,v,20,'stroke="var(--viz-series-1)" stroke-width="1" stroke-dasharray="5 5"');});
+for(const [x,y,id] of [[-23,0,'U1'],[0,-23,'U2'],[23,1,'U3']]){
+out+=`<circle cx="${X(x)}" cy="${Y(y)}" r="${2.5*s}" fill="var(--viz-series-1)" fill-opacity=".22" stroke="var(--viz-series-1)" stroke-width="${selected===id?3:1.5}"/>`+text(x,y,id);
+}
+out+=rect(9.5,20,3,6,`fill="var(--viz-series-4)" fill-opacity=".25" stroke="var(--viz-series-4)" stroke-width="${selected==='A1'?3:1.5}"`)+text(11,23,'↓')+text(16,24,'A1');
+out+=rect(14,15,5,4,'fill="url(#collider-slow)" stroke="var(--viz-series-3)"')+text(16.5,17,'T1');
+out+=rect(7,-19,4,4,'fill="url(#collider-slow)" stroke="var(--viz-series-3)"')+text(9,-17,'T2');
+items.forEach(i=>{const cls=i.id===selected?'solid selected':'solid';if(i.kind==='poly')out+=`<polygon points="${i.pts.map(([x,y])=>`${X(x)},${Y(y)}`).join(' ')}" class="${cls}"/>`;if(i.kind==='box')out+=rect(i.x,i.y,i.w,i.h,`class="${cls}"`);if(i.kind==='circle')out+=`<circle cx="${X(i.x)}" cy="${Y(i.y)}" r="${i.r*s}" class="${cls}"/>`;if(i.kind==='capsule')out+=`<rect x="${-(i.len*s)/2}" y="${-(i.diam*s)/2}" width="${i.len*s}" height="${i.diam*s}" rx="${i.diam*s/2}" transform="translate(${X(i.x)} ${Y(i.y)}) rotate(${-i.angle})" class="${cls}"/>`;});
+items.filter(i=>i.at).forEach(i=>{out+=text(...i.at,i.id);});
+out+=text(0,0,w<500?'净空':'正中央净空');
+for(const [a,b,c,d] of [[-29,24,-24,29],[24,29,29,24],[24,-29,29,-24]])out+=line(a,b,c,d,'stroke="var(--viz-series-2)" stroke-width="7" stroke-linecap="round"');
+out+=text(-26,22,'B')+text(26,22,'B')+text(26,-22,'B');
+out+=text(-24,-27,w<500?'转向区':'宽转向区','minor');
+if(w>=500){out+=text(-8,27,'外围长助跑带','minor');out+=text(0,-7,'纵向净宽8D','minor');out+=text(8,0,'8D','minor');}
+out+=text(0,-36,w<500?'D＝球直径':'中央轮廓线仅标范围，不是墙；中心8D×8D无实体及地面效果','minor');svg.innerHTML=out;
+}
+const stored=window.openai?.widgetState?.modelContent?.selectedCollider;
+select(items.some(i=>i.id===stored)?stored:'U1',false);
+new ResizeObserver(draw).observe(root);
+})();
+</script>

@@ -1,0 +1,42 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.3/staging' branch; Version is '6000.3.25f1 (e1dba0a9aba4) revision 14801824'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-Gaoti" at "2026-10-23T03:49:55.6473038Z"
+OS: 'Windows 11  (10.0.26200) CoreCountrySpecific' Language: 'zh' Physical Memory: 32373 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-10-23T03:49:55Z
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 30372, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.18.3+d7ffd15
+  Session Id:              578494310403487fba8e033bac01b03d
+  Correlation Id:          08f1a11a8cd0292ea897d19f9f3f500a
+  External correlation Id: 4649695864671049775
+  Machine Id:              n4UqPRs+7WDopx+MsW13GbH2tgI=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-Gaoti" (connect: 0.00s, validation: 0.00s, handshake: 0.13s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-Gaoti-notifications" at "2026-10-23T03:49:55.7773752Z"
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: 1375986808656-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.00
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Licensing Background thread has ended after 0.15s
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe
+-batchmode
+-projectPath
+C:\Users\Gaoti\Documents\GitHub\BonkSquad
+-executeMethod
+Map01ArenaBuilder.Build
+-quit
+-logFile
+C:\Users\Gaoti\Documents\GitHub\BonkSquad\tmp\map01-unity-retry.log
+Successfully changed project path to: C:\Users\Gaoti\Documents\GitHub\BonkSquad
+C:/Users/Gaoti/Documents/GitHub/BonkSquad
+Exiting without the bug reporter. Application will terminate with return code 1
