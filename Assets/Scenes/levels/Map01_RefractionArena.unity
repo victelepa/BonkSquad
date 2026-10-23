@@ -427,7 +427,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -654,7 +654,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -1333,7 +1333,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -2036,7 +2036,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 0
+  isSmallEnemy: 0
   moveSpeed: 1
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -24.7, y: -24.7}
@@ -3500,7 +3500,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -3660,7 +3660,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 0
+  isSmallEnemy: 0
   moveSpeed: 1
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -24.7, y: -24.7}
@@ -4090,7 +4090,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -4602,7 +4602,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -5158,7 +5158,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 0
+  isSmallEnemy: 0
   moveSpeed: 1
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -24.7, y: -24.7}
@@ -5441,7 +5441,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -5572,6 +5572,45 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92d4636976c84945af893f46e8d5cead, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BonkRobotController
+  speedSettings:
+    maximumSpeed: 18
+    robotBaseSpeed: 2
+    smallEnemyKillSpeed: 8
+    largeEnemyKillSpeed: 14
+    robotDeceleration: 2
+    accelerationAngleTolerance: 30
+  dizzinessSettings:
+    maximumDizziness: 100
+    useSmallEnemyKillSpeed: 1
+    highSpeedThreshold: 8
+    gainRateBySpeed:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 8
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 20
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    ballLowSpeedRecovery: 3
+    robotRecovery: 25
+    warningDuration: 2.5
+    stunDuration: 2.5
   standingForm: {fileID: 1179798299}
   ballForm: {fileID: 1678529257}
   ballController: {fileID: 1678529259}
@@ -5656,7 +5695,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -5906,7 +5945,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -6276,12 +6315,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fe16ccf5b0bdec4faae8cd62e0b903e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  moveSpeed: 6
   turnSpeed: 14
   groundAcceleration: 28
   groundDeceleration: 20
-  driftTurnSpeed: 120
-  driftSpeedLoss: 2
+  momentumTurnSpeed: 120
 --- !u!143 &1179798305
 CharacterController:
   m_ObjectHideFlags: 0
@@ -6429,6 +6466,52 @@ Transform:
   - {fileID: 1113656290}
   - {fileID: 2103573005}
   m_Father: {fileID: 540470275}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1233675463
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1233675465}
+  - component: {fileID: 1233675464}
+  m_Layer: 0
+  m_Name: BallAccelerationEfficiencyChart
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1233675464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1233675463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 716bb920b9604b428037285cc6f5ad8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BallAccelerationEfficiencyChart
+  player: {fileID: 1678529259}
+  initiallyVisible: 0
+--- !u!4 &1233675465
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1233675463}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.21889, y: 0, z: 0.64566}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1254323478
 GameObject:
@@ -8062,7 +8145,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -8491,7 +8574,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -8686,7 +8769,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -9084,7 +9167,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -9219,8 +9302,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BouncingBallController
   acceleration: 10
   steeringAcceleration: 3
-  brakingAcceleration: 4
-  maxSpeed: 18
 --- !u!54 &1678529260
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -9401,7 +9482,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 0
+  isSmallEnemy: 0
   moveSpeed: 1
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -24.7, y: -24.7}
@@ -10133,7 +10214,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -11452,7 +11533,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -11792,7 +11873,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -12244,7 +12325,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -12640,7 +12721,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
+  isSmallEnemy: 1
   moveSpeed: 2.5
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -25.025, y: -25.025}
@@ -12769,6 +12850,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 75ae92260c0340d3b107cd22064e35df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ControlsOverlay
+  player: {fileID: 0}
+  screenPadding: {x: 20, y: 20}
+  barSize: {x: 500, y: 28}
+  controlsSize: {x: 560, y: 60}
+  trackColor: {r: 0.12, g: 0.17, b: 0.23, a: 1}
+  fillColor: {r: 0.1, g: 0.8, b: 0.95, a: 1}
+  tickColor: {r: 1, g: 1, b: 1, a: 1}
+  textColor: {r: 1, g: 1, b: 1, a: 1}
+  tickWidth: 3
   mediumEffectThreshold: 0.2
   highEffectThreshold: 0.62
   maximumGhostOffset: 13
@@ -12777,7 +12867,10 @@ MonoBehaviour:
   ghostStrokeWidth: 4
   slowPulseFrequency: 1.1
   fastPulseFrequency: 4.2
-  movementHint: "BALL: WASD / Arrows = steer; align to accelerate\nROBOT: WASD / Arrows = steer | SPACE: switch form"
+  movementHint: 'BALL: WASD / Arrows = steer; align to accelerate
+
+    ROBOT: WASD
+    / Arrows = steer | SPACE: switch form'
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -12789,3 +12882,4 @@ SceneRoots:
   - {fileID: 2300000001}
   - {fileID: 1307420525}
   - {fileID: 1261757438}
+  - {fileID: 1233675465}
