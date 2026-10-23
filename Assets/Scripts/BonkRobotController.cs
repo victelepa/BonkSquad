@@ -177,6 +177,9 @@ public class BonkRobotController : MonoBehaviour
 
     private void Update()
     {
+        if (Keyboard.current == null && UnityEngine.Input.GetKeyDown(KeyCode.Space))
+            ToggleForm();
+
         float deltaTime = Time.deltaTime;
         if (deltaTime <= 0f) return;
 

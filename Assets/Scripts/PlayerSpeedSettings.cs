@@ -69,11 +69,18 @@ public static class PlayerMovementMath
     public static Vector3 ReadInputDirection(Transform cameraTransform)
     {
         Keyboard keyboard = Keyboard.current;
-        if (keyboard == null) return Vector3.zero;
-        float x = (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed ? 1f : 0f)
-            - (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed ? 1f : 0f);
-        float z = (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed ? 1f : 0f)
-            - (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed ? 1f : 0f);
+        // Some Editor sessions expose no Input System keyboard device even with
+        // the Game view focused. Keep physical keyboard controls available there.
+        float x = keyboard != null
+            ? (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed ? 1f : 0f)
+                - (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed ? 1f : 0f)
+            : (UnityEngine.Input.GetKey(KeyCode.D) || UnityEngine.Input.GetKey(KeyCode.RightArrow) ? 1f : 0f)
+                - (UnityEngine.Input.GetKey(KeyCode.A) || UnityEngine.Input.GetKey(KeyCode.LeftArrow) ? 1f : 0f);
+        float z = keyboard != null
+            ? (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed ? 1f : 0f)
+                - (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed ? 1f : 0f)
+            : (UnityEngine.Input.GetKey(KeyCode.W) || UnityEngine.Input.GetKey(KeyCode.UpArrow) ? 1f : 0f)
+                - (UnityEngine.Input.GetKey(KeyCode.S) || UnityEngine.Input.GetKey(KeyCode.DownArrow) ? 1f : 0f);
         Vector3 forward = cameraTransform != null ? Planar(cameraTransform.forward).normalized : Vector3.forward;
         if (forward.sqrMagnitude < 0.0001f) forward = Vector3.forward;
         Vector3 right = Vector3.Cross(Vector3.up, forward);
