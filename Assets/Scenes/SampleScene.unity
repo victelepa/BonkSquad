@@ -1010,6 +1010,52 @@ Transform:
   - {fileID: 2126660810}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &920392029
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 920392031}
+  - component: {fileID: 920392030}
+  m_Layer: 0
+  m_Name: BallAccelerationEfficiencyChart
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &920392030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 920392029}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 716bb920b9604b428037285cc6f5ad8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BallAccelerationEfficiencyChart
+  player: {fileID: 1678529259}
+  initiallyVisible: 1
+--- !u!4 &920392031
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 920392029}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.21889, y: 0, z: 0.64566}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &935977971
 GameObject:
   m_ObjectHideFlags: 0
@@ -1168,6 +1214,45 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92d4636976c84945af893f46e8d5cead, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BonkRobotController
+  speedSettings:
+    maximumSpeed: 18
+    robotBaseSpeed: 2
+    smallEnemyKillSpeed: 8
+    largeEnemyKillSpeed: 14
+    robotDeceleration: 2
+    accelerationAngleTolerance: 30
+  dizzinessSettings:
+    maximumDizziness: 100
+    useSmallEnemyKillSpeed: 1
+    highSpeedThreshold: 8
+    gainRateBySpeed:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 8
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 20
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    ballLowSpeedRecovery: 3
+    robotRecovery: 25
+    warningDuration: 2.5
+    stunDuration: 2.5
   standingForm: {fileID: 1179798299}
   ballForm: {fileID: 1678529257}
   ballController: {fileID: 1678529259}
@@ -1282,12 +1367,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fe16ccf5b0bdec4faae8cd62e0b903e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  moveSpeed: 6
   turnSpeed: 14
   groundAcceleration: 28
   groundDeceleration: 20
-  driftTurnSpeed: 120
-  driftSpeedLoss: 2
+  momentumTurnSpeed: 120
 --- !u!143 &1179798305
 CharacterController:
   m_ObjectHideFlags: 0
@@ -1475,8 +1558,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BouncingBallController
   acceleration: 10
   steeringAcceleration: 3
-  brakingAcceleration: 4
-  maxSpeed: 18
 --- !u!54 &1678529260
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1941,6 +2022,23 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2200000010}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2200000014
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000010}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
+  isSmallEnemy: 0
+  moveSpeed: 1
+  directionChangeInterval: {x: 2, y: 5}
+  arenaMin: {x: -22, y: -22}
+  arenaMax: {x: 22, y: 22}
 --- !u!136 &2200000015
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1959,9 +2057,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
+  serializedVersion: 2
   m_Radius: 0.5
+  m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &2200000016
@@ -1991,24 +2089,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 3
---- !u!114 &2200000014
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200000010}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 0
-  moveSpeed: 1
-  directionChangeInterval: {x: 2, y: 5}
-  arenaMin: {x: -22, y: -22}
-  arenaMax: {x: 22, y: 22}
-
 --- !u!1 &2200000020
 GameObject:
   m_ObjectHideFlags: 0
@@ -2102,6 +2182,23 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2200000020}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2200000024
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000020}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
+  isSmallEnemy: 0
+  moveSpeed: 1
+  directionChangeInterval: {x: 2, y: 5}
+  arenaMin: {x: -22, y: -22}
+  arenaMax: {x: 22, y: 22}
 --- !u!136 &2200000025
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -2120,9 +2217,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
+  serializedVersion: 2
   m_Radius: 0.5
+  m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &2200000026
@@ -2152,24 +2249,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 3
---- !u!114 &2200000024
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200000020}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 0
-  moveSpeed: 1
-  directionChangeInterval: {x: 2, y: 5}
-  arenaMin: {x: -22, y: -22}
-  arenaMax: {x: 22, y: 22}
-
 --- !u!1 &2200000030
 GameObject:
   m_ObjectHideFlags: 0
@@ -2263,6 +2342,23 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2200000030}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2200000034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000030}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
+  isSmallEnemy: 0
+  moveSpeed: 1
+  directionChangeInterval: {x: 2, y: 5}
+  arenaMin: {x: -22, y: -22}
+  arenaMax: {x: 22, y: 22}
 --- !u!136 &2200000035
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -2281,9 +2377,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
+  serializedVersion: 2
   m_Radius: 0.5
+  m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &2200000036
@@ -2313,24 +2409,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 3
---- !u!114 &2200000034
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200000030}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 0
-  moveSpeed: 1
-  directionChangeInterval: {x: 2, y: 5}
-  arenaMin: {x: -22, y: -22}
-  arenaMax: {x: 22, y: 22}
-
 --- !u!1 &2200000040
 GameObject:
   m_ObjectHideFlags: 0
@@ -2424,6 +2502,23 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2200000040}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2200000044
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000040}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
+  isSmallEnemy: 1
+  moveSpeed: 2.5
+  directionChangeInterval: {x: 2, y: 5}
+  arenaMin: {x: -22, y: -22}
+  arenaMax: {x: 22, y: 22}
 --- !u!136 &2200000045
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -2442,9 +2537,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
+  serializedVersion: 2
   m_Radius: 0.5
+  m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &2200000046
@@ -2474,23 +2569,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 3
---- !u!114 &2200000044
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200000040}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
-  moveSpeed: 2.5
-  directionChangeInterval: {x: 2, y: 5}
-  arenaMin: {x: -22, y: -22}
-  arenaMax: {x: 22, y: 22}
 --- !u!1 &2200000050
 GameObject:
   m_ObjectHideFlags: 0
@@ -2584,6 +2662,23 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2200000050}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2200000054
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
+  isSmallEnemy: 1
+  moveSpeed: 2.5
+  directionChangeInterval: {x: 2, y: 5}
+  arenaMin: {x: -22, y: -22}
+  arenaMax: {x: 22, y: 22}
 --- !u!136 &2200000055
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -2602,9 +2697,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
+  serializedVersion: 2
   m_Radius: 0.5
+  m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &2200000056
@@ -2634,23 +2729,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 3
---- !u!114 &2200000054
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200000050}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
-  moveSpeed: 2.5
-  directionChangeInterval: {x: 2, y: 5}
-  arenaMin: {x: -22, y: -22}
-  arenaMax: {x: 22, y: 22}
 --- !u!1 &2200000060
 GameObject:
   m_ObjectHideFlags: 0
@@ -2744,6 +2822,23 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2200000060}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2200000064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000060}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
+  isSmallEnemy: 1
+  moveSpeed: 2.5
+  directionChangeInterval: {x: 2, y: 5}
+  arenaMin: {x: -22, y: -22}
+  arenaMax: {x: 22, y: 22}
 --- !u!136 &2200000065
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -2762,9 +2857,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
+  serializedVersion: 2
   m_Radius: 0.5
+  m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &2200000066
@@ -2794,23 +2889,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 3
---- !u!114 &2200000064
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200000060}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
-  moveSpeed: 2.5
-  directionChangeInterval: {x: 2, y: 5}
-  arenaMin: {x: -22, y: -22}
-  arenaMax: {x: 22, y: 22}
 --- !u!1 &2200000070
 GameObject:
   m_ObjectHideFlags: 0
@@ -2904,6 +2982,23 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2200000070}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2200000074
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
+  isSmallEnemy: 1
+  moveSpeed: 2.5
+  directionChangeInterval: {x: 2, y: 5}
+  arenaMin: {x: -22, y: -22}
+  arenaMax: {x: 22, y: 22}
 --- !u!136 &2200000075
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -2922,9 +3017,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
+  serializedVersion: 2
   m_Radius: 0.5
+  m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &2200000076
@@ -2954,23 +3049,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 3
---- !u!114 &2200000074
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200000070}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
-  moveSpeed: 2.5
-  directionChangeInterval: {x: 2, y: 5}
-  arenaMin: {x: -22, y: -22}
-  arenaMax: {x: 22, y: 22}
 --- !u!1 &2200000080
 GameObject:
   m_ObjectHideFlags: 0
@@ -3064,6 +3142,23 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2200000080}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2200000084
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000080}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
+  isSmallEnemy: 1
+  moveSpeed: 2.5
+  directionChangeInterval: {x: 2, y: 5}
+  arenaMin: {x: -22, y: -22}
+  arenaMax: {x: 22, y: 22}
 --- !u!136 &2200000085
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -3082,9 +3177,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
+  serializedVersion: 2
   m_Radius: 0.5
+  m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &2200000086
@@ -3114,23 +3209,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 3
---- !u!114 &2200000084
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200000080}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
-  moveSpeed: 2.5
-  directionChangeInterval: {x: 2, y: 5}
-  arenaMin: {x: -22, y: -22}
-  arenaMax: {x: 22, y: 22}
 --- !u!1 &2200000090
 GameObject:
   m_ObjectHideFlags: 0
@@ -3224,6 +3302,23 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2200000090}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2200000094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000090}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
+  isSmallEnemy: 1
+  moveSpeed: 2.5
+  directionChangeInterval: {x: 2, y: 5}
+  arenaMin: {x: -22, y: -22}
+  arenaMax: {x: 22, y: 22}
 --- !u!136 &2200000095
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -3242,9 +3337,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
+  serializedVersion: 2
   m_Radius: 0.5
+  m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &2200000096
@@ -3274,23 +3369,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 3
---- !u!114 &2200000094
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200000090}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
-  moveSpeed: 2.5
-  directionChangeInterval: {x: 2, y: 5}
-  arenaMin: {x: -22, y: -22}
-  arenaMax: {x: 22, y: 22}
 --- !u!1 &2200000100
 GameObject:
   m_ObjectHideFlags: 0
@@ -3384,6 +3462,23 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2200000100}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2200000104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
+  isSmallEnemy: 1
+  moveSpeed: 2.5
+  directionChangeInterval: {x: 2, y: 5}
+  arenaMin: {x: -22, y: -22}
+  arenaMax: {x: 22, y: 22}
 --- !u!136 &2200000105
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -3402,9 +3497,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
+  serializedVersion: 2
   m_Radius: 0.5
+  m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &2200000106
@@ -3434,23 +3529,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 3
---- !u!114 &2200000104
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200000100}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
-  moveSpeed: 2.5
-  directionChangeInterval: {x: 2, y: 5}
-  arenaMin: {x: -22, y: -22}
-  arenaMax: {x: 22, y: 22}
 --- !u!1 &2200000110
 GameObject:
   m_ObjectHideFlags: 0
@@ -3544,6 +3622,23 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2200000110}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2200000114
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2200000110}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
+  isSmallEnemy: 1
+  moveSpeed: 2.5
+  directionChangeInterval: {x: 2, y: 5}
+  arenaMin: {x: -22, y: -22}
+  arenaMax: {x: 22, y: 22}
 --- !u!136 &2200000115
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -3562,9 +3657,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
+  serializedVersion: 2
   m_Radius: 0.5
+  m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &2200000116
@@ -3594,23 +3689,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 112
   m_CollisionDetection: 3
---- !u!114 &2200000114
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2200000110}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
-  destroyedByBall: 1
-  moveSpeed: 2.5
-  directionChangeInterval: {x: 2, y: 5}
-  arenaMin: {x: -22, y: -22}
-  arenaMax: {x: 22, y: 22}
 --- !u!1 &2300000000
 GameObject:
   m_ObjectHideFlags: 0
@@ -3653,8 +3731,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 75ae92260c0340d3b107cd22064e35df, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ControlsOverlay
+  player: {fileID: 0}
+  screenPadding: {x: 20, y: 20}
+  barSize: {x: 500, y: 28}
+  controlsSize: {x: 560, y: 60}
+  trackColor: {r: 0.12, g: 0.17, b: 0.23, a: 1}
+  fillColor: {r: 0.1, g: 0.8, b: 0.95, a: 1}
+  tickColor: {r: 1, g: 1, b: 1, a: 1}
+  textColor: {r: 1, g: 1, b: 1, a: 1}
+  tickWidth: 3
   mediumEffectThreshold: 0.2
   highEffectThreshold: 0.62
   maximumGhostOffset: 13
@@ -3663,7 +3750,10 @@ MonoBehaviour:
   ghostStrokeWidth: 4
   slowPulseFrequency: 1.1
   fastPulseFrequency: 4.2
-  movementHint: "BALL: WASD / Arrows = steer; align to accelerate\nROBOT: WASD / Arrows = steer | SPACE: switch form"
+  movementHint: 'BALL: WASD / Arrows = steer; align to accelerate
+
+    ROBOT: WASD
+    / Arrows = steer | SPACE: switch form'
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -3675,3 +3765,4 @@ SceneRoots:
   - {fileID: 1094164505}
   - {fileID: 2200000001}
   - {fileID: 2300000001}
+  - {fileID: 920392031}
