@@ -1,0 +1,1 @@
+PASS: scene reload, 8 convex central colliders, 4 boundary colliders, no map runtime scripts, no boost colliders, clear center and C03 location, clear 4 boost pads, obstacle raycasts, no missing scripts. D=0.8
