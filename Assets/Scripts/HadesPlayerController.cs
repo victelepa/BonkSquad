@@ -1,150 +1,103 @@
 using UnityEngine;
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem;
-#endif
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(CharacterController))]
 public class HadesPlayerController : MonoBehaviour
 {
-    [Header("Normal Form Movement")]
-    [Tooltip("Maximum movement speed when not carrying ball momentum.")]
-    [Min(0f)]
-    [SerializeField] float moveSpeed = 6f;
-    [Tooltip("How quickly the model turns toward its actual travel direction.")]
-    [Min(0f)]
-    [SerializeField] float turnSpeed = 14f;
-    [Tooltip("Acceleration while the player is giving movement input.")]
-    [Min(0f)]
-    [SerializeField] float groundAcceleration = 28f;
-    [Tooltip("Deceleration after releasing movement input outside drift.")]
-    [Min(0f)]
-    [SerializeField] float groundDeceleration = 20f;
+    [Header("Robot Steering")]
+    [Min(0f)] [SerializeField] private float turnSpeed = 14f;
+    [Min(0f)] [SerializeField] private float groundAcceleration = 28f;
+    [Min(0f)] [SerializeField] private float groundDeceleration = 20f;
+    [FormerlySerializedAs("driftTurnSpeed")]
+    [Range(0f, 360f)] [SerializeField] private float momentumTurnSpeed = 120f;
 
-    [Header("Drift")]
-    [Tooltip("How quickly input can bend the inherited momentum direction, in degrees per second.")]
-    [Range(0f, 360f)]
-    [SerializeField] float driftTurnSpeed = 120f;
-    [Tooltip("Speed lost per second while carrying momentum from ball form.")]
-    [Min(0f)]
-    [SerializeField] float driftSpeedLoss = 2f;
+    private CharacterController controller;
+    private Transform cameraTransform;
+    private BonkRobotController speedSystem;
+    private float verticalVelocity;
+    private Vector3 planarVelocity;
+    private bool carryingMomentum;
+    private bool resolvedSideHit;
 
-    CharacterController controller;
-    Transform cameraTransform;
-    float verticalVelocity;
-    Vector3 planarVelocity;
-    bool isDrifting;
+    public Vector3 CurrentPlanarVelocity => planarVelocity;
+    public PlayerSpeedSettings SpeedSettings => speedSystem != null ? speedSystem.SpeedSettings : PlayerSpeedSettings.Default;
 
-    public Vector3 CurrentPlanarVelocity { get; private set; }
+    public void Configure(BonkRobotController owner) => speedSystem = owner;
+
+    public void Teleport(Vector3 position, Quaternion rotation)
+    {
+        if (controller == null) controller = GetComponent<CharacterController>();
+        bool wasEnabled = controller.enabled;
+        controller.enabled = false;
+        transform.SetPositionAndRotation(position, rotation);
+        controller.enabled = wasEnabled;
+    }
 
     public void EnterStandingMode(Vector3 inheritedVelocity)
     {
-        planarVelocity = Vector3.ProjectOnPlane(inheritedVelocity, Vector3.up);
-        CurrentPlanarVelocity = planarVelocity;
-        isDrifting = planarVelocity.sqrMagnitude > 0.0625f;
+        planarVelocity = PlayerMovementMath.Planar(inheritedVelocity);
+        // Preserve inherited speed even when below base; passive decay never boosts it.
+        carryingMomentum = planarVelocity.sqrMagnitude > 0f;
         verticalVelocity = -2f;
     }
 
-    void Awake()
+    private void Awake()
     {
         controller = GetComponent<CharacterController>();
-        if (Camera.main != null)
-            cameraTransform = Camera.main.transform;
+        if (Camera.main != null) cameraTransform = Camera.main.transform;
+        if (speedSystem == null) speedSystem = GetComponentInParent<BonkRobotController>();
     }
 
-    void Update()
+    private void Update()
     {
-        Vector2 input = Vector2.zero;
-        
-        if (Keyboard.current != null)
-        {
-            input.x = (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed ? 1f : 0f)
-                    - (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed ? 1f : 0f);
-            input.y = (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed ? 1f : 0f)
-                    - (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed ? 1f : 0f);
-        }
-        
-        Vector3 forward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;
-        Vector3 right = cameraTransform != null ? cameraTransform.right : Vector3.right;
-        forward.y = 0f;
-        right.y = 0f;
-        forward.Normalize();
-        right.Normalize();
-
-        Vector3 inputDirection = forward * input.y + right * input.x;
-        if (inputDirection.sqrMagnitude > 1f)
-            inputDirection.Normalize();
-
+        if (cameraTransform == null && Camera.main != null) cameraTransform = Camera.main.transform;
+        Vector3 inputDirection = PlayerMovementMath.ReadInputDirection(cameraTransform);
         float speed = planarVelocity.magnitude;
-        if (isDrifting)
+        if (speed > SpeedSettings.RobotBaseSpeed) carryingMomentum = true;
+        if (carryingMomentum)
         {
-            if (inputDirection.sqrMagnitude > 0.01f)
-            {
-                Vector3 driftDirection = Vector3.RotateTowards(
-                    planarVelocity.normalized,
-                    inputDirection,
-                    driftTurnSpeed * Mathf.Deg2Rad * Time.deltaTime,
-                    0f);
-                planarVelocity = driftDirection * speed;
-            }
-
-            speed = Mathf.MoveTowards(
-                speed,
-                0f,
-                driftSpeedLoss * Time.deltaTime);
-            planarVelocity = speed > 0.01f
-                ? planarVelocity.normalized * speed
-                : Vector3.zero;
-
-            if (speed <= 0.25f)
-            {
-                isDrifting = false;
-            }
-            else if (speed <= moveSpeed + 0.05f &&
-                     inputDirection.sqrMagnitude > 0.01f &&
-                     Vector3.Dot(planarVelocity.normalized, inputDirection) > 0.95f)
-            {
-                isDrifting = false;
-            }
+            Vector3 direction = speed > 0f ? planarVelocity / speed : transform.forward;
+            if (inputDirection.sqrMagnitude > 0f)
+                direction = Vector3.RotateTowards(direction, inputDirection,
+                    momentumTurnSpeed * Mathf.Deg2Rad * Time.deltaTime, 0f).normalized;
+            speed = SpeedSettings.DecelerateRobot(speed, Time.deltaTime);
+            planarVelocity = direction * speed;
+            // Keep coasting at base speed without input. Active input can return to
+            // normal robot locomotion once inherited excess speed is fully gone.
+            if (speed <= SpeedSettings.RobotBaseSpeed && inputDirection.sqrMagnitude > 0f)
+                carryingMomentum = false;
         }
         else
         {
-            Vector3 targetVelocity = inputDirection * moveSpeed;
-            float acceleration = inputDirection.sqrMagnitude > 0.01f
-                ? groundAcceleration
-                : groundDeceleration;
-            planarVelocity = Vector3.MoveTowards(
-                planarVelocity,
-                targetVelocity,
-                acceleration * Time.deltaTime);
+            planarVelocity = Vector3.MoveTowards(planarVelocity,
+                inputDirection * SpeedSettings.RobotBaseSpeed,
+                (inputDirection.sqrMagnitude > 0f ? groundAcceleration : groundDeceleration) * Time.deltaTime);
         }
 
-        if (controller.isGrounded && verticalVelocity < 0f)
-            verticalVelocity = -2f;
+        if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = -2f;
         verticalVelocity += Physics.gravity.y * Time.deltaTime;
+        resolvedSideHit = false;
+        // OnControllerColliderHit runs inside Move and updates planarVelocity.
+        // Do not replace the reflected velocity with controller.velocity afterward.
+        controller.Move((planarVelocity + Vector3.up * verticalVelocity) * Time.deltaTime);
 
-        CollisionFlags collisionFlags = controller.Move(
-            (planarVelocity + Vector3.up * verticalVelocity) * Time.deltaTime);
+        Vector3 facing = planarVelocity.sqrMagnitude > 0f ? planarVelocity.normalized : inputDirection;
+        if (facing.sqrMagnitude > 0f)
+            transform.rotation = Quaternion.Slerp(transform.rotation,
+                Quaternion.LookRotation(facing), turnSpeed * Time.deltaTime);
+    }
 
-        if ((collisionFlags & CollisionFlags.Sides) != 0)
-        {
-            Vector3 actualVelocity = controller.velocity;
-            planarVelocity = new Vector3(actualVelocity.x, 0f, actualVelocity.z);
-            if (planarVelocity.sqrMagnitude < 0.0625f)
-            {
-                isDrifting = false;
-            }
-        }
-
-        CurrentPlanarVelocity = planarVelocity;
-
-        Vector3 facingDirection = planarVelocity.sqrMagnitude > 0.01f
-            ? planarVelocity.normalized
-            : inputDirection;
-
-        if (facingDirection.sqrMagnitude > 0.01f)
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(facingDirection);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, turnSpeed * Time.deltaTime);
-        }
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        EnemyBumper enemy = hit.collider.GetComponentInParent<EnemyBumper>();
+        if (enemy != null && enemy.TryDefeat(planarVelocity.magnitude, SpeedSettings)) return;
+        Vector3 normal = PlayerMovementMath.Planar(hit.normal);
+        if (normal.sqrMagnitude < 0.0001f || Vector3.Dot(planarVelocity, normal) >= 0f) return;
+        // CharacterController can report several contacts during one Move. Resolve
+        // only the first blocking surface to avoid reflecting the same impact twice.
+        if (resolvedSideHit) return;
+        resolvedSideHit = true;
+        planarVelocity = PlayerMovementMath.ReflectPlanar(planarVelocity, normal);
+        carryingMomentum = true;
     }
 }

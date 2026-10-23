@@ -1,9 +1,16 @@
-﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class BonkRobotController : MonoBehaviour
 {
+    [Header("Speed System (shared by both forms and HUD)")]
+    [SerializeField] private PlayerSpeedSettings speedSettings = new PlayerSpeedSettings();
+    public PlayerSpeedSettings SpeedSettings => speedSettings;
+    public Vector3 CurrentPlanarVelocity => IsBallForm
+        ? (ballController != null ? ballController.PlanarVelocity : Vector3.zero)
+        : (standingController != null ? standingController.CurrentPlanarVelocity : Vector3.zero);
+    public float CurrentSpeed => CurrentPlanarVelocity.magnitude;
+
     [Header("Forms")]
     [SerializeField] private GameObject standingForm;
     [SerializeField] private GameObject ballForm;
@@ -30,10 +37,15 @@ public class BonkRobotController : MonoBehaviour
 
     private Transform cameraTarget;
     private Vector3 cameraVelocity;
-    private Coroutine standingVelocityTransfer;
+    private void OnValidate()
+    {
+        if (speedSettings == null) speedSettings = new PlayerSpeedSettings();
+        speedSettings.Validate();
+    }
 
     private void Awake()
     {
+        OnValidate();
         if (cameraTransform == null && Camera.main != null)
         {
             cameraTransform = Camera.main.transform;
@@ -49,11 +61,24 @@ public class BonkRobotController : MonoBehaviour
             standingController = standingForm.GetComponent<HadesPlayerController>();
         }
 
+        if (standingForm == null || ballForm == null ||
+            ballController == null || standingController == null)
+        {
+            Debug.LogError("BonkRobotController requires both forms and their movement controllers.", this);
+            enabled = false;
+            return;
+        }
+
+        ballController.Configure(this);
+        standingController.Configure(this);
         IsBallForm = startAsBall;
 
         standingForm.SetActive(!IsBallForm);
         ballForm.SetActive(IsBallForm);
         
+        if (IsBallForm) ballController.EnterBallMode(Vector3.zero);
+        else standingController.EnterStandingMode(Vector3.zero);
+
         cameraTarget = IsBallForm
             ? ballForm.transform
             : standingForm.transform;
@@ -89,6 +114,7 @@ public class BonkRobotController : MonoBehaviour
 
     public void ToggleForm()
     {
+        if (!isActiveAndEnabled) return;
         if (!IsBallForm)
         {
             Vector3 inheritedVelocity = standingController != null
@@ -115,12 +141,10 @@ public class BonkRobotController : MonoBehaviour
                 ? ballController.PlanarVelocity
                 : Vector3.zero;
 
-            standingForm.transform.position = ballForm.transform.position;
-            if (ballVelocity.sqrMagnitude > 0.01f)
-            {
-                standingForm.transform.rotation =
-                    Quaternion.LookRotation(ballVelocity.normalized);
-            }
+            Vector3 standingPosition = ballForm.transform.position;
+            Quaternion standingRotation = ballVelocity.sqrMagnitude > 0f
+                ? Quaternion.LookRotation(ballVelocity.normalized)
+                : ballForm.transform.rotation;
 
             if (ballController != null)
             {
@@ -132,28 +156,11 @@ public class BonkRobotController : MonoBehaviour
             IsBallForm = false;
             if (standingController != null)
             {
+                standingController.Teleport(standingPosition, standingRotation);
                 standingController.EnterStandingMode(ballVelocity);
-                if (standingVelocityTransfer != null)
-                {
-                    StopCoroutine(standingVelocityTransfer);
-                }
-                standingVelocityTransfer = StartCoroutine(
-                    ReapplyStandingVelocityNextFrame(ballVelocity));
             }
             cameraTarget = standingForm.transform;
         }
-    }
-
-    private IEnumerator ReapplyStandingVelocityNextFrame(Vector3 velocity)
-    {
-        yield return null;
-
-        if (!IsBallForm && standingController != null)
-        {
-            standingController.EnterStandingMode(velocity);
-        }
-
-        standingVelocityTransfer = null;
     }
 
     private void LateUpdate()

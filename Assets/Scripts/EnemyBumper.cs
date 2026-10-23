@@ -1,12 +1,15 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
-// Wanders independently of the player; contact response comes from the wall material.
+// Enemy size selects the shared player-speed threshold; there is no health or partial damage.
 [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class EnemyBumper : MonoBehaviour
 {
-    [Header("Ball Impact")]
-    [Tooltip("Small enemies are defeated when hit by the player in ball form.")]
-    [SerializeField] private bool destroyedByBall;
+    [Header("Enemy Size")]
+    [Tooltip("Checked = small enemy, unchecked = large enemy. Both player forms use speed thresholds.")]
+    [FormerlySerializedAs("destroyedByBall")]
+    [SerializeField] private bool isSmallEnemy;
+    public bool IsSmallEnemy => isSmallEnemy;
 
     [Header("Wandering")]
     [Min(0f)]
@@ -66,8 +69,7 @@ public class EnemyBumper : MonoBehaviour
             direction.x = -direction.x;
         if (destination.z < arenaMin.y || destination.z > arenaMax.y)
             direction.z = -direction.z;
-
-        // Raise the sweep slightly so the floor does not count as an obstacle.
+        
         Vector3 scale = transform.lossyScale;
         float radius = capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
         float halfSegment = Mathf.Max(0f, capsule.height * Mathf.Abs(scale.y) * 0.5f - radius);
@@ -87,21 +89,17 @@ public class EnemyBumper : MonoBehaviour
 
         body.MovePosition(body.position + direction * distance);
     }
-
-    private void OnCollisionEnter(Collision collision)
+    
+    public bool TryDefeat(float incomingPlayerSpeed, PlayerSpeedSettings settings)
     {
-        if (!destroyedByBall || isDefeated || collision.rigidbody == null)
-        {
-            return;
-        }
+        if (isDefeated) return true;
+        if (!settings.CanKill(incomingPlayerSpeed, isSmallEnemy)) return false;
 
-        if (collision.rigidbody.TryGetComponent(out BouncingBallController ball) &&
-            ball.isActiveAndEnabled)
-        {
-            isDefeated = true;
-            // Collision callbacks run after the solver has applied the wall-material
-            // rebound. Defer removal to the end of the frame to preserve that response.
-            Destroy(gameObject);
-        }
+        isDefeated = true;
+        foreach (Collider enemyCollider in GetComponentsInChildren<Collider>())
+            enemyCollider.enabled = false;
+        enabled = false;
+        Destroy(gameObject);
+        return true;
     }
 }

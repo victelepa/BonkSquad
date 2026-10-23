@@ -1,181 +1,141 @@
-﻿using UnityEngine;
-using UnityEngine.InputSystem;
+using System.Collections.Generic;
+using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
 public class BouncingBallController : MonoBehaviour
 {
     [Header("Ball Movement")]
-    [Tooltip("Acceleration when input points along the current travel direction.")]
-    [Min(0f)]
-    [SerializeField] private float acceleration = 10f;
-    [Tooltip("Sideways acceleration available for steering. Keep this lower than acceleration for an inertial feel.")]
-    [Min(0f)]
-    [SerializeField] private float steeringAcceleration = 3f;
-    [Tooltip("Deceleration strength when input points against travel direction.")]
-    [Min(0f)]
-    [SerializeField] private float brakingAcceleration = 4f;
-    [Tooltip("Maximum horizontal speed in ball form.")]
-    [Min(0f)]
-    [SerializeField] private float maxSpeed = 18f;
+    [Tooltip("Speed gained per second while input is within the shared angle tolerance.")]
+    [Min(0f)] [SerializeField] private float acceleration = 10f;
 
     private Rigidbody rb;
     private Transform cameraTransform;
-    private Vector3 lastMovingVelocity;
-    private float lastMovingVelocityTime = -10f;
+    private BonkRobotController speedSystem;
+    private Vector3 simulationVelocity;
+    private PhysicsMaterial frictionlessMaterial;
+    private readonly HashSet<EnemyBumper> resolvedEnemies = new HashSet<EnemyBumper>();
 
-    public Vector3 PlanarVelocity
-    {
-        get
-        {
-            if (rb == null)
-            {
-                return Vector3.zero;
-            }
-
-            Vector3 velocity = rb.linearVelocity;
-            Vector3 currentVelocity = new Vector3(velocity.x, 0f, velocity.z);
-            if (currentVelocity.sqrMagnitude > 0.0625f)
-            {
-                return currentVelocity;
-            }
-
-            return Time.time - lastMovingVelocityTime <= 0.2f
-                ? lastMovingVelocity
-                : Vector3.zero;
-        }
-    }
+    public PlayerSpeedSettings SpeedSettings => speedSystem != null ? speedSystem.SpeedSettings : PlayerSpeedSettings.Default;
+    public Vector3 PlanarVelocity => rb != null ? PlayerMovementMath.Planar(rb.linearVelocity) : Vector3.zero;
 
     private void Awake()
     {
+        InitializeBody();
+        if (Camera.main != null) cameraTransform = Camera.main.transform;
+        if (speedSystem == null) speedSystem = GetComponentInParent<BonkRobotController>();
+    }
+
+    private void InitializeBody()
+    {
+        if (rb != null) return;
         rb = GetComponent<Rigidbody>();
-        if (Camera.main != null)
+        // Horizontal speed is controlled explicitly: floor friction and damping must
+        // not quietly change the speed used by the HUD or enemy impact rules.
+        rb.linearDamping = 0f;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        frictionlessMaterial = new PhysicsMaterial("Ball Speed System")
         {
-            cameraTransform = Camera.main.transform;
+            dynamicFriction = 0f,
+            staticFriction = 0f,
+            frictionCombine = PhysicsMaterialCombine.Minimum,
+            // Horizontal rebounds are explicit; do not launch the ball off floors.
+            bounciness = 0f,
+            bounceCombine = PhysicsMaterialCombine.Minimum
+        };
+        foreach (Collider collider in GetComponentsInChildren<Collider>(true))
+        {
+            if (collider.attachedRigidbody == rb && !collider.isTrigger)
+                collider.sharedMaterial = frictionlessMaterial;
         }
+    }
+
+    public void Configure(BonkRobotController owner)
+    {
+        speedSystem = owner;
     }
 
     public void EnterBallMode(Vector3 inheritedVelocity)
     {
-        if (rb == null)
-        {
-            rb = GetComponent<Rigidbody>();
-        }
-
-        rb.linearVelocity = new Vector3(
-            inheritedVelocity.x,
-            0f,
-            inheritedVelocity.z);
-        lastMovingVelocity = rb.linearVelocity;
-        lastMovingVelocityTime = Time.time;
+        InitializeBody();
+        rb.position = transform.position;
+        rb.rotation = transform.rotation;
+        simulationVelocity = PlayerMovementMath.Planar(inheritedVelocity);
+        rb.linearVelocity = simulationVelocity;
         rb.angularVelocity = Vector3.zero;
+        resolvedEnemies.Clear();
         rb.WakeUp();
     }
 
     public void ExitBallMode()
     {
-        if (rb == null)
-        {
-            return;
-        }
-
+        if (rb == null) return;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
+        simulationVelocity = Vector3.zero;
     }
 
     private void FixedUpdate()
     {
-        Vector3 velocity = rb.linearVelocity;
-        Vector3 planarVelocity = new Vector3(velocity.x, 0f, velocity.z);
-        if (planarVelocity.sqrMagnitude > 0.0625f)
-        {
-            lastMovingVelocity = planarVelocity;
-            lastMovingVelocityTime = Time.time;
-        }
-
-        ApplyLimitedControl();
-        LimitSpeed();
-    }
-
-    private void ApplyLimitedControl()
-    {
-        if (Keyboard.current == null)
-        {
-            return;
-        }
-
-        Vector2 input = new Vector2(
-            (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed ? 1f : 0f)
-            - (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed ? 1f : 0f),
-            (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed ? 1f : 0f)
-            - (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed ? 1f : 0f));
-
-        if (input.sqrMagnitude < 0.01f)
-        {
-            return;
-        }
-
-        if (cameraTransform == null && Camera.main != null)
-        {
-            cameraTransform = Camera.main.transform;
-        }
-
-        Vector3 forward = cameraTransform != null
-            ? Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized
-            : Vector3.forward;
-        Vector3 right = cameraTransform != null
-            ? Vector3.ProjectOnPlane(cameraTransform.right, Vector3.up).normalized
-            : Vector3.right;
-        Vector3 inputDirection = (forward * input.y + right * input.x).normalized;
-
+        if (cameraTransform == null && Camera.main != null) cameraTransform = Camera.main.transform;
         Vector3 velocity = PlanarVelocity;
         float speed = velocity.magnitude;
-
-        if (speed < 0.25f)
+        Vector3 travelDirection = speed > 0f
+            ? velocity / speed
+            : PlayerMovementMath.Planar(transform.forward).normalized;
+        // At rest, the facing established in robot form is the initial direction.
+        // Input never supplies a new direction, even at very low speed.
+        Vector3 inputDirection = PlayerMovementMath.ReadInputDirection(cameraTransform);
+        if (speed < SpeedSettings.MaximumSpeed && PlayerMovementMath.AllowsAcceleration(
+            travelDirection, inputDirection, SpeedSettings.AccelerationAngleTolerance))
         {
-            rb.AddForce(inputDirection * acceleration * 0.5f, ForceMode.Acceleration);
-            return;
+            speed = Mathf.Min(SpeedSettings.MaximumSpeed, speed + acceleration * Time.fixedDeltaTime);
+            velocity = travelDirection * speed;
         }
-
-        Vector3 travelDirection = velocity / speed;
-        float alignment = Vector3.Dot(inputDirection, travelDirection);
-        Vector3 steering = inputDirection - travelDirection * alignment;
-
-        if (alignment > 0f)
-        {
-            rb.AddForce(
-                travelDirection * alignment * acceleration,
-                ForceMode.Acceleration);
-        }
-        else if (alignment < 0f)
-        {
-            rb.AddForce(
-                travelDirection * alignment * brakingAcceleration,
-                ForceMode.Acceleration);
-        }
-
-        rb.AddForce(steering * steeringAcceleration, ForceMode.Acceleration);
+        SetPlanarVelocity(velocity);
+        // Capture AFTER acceleration and BEFORE the physics solver changes contact
+        // velocity. Never use a recent-history/stale velocity for a kill decision.
+        simulationVelocity = velocity;
+        resolvedEnemies.Clear();
     }
 
-    private void LimitSpeed()
+    private void SetPlanarVelocity(Vector3 velocity)
     {
-        Vector3 velocity = rb.linearVelocity;
+        Vector3 current = rb.linearVelocity;
+        rb.linearVelocity = new Vector3(velocity.x, current.y, velocity.z);
+    }
 
-        Vector3 horizontalVelocity = new Vector3(
-            velocity.x,
-            0f,
-            velocity.z
-        );
+    private void OnCollisionEnter(Collision collision) => ResolveCollision(collision);
+    private void OnCollisionStay(Collision collision) => ResolveCollision(collision);
 
-        if (horizontalVelocity.sqrMagnitude > maxSpeed * maxSpeed)
+    private void ResolveCollision(Collision collision)
+    {
+        EnemyBumper enemy = collision.collider.GetComponentInParent<EnemyBumper>();
+        if (enemy != null)
         {
-            horizontalVelocity =
-                horizontalVelocity.normalized * maxSpeed;
-
-            rb.linearVelocity = new Vector3(
-                horizontalVelocity.x,
-                velocity.y,
-                horizontalVelocity.z
-            );
+            if (!resolvedEnemies.Add(enemy)) return;
+            if (enemy.TryDefeat(simulationVelocity.magnitude, SpeedSettings))
+            {
+                // Ignore the solver's rebound on a defeated enemy. Killing changes
+                // neither the incoming direction nor the speed.
+                SetPlanarVelocity(simulationVelocity);
+                return;
+            }
         }
+
+        // A wall or surviving enemy reflects direction without adding/removing speed.
+        for (int i = 0; i < collision.contactCount; i++)
+        {
+            Vector3 normal = PlayerMovementMath.Planar(collision.GetContact(i).normal);
+            if (normal.sqrMagnitude < 0.0001f) continue; // floor/ceiling
+            if (Vector3.Dot(simulationVelocity, normal) < 0f)
+                simulationVelocity = PlayerMovementMath.ReflectPlanar(simulationVelocity, normal);
+        }
+        if (enemy != null || simulationVelocity.sqrMagnitude > 0f)
+            SetPlanarVelocity(simulationVelocity);
+    }
+
+    private void OnDestroy()
+    {
+        if (frictionlessMaterial != null) Destroy(frictionlessMaterial);
     }
 }
