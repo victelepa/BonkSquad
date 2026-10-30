@@ -5577,7 +5577,7 @@ MonoBehaviour:
     robotBaseSpeed: 2
     smallEnemyKillSpeed: 8
     largeEnemyKillSpeed: 14
-    robotDeceleration: 2
+    robotDeceleration: 7
     accelerationAngleTolerance: 30
   dizzinessSettings:
     maximumDizziness: 100
@@ -5607,7 +5607,7 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    ballLowSpeedRecovery: 3
+    ballLowSpeedRecovery: 5
     robotRecovery: 25
     warningDuration: 2.5
     stunDuration: 2.5
@@ -9300,7 +9300,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 524cd42c50594234857f07c124b040f4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BouncingBallController
-  acceleration: 10
+  acceleration: 5
   steeringAcceleration: 3
 --- !u!54 &1678529260
 Rigidbody:
