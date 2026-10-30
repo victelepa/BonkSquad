@@ -18,7 +18,56 @@ public class BonkRobotController : MonoBehaviour
     public float DizzinessValue { get; private set; }
     public float DizzinessRatio => DizzinessValue / dizzinessSettings.MaximumDizziness;
     public float PhaseTimeRemaining { get; private set; }
-    public bool CanAcceptPlayerInput => DizzinessPhase != PlayerDizzinessPhase.Stunned;
+    public bool IsEncounterLocked { get; private set; }
+    public bool CanAcceptPlayerInput => !IsEncounterLocked && DizzinessPhase != PlayerDizzinessPhase.Stunned;
+    public Vector3 ActivePosition => IsBallForm ? ballForm.transform.position : standingForm.transform.position;
+
+    [Header("Damage Knockback")]
+    [Min(0f)] [SerializeField] private float knockbackStrength = 6f;
+    [Min(0f)] [SerializeField] private float knockbackRecoverySeconds = .2f;
+    private float knockbackUntil;
+    public bool IsKnockedBack => Time.time < knockbackUntil;
+
+    public void SetEncounterLocked(bool locked)
+    {
+        IsEncounterLocked = locked;
+        if (locked) knockbackUntil = 0f;
+    }
+
+    public void ApplyDamageKnockback(Vector3 sourcePosition)
+    {
+        if (IsEncounterLocked || knockbackStrength <= 0f) return;
+        Vector3 direction = PlayerMovementMath.Planar(ActivePosition - sourcePosition);
+        if (direction.sqrMagnitude < .0001f)
+        {
+            Vector3 velocity = CurrentPlanarVelocity;
+            direction = velocity.sqrMagnitude > .0001f ? -velocity :
+                -(IsBallForm ? ballForm.transform.forward : standingForm.transform.forward);
+        }
+        direction = PlayerMovementMath.Planar(direction).normalized;
+        if (direction.sqrMagnitude < .0001f) direction = Vector3.back;
+        knockbackUntil = Time.time + Mathf.Max(0f, knockbackRecoverySeconds);
+        if (IsBallForm) ballController.ApplyKnockback(direction, knockbackStrength);
+        else standingController.ApplyKnockback(direction, knockbackStrength);
+    }
+
+    public void ResetForEncounter(Vector3 position, Quaternion rotation)
+    {
+        knockbackUntil = 0f;
+        DizzinessPhase = PlayerDizzinessPhase.Normal;
+        DizzinessValue = 0f;
+        PhaseTimeRemaining = 0f;
+        ballController.ExitBallMode();
+        ballForm.SetActive(false);
+        standingForm.SetActive(true);
+        IsBallForm = false;
+        standingController.Teleport(position, rotation);
+        standingController.SetControlLocked(false);
+        standingController.EnterStandingMode(Vector3.zero);
+        ballForm.transform.SetPositionAndRotation(position, rotation);
+        cameraTarget = standingForm.transform;
+        cameraVelocity = Vector3.zero;
+    }
 
     [Header("Forms")]
     [SerializeField] private GameObject standingForm;
@@ -177,6 +226,7 @@ public class BonkRobotController : MonoBehaviour
 
     private void Update()
     {
+        if (IsEncounterLocked) return;
         if (Keyboard.current == null && UnityEngine.Input.GetKeyDown(KeyCode.Space))
             ToggleForm();
 

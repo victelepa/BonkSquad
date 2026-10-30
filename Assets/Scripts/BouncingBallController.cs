@@ -19,11 +19,15 @@ public class BouncingBallController : MonoBehaviour
 
     private Vector3 simulationVelocity;
     private PhysicsMaterial frictionlessMaterial;
+    private EnemyWaveController encounter;
+    private readonly HashSet<Collider> contactSurfaces = new HashSet<Collider>();
+    public void ConfigureEncounter(EnemyWaveController owner) => encounter = owner;
 
     private bool isBallMode;
     private float inputTime;
     private float matchingDirectionTime;
 
+    private readonly HashSet<EnemyBumper> contactEnemies = new HashSet<EnemyBumper>();
     private readonly HashSet<EnemyBumper> resolvedEnemies =
         new HashSet<EnemyBumper>();
 
@@ -91,6 +95,14 @@ public class BouncingBallController : MonoBehaviour
         speedSystem = owner;
     }
 
+    public void ApplyKnockback(Vector3 direction, float strength)
+    {
+        InitializeBody();
+        simulationVelocity = PlayerMovementMath.KnockbackVelocity(simulationVelocity, direction, strength, SpeedSettings.MaximumSpeed);
+        SetPlanarVelocity(simulationVelocity);
+        rb.WakeUp();
+    }
+
     public void EnterBallMode(Vector3 inheritedVelocity)
     {
         InitializeBody();
@@ -111,6 +123,8 @@ public class BouncingBallController : MonoBehaviour
         isBallMode = true;
 
         resolvedEnemies.Clear();
+        contactEnemies.Clear();
+        contactSurfaces.Clear();
         rb.WakeUp();
     }
 
@@ -129,6 +143,12 @@ public class BouncingBallController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (speedSystem != null && speedSystem.IsEncounterLocked)
+        {
+            SetPlanarVelocity(Vector3.zero);
+            simulationVelocity = Vector3.zero;
+            return;
+        }
         if (!isBallMode)
             return;
 
@@ -138,8 +158,8 @@ public class BouncingBallController : MonoBehaviour
         Vector3 velocity = PlanarVelocity;
         float speed = velocity.magnitude;
 
-        Vector3 inputDirection =
-            PlayerMovementMath.ReadInputDirection(cameraTransform);
+        Vector3 inputDirection = speedSystem != null && speedSystem.IsKnockedBack
+            ? Vector3.zero : PlayerMovementMath.ReadInputDirection(cameraTransform);
 
         bool hasInput = inputDirection.sqrMagnitude > 0f;
 
@@ -216,6 +236,19 @@ public class BouncingBallController : MonoBehaviour
         ResolveCollision(collision);
     }
 
+    private void OnCollisionExit(Collision collision)
+    {
+        EnemyBumper enemy = collision.collider.GetComponentInParent<EnemyBumper>();
+        if (enemy != null) contactEnemies.Remove(enemy);
+        contactSurfaces.Remove(collision.collider);
+    }
+
+    private void OnDisable()
+    {
+        contactEnemies.Clear();
+        contactSurfaces.Clear();
+    }
+
     private void OnCollisionStay(Collision collision)
     {
         ResolveCollision(collision);
@@ -229,13 +262,18 @@ public class BouncingBallController : MonoBehaviour
         if (enemy != null)
         {
             if (!resolvedEnemies.Add(enemy)) return;
-            if (enemy.TryDefeatFromBall(simulationVelocity.magnitude, SpeedSettings))
+            if (contactEnemies.Add(enemy) &&
+                (enemy.Encounter != null
+                    ? enemy.Encounter.TryBonk(enemy, simulationVelocity.magnitude, SpeedSettings)
+                    : enemy.TryHitFromBall(simulationVelocity.magnitude, SpeedSettings)) == EnemyHitResult.Defeated)
             {
                 SetPlanarVelocity(simulationVelocity);
                 return;
             }
         }
-        
+        if (enemy != null) enemy.ContactPlayer(GetComponentInParent<PlayerHealth>());
+        bool freshSurface = enemy == null && contactSurfaces.Add(collision.collider);
+        bool reflected = false;
         for (int i = 0; i < collision.contactCount; i++)
         {
             Vector3 normal = PlayerMovementMath.Planar(
@@ -246,6 +284,7 @@ public class BouncingBallController : MonoBehaviour
 
             if (Vector3.Dot(simulationVelocity, normal) < 0f)
             {
+                reflected = true;
                 simulationVelocity =
                     PlayerMovementMath.ReflectPlanar(
                         simulationVelocity,
@@ -253,6 +292,8 @@ public class BouncingBallController : MonoBehaviour
             }
         }
 
+        if (freshSurface && reflected && encounter != null)
+            encounter.RegisterRicochet(simulationVelocity.magnitude);
         if (enemy != null || simulationVelocity.sqrMagnitude > 0f)
             SetPlanarVelocity(simulationVelocity);
     }
