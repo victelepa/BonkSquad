@@ -85,20 +85,9 @@ public static class Map01CombatSetup
         var run = encounter.AddComponent<EnemyWaveController>();
         Vector3 start = player.GetComponentInChildren<PlayerController>(true).transform.position;
         Quaternion rotation = player.GetComponentInChildren<PlayerController>(true).transform.rotation;
-        run.Configure(player, health, placement, new[] {
-            new EnemyWaveController.WaveDefinition { title = "Spawners", count = 2, prefab = spawner,
-                introduction = "Green pods create small enemies after a green ring appears. Destroy the pods, then clear their minions. Minions hurt on contact." },
-            new EnemyWaveController.WaveDefinition { title = "Mine Layers", count = 3, prefab = layer,
-                introduction = "Orange dispensers leave mines. Pulsing rings warn while mines arm; avoid armed rings and bonk the dispensers." },
-            new EnemyWaveController.WaveDefinition { title = "Mortars", count = 3, prefab = mortar,
-                introduction = "Purple cannons mark your location, then lob a shell there. Keep moving out of the rings and line up fast return attacks." },
-            new EnemyWaveController.WaveDefinition { title = "All Types", count = 1, prefab = spawner,
-                introduction = "All three specialists share the arena. Stop the spawner, avoid mines, and keep moving away from mortar markers. Use the minimap to find remaining targets.",
-                additionalGroups = new[] {
-                    new EnemyWaveController.EnemyGroup { prefab = layer, count = 1 },
-                    new EnemyWaveController.EnemyGroup { prefab = mortar, count = 1 }
-                } }
-        }, minion, mine, shell, pickup, marker, start, rotation);
+        run.Configure(player, health, placement, TeachingWaves(spawner, layer, mortar),
+            minion, mine, shell, pickup, marker, start, rotation);
+        encounter.AddComponent<CombatPresentation>();
         encounter.AddComponent<CombatHUD>();
         Physics.SyncTransforms();
         ValidatePlacement(placement, start);
@@ -106,6 +95,64 @@ public static class Map01CombatSetup
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
         Debug.Log("MAP01_COMBAT_SETUP_OK: four waves including all enemy types, reusable prefabs, random placement and 5% healing drops.");
+    }
+
+    public static EnemyWaveController.WaveDefinition[] TeachingWaves(EnemyBumper spawner, EnemyBumper layer, EnemyBumper mortar) => new[] {
+        new EnemyWaveController.WaveDefinition { title = "Learn to bonk", count = 0, basicMinions = 4, minionSpeedInDiameters = .65f,
+            introduction = "Just four slow minions. Build speed and hit them in ball form." },
+        new EnemyWaveController.WaveDefinition { title = "Meet the spawner", prefab = spawner, count = 1, basicMinions = 3,
+            introduction = "One spawner joins a few minions. Stop the source, then clear its children." },
+        new EnemyWaveController.WaveDefinition { title = "Watch for mines", prefab = layer, count = 1, basicMinions = 4,
+            introduction = "One mine layer. Avoid its warning rings and line up a fast hit." },
+        new EnemyWaveController.WaveDefinition { title = "Keep moving", prefab = mortar, count = 1, basicMinions = 4,
+            introduction = "One mortar. Leave its landing marks before returning to attack." },
+        new EnemyWaveController.WaveDefinition { title = "All Types", prefab = spawner, count = 1, basicMinions = 4,
+            introduction = "One of each specialist. Use the map symbols to plan your route.", additionalGroups = new[] {
+                new EnemyWaveController.EnemyGroup { prefab = layer, count = 1 },
+                new EnemyWaveController.EnemyGroup { prefab = mortar, count = 1 }
+            } }
+    };
+
+    [MenuItem("Tools/BonkSquad/Apply Map01 Teaching Balance")]
+    public static void ApplyTeachingBalance()
+    {
+        var scene = EditorSceneManager.OpenScene(ScenePath);
+        var run = UnityEngine.Object.FindFirstObjectByType<EnemyWaveController>();
+        var spawner = AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/Spawner.prefab");
+        var layer = AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/MineLayer.prefab");
+        var mortar = AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/Mortar.prefab");
+        typeof(EnemyWaveController).GetField("waves", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            .SetValue(run, TeachingWaves(spawner, layer, mortar));
+        var minion = PrefabUtility.LoadPrefabContents(Folder + "/Minion.prefab");
+        float d = run.Placement.Diameter;
+        minion.GetComponent<CapsuleCollider>().radius = .5f * d;
+        Transform body = minion.transform.Find("Body");
+        body.localScale = new Vector3(.95f * d, body.localScale.y, .95f * d);
+        PrefabUtility.SaveAsPrefabAsset(minion, Folder + "/Minion.prefab"); PrefabUtility.UnloadPrefabContents(minion);
+        var spawn = PrefabUtility.LoadPrefabContents(Folder + "/Spawner.prefab");
+        var spawnData = new SerializedObject(spawn.GetComponent<SpawnerEnemy>());
+        spawnData.FindProperty("livingMinionCap").intValue = 2;
+        spawnData.FindProperty("totalSpawnBudget").intValue = 3;
+        spawnData.FindProperty("spawnInterval").floatValue = 8f;
+        spawnData.ApplyModifiedPropertiesWithoutUndo();
+        PrefabUtility.SaveAsPrefabAsset(spawn, Folder + "/Spawner.prefab"); PrefabUtility.UnloadPrefabContents(spawn);
+        EditorUtility.SetDirty(run);
+        EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
+        Debug.Log("TEACHING_BALANCE_APPLIED: four slow wider minions, then one specialist per wave, twice the dizziness buildup time.");
+    }
+
+    [MenuItem("Tools/BonkSquad/Install Map01 Onboarding UI")]
+    public static void InstallPresentation()
+    {
+        var scene = EditorSceneManager.OpenScene(ScenePath);
+        var run = UnityEngine.Object.FindFirstObjectByType<EnemyWaveController>();
+        if (run == null) throw new InvalidOperationException("Set up Map01 enemy waves first.");
+        if (run.GetComponent<CombatPresentation>() == null) run.gameObject.AddComponent<CombatPresentation>();
+        if (run.GetComponent<CombatHUD>() == null) run.gameObject.AddComponent<CombatHUD>();
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("MAP01_ONBOARDING_INSTALLED");
     }
 
     public static void ValidatePlacement(CombatPlacement placement, Vector3 start)
@@ -151,13 +198,13 @@ public static class Map01CombatSetup
         go.AddComponent<Rigidbody>();
         var capsule = go.AddComponent<CapsuleCollider>();
         capsule.height = (kind == 3 ? 1f : 1.6f) * d;
-        capsule.radius = (kind == 3 ? .35f : .55f) * d;
+        capsule.radius = (kind == 3 ? .5f : .55f) * d;
         capsule.center = Vector3.up * capsule.height * .5f;
         var enemy = go.AddComponent<EnemyBumper>();
         enemy.ConfigureCombat(kind == 3 ? 1 : 2, true, kind == 1 ? d * 1.5f : kind == 3 ? d * 2f : 0f,
             kind == 3, minimum, maximum);
         Model(go.transform, "Body", kind == 0 ? PrimitiveType.Cylinder : kind == 1 ? PrimitiveType.Cube : PrimitiveType.Capsule,
-            capsule.center, new Vector3(kind == 3 ? .65f : 1f, kind == 0 || kind == 2 || kind == 3 ? capsule.height/d*.5f : 1.2f, kind == 3 ? .65f : 1f)*d, color);
+            capsule.center, new Vector3(kind == 3 ? .95f : 1f, kind == 0 || kind == 2 || kind == 3 ? capsule.height/d*.5f : 1.2f, kind == 3 ? .95f : 1f)*d, color);
         if (kind == 0)
         {
             go.AddComponent<SpawnerEnemy>();

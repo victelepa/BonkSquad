@@ -621,6 +621,213 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 286668277}
   m_Mesh: {fileID: 4300000, guid: c6f8e7dbbde40f644900ca44b93f940a, type: 2}
+--- !u!1 &324729109
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 324729113}
+  - component: {fileID: 324729112}
+  - component: {fileID: 324729111}
+  - component: {fileID: 324729110}
+  - component: {fileID: 324729114}
+  m_Layer: 0
+  m_Name: Map01 Enemy Waves
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &324729110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 324729109}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 168a1c09a597147da8b5dd69e70fd2cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatHUD
+--- !u!114 &324729111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 324729109}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60c1a78d8661f4a309fc77b204a87c36, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyWaveController
+  player: {fileID: 1094164506}
+  health: {fileID: 1094164507}
+  placement: {fileID: 324729112}
+  waves:
+  - title: Learn to bonk
+    introduction: Just four slow minions. Build speed and hit them in ball form.
+    prefab: {fileID: 0}
+    basicMinions: 4
+    minionSpeedInDiameters: 0.65
+    count: 0
+    seconds: 180
+    additionalGroups: []
+  - title: Meet the spawner
+    introduction: One spawner joins a few minions. Stop the source, then clear its
+      children.
+    prefab: {fileID: 7076426847113777988, guid: 978949b8623a64d8b8d1a0e16540c2b8, type: 3}
+    basicMinions: 3
+    minionSpeedInDiameters: 1.2
+    count: 1
+    seconds: 180
+    additionalGroups: []
+  - title: Watch for mines
+    introduction: One mine layer. Avoid its warning rings and line up a fast hit.
+    prefab: {fileID: 3021923979590987134, guid: 5717f51dd1e6a4f2e8580c4e584694b9, type: 3}
+    basicMinions: 4
+    minionSpeedInDiameters: 1.2
+    count: 1
+    seconds: 180
+    additionalGroups: []
+  - title: Keep moving
+    introduction: One mortar. Leave its landing marks before returning to attack.
+    prefab: {fileID: 1804741076410313430, guid: 4a2db4bc0afe74ce4b4e297ff9a61090, type: 3}
+    basicMinions: 4
+    minionSpeedInDiameters: 1.2
+    count: 1
+    seconds: 180
+    additionalGroups: []
+  - title: All Types
+    introduction: One of each specialist. Use the map symbols to plan your route.
+    prefab: {fileID: 7076426847113777988, guid: 978949b8623a64d8b8d1a0e16540c2b8, type: 3}
+    basicMinions: 4
+    minionSpeedInDiameters: 1.2
+    count: 1
+    seconds: 180
+    additionalGroups:
+    - prefab: {fileID: 3021923979590987134, guid: 5717f51dd1e6a4f2e8580c4e584694b9, type: 3}
+      count: 1
+    - prefab: {fileID: 1804741076410313430, guid: 4a2db4bc0afe74ce4b4e297ff9a61090, type: 3}
+      count: 1
+  minionPrefab: {fileID: 7400253094583230179, guid: 08887905a2dac4087ba971118e5b2afa, type: 3}
+  basicMinionsPerWave: 12
+  scoring:
+    minionPoints: 10
+    specialistPoints: 50
+    pointsPerCharge: 100
+    comboWindow: 3
+    ricochetBonus: 25
+    doubleBonus: 30
+    tripleBonus: 50
+  minePrefab: {fileID: 3635219438340680636, guid: b989a67c035ee493eb076d93efc1c98d, type: 3}
+  shellPrefab: {fileID: 7264847990184322332, guid: 53a185bf7daad45e196257e10112233a, type: 3}
+  healthPrefab: {fileID: 1532661954182238799, guid: 1f7f47fe7c1f44f34bb4a948275ce719, type: 3}
+  markerMaterial: {fileID: 2100000, guid: 075525afdea064b64bfc206882ef065a, type: 2}
+  globalMinionCap: 6
+  healthDropChance: 0.05
+  playerStart: {x: 0, y: 1, z: 0}
+  playerRotation: {x: -0, y: -0, z: -0, w: 1}
+--- !u!114 &324729112
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 324729109}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2ce41a4104c844edbd6ee7e59d85ddd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatPlacement
+  arenaFloor: {fileID: 1283014398}
+  spawnRegions:
+  - serializedVersion: 2
+    x: -22.4
+    y: -22.4
+    width: 6.4
+    height: 44.8
+  - serializedVersion: 2
+    x: 16
+    y: -22.4
+    width: 6.4
+    height: 44.8
+  - serializedVersion: 2
+    x: -16
+    y: 16
+    width: 32
+    height: 6.4
+  - serializedVersion: 2
+    x: -16
+    y: -22.4
+    width: 32
+    height: 6.4
+  fallbackPositions:
+  - {x: -20, y: 0, z: -20}
+  - {x: 20, y: 0, z: -20}
+  - {x: -20, y: 0, z: 20}
+  - {x: 20, y: 0, z: 20}
+  randomAttempts: 100
+  Diameter: 1
+--- !u!4 &324729113
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 324729109}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &324729114
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 324729109}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e165c3c81a9f94aac9ef199f5a1c6cc6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatPresentation
+  enemyProfiles:
+  - kind: 0
+    displayName: Spawner
+    symbol: S
+    color: {r: 0.3, g: 1, b: 0.5, a: 1}
+    ability: Sends more minions into the arena. Green rings warn where they will
+      appear.
+    killTip: Destroy the spawner, then clear its surviving minions.
+  - kind: 1
+    displayName: Mine layer
+    symbol: L
+    color: {r: 1, g: 0.6, b: 0.18, a: 1}
+    ability: Roams and leaves proximity mines. Flashing rings mean a mine is arming.
+    killTip: Avoid armed rings. Build speed on a clear route, then hit the layer.
+  - kind: 2
+    displayName: Mortar
+    symbol: M
+    color: {r: 0.8, g: 0.5, b: 1, a: 1}
+    ability: Marks your position and launches a shell. The marked landing point stays
+      fixed.
+    killTip: Leave the warning circle, then line up a fast return attack.
+  - kind: 3
+    displayName: Basic minion
+    symbol: "\u2022"
+    color: {r: 1, g: 0.88, b: 0.2, a: 1}
+    ability: Patrols straight horizontal, vertical, or diagonal routes, reversing at
+      obstacles. Contact hurts robot form; ball form is safe.
+    killTip: Bonk it in ball form at attack speed. Minion kills also help build combos.
 --- !u!1 &330196631
 GameObject:
   m_ObjectHideFlags: 0
@@ -837,8 +1044,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_RenderShadows: 1
   m_RequiresDepthTextureOption: 2
   m_RequiresOpaqueTextureOption: 2
@@ -1313,7 +1520,7 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 410087039}
   m_Enabled: 1
-  serializedVersion: 12
+  serializedVersion: 13
   m_Type: 1
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 2
@@ -1365,7 +1572,7 @@ Light:
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ForceVisible: 0
-  m_ShadowRadius: 0
+  m_ShapeRadius: 0
   m_ShadowAngle: 0
   m_LightUnit: 1
   m_LuxAtDistance: 1
@@ -1395,8 +1602,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_UsePipelineSettings: 1
   m_AdditionalLightsShadowResolutionTier: 2
   m_CustomShadowLayers: 0
@@ -3138,8 +3345,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_IsGlobal: 1
   priority: 0
   blendDistance: 0
@@ -3904,7 +4111,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 92d4636976c84945af893f46e8d5cead, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BonkRobotController
   speedSettings:
     maximumSpeed: 18
@@ -3941,10 +4148,13 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
+    buildupDurationMultiplier: 2
     ballLowSpeedRecovery: 3
     robotRecovery: 25
     warningDuration: 2.5
     stunDuration: 2.5
+  knockbackStrength: 6
+  knockbackRecoverySeconds: 0.2
   standingForm: {fileID: 1179798299}
   ballForm: {fileID: 1678529257}
   ballController: {fileID: 1678529259}
@@ -3954,6 +4164,21 @@ MonoBehaviour:
   cameraTransform: {fileID: 330585546}
   cameraOffset: {x: 0, y: 8, z: -11}
   cameraSmoothTime: 0.2
+--- !u!114 &1094164507
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1094164504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ac89512fe6dd485685ed35f88ea0d1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
+  maximumHealth: 100
+  attackDamage: 20
+  protectionSeconds: 1
 --- !u!1 &1113656289
 GameObject:
   m_ObjectHideFlags: 0
@@ -4327,7 +4552,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4fe16ccf5b0bdec4faae8cd62e0b903e, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   turnSpeed: 14
   groundAcceleration: 28
@@ -4508,7 +4733,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 716bb920b9604b428037285cc6f5ad8f, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BallAccelerationEfficiencyChart
   player: {fileID: 1678529259}
   initiallyVisible: 0
@@ -6530,7 +6755,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 524cd42c50594234857f07c124b040f4, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BouncingBallController
   acceleration: 10
   steeringAcceleration: 3
@@ -9020,7 +9245,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 75ae92260c0340d3b107cd22064e35df, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ControlsOverlay
   player: {fileID: 0}
   screenPadding: {x: 20, y: 20}
@@ -9043,171 +9268,6 @@ MonoBehaviour:
 
     ROBOT: WASD
     / Arrows = steer | SPACE: switch form'
---- !u!1 &324729109
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 324729113}
-  - component: {fileID: 324729112}
-  - component: {fileID: 324729111}
-  - component: {fileID: 324729110}
-  m_Layer: 0
-  m_Name: Map01 Enemy Waves
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &324729110
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 324729109}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 168a1c09a597147da8b5dd69e70fd2cd, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::CombatHUD
---- !u!114 &324729111
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 324729109}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 60c1a78d8661f4a309fc77b204a87c36, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyWaveController
-  player: {fileID: 1094164506}
-  health: {fileID: 1094164507}
-  placement: {fileID: 324729112}
-  waves:
-  - title: Spawners
-    introduction: Green pods create small enemies after a green ring appears. Destroy
-      the pods, then clear their minions. Minions hurt on contact.
-    prefab: {fileID: 7076426847113777988, guid: 978949b8623a64d8b8d1a0e16540c2b8, type: 3}
-    count: 2
-    seconds: 180
-  - title: Mine Layers
-    introduction: Orange dispensers leave mines. Pulsing rings warn while mines arm;
-      avoid armed rings and bonk the dispensers.
-    prefab: {fileID: 3021923979590987134, guid: 5717f51dd1e6a4f2e8580c4e584694b9, type: 3}
-    count: 3
-    seconds: 180
-  - title: Mortars
-    introduction: Purple cannons mark your location, then lob a shell there. Keep
-      moving out of the rings and line up fast return attacks.
-    prefab: {fileID: 1804741076410313430, guid: 4a2db4bc0afe74ce4b4e297ff9a61090, type: 3}
-    count: 3
-    seconds: 180
-  - title: All Types
-    introduction: All three specialists share the arena. Stop the spawner, avoid mines,
-      and keep moving away from mortar markers. Use the minimap to find remaining targets.
-    prefab: {fileID: 7076426847113777988, guid: 978949b8623a64d8b8d1a0e16540c2b8, type: 3}
-    count: 1
-    seconds: 180
-    additionalGroups:
-    - prefab: {fileID: 3021923979590987134, guid: 5717f51dd1e6a4f2e8580c4e584694b9, type: 3}
-      count: 1
-    - prefab: {fileID: 1804741076410313430, guid: 4a2db4bc0afe74ce4b4e297ff9a61090, type: 3}
-      count: 1
-  minionPrefab: {fileID: 7400253094583230179, guid: 08887905a2dac4087ba971118e5b2afa, type: 3}
-  basicMinionsPerWave: 12
-  scoring:
-    minionPoints: 10
-    specialistPoints: 50
-    pointsPerCharge: 100
-    comboWindow: 3
-    ricochetBonus: 25
-    doubleBonus: 30
-    tripleBonus: 50
-  minePrefab: {fileID: 3635219438340680636, guid: b989a67c035ee493eb076d93efc1c98d, type: 3}
-  shellPrefab: {fileID: 7264847990184322332, guid: 53a185bf7daad45e196257e10112233a, type: 3}
-  healthPrefab: {fileID: 1532661954182238799, guid: 1f7f47fe7c1f44f34bb4a948275ce719, type: 3}
-  markerMaterial: {fileID: 2100000, guid: 075525afdea064b64bfc206882ef065a, type: 2}
-  globalMinionCap: 6
-  healthDropChance: 0.05
-  playerStart: {x: 0, y: 1, z: 0}
-  playerRotation: {x: -0, y: -0, z: -0, w: 1}
---- !u!114 &324729112
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 324729109}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2ce41a4104c844edbd6ee7e59d85ddd, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::CombatPlacement
-  arenaFloor: {fileID: 1283014398}
-  spawnRegions:
-  - serializedVersion: 2
-    x: -22.4
-    y: -22.4
-    width: 6.4
-    height: 44.8
-  - serializedVersion: 2
-    x: 16
-    y: -22.4
-    width: 6.4
-    height: 44.8
-  - serializedVersion: 2
-    x: -16
-    y: 16
-    width: 32
-    height: 6.4
-  - serializedVersion: 2
-    x: -16
-    y: -22.4
-    width: 32
-    height: 6.4
-  fallbackPositions:
-  - {x: -20, y: 0, z: -20}
-  - {x: 20, y: 0, z: -20}
-  - {x: -20, y: 0, z: 20}
-  - {x: 20, y: 0, z: 20}
-  randomAttempts: 100
-  Diameter: 1
---- !u!4 &324729113
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 324729109}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1094164507
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1094164504}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0ac89512fe6dd485685ed35f88ea0d1f, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
-  maximumHealth: 100
-  attackDamage: 20
-  protectionSeconds: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

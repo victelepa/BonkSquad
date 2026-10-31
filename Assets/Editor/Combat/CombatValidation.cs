@@ -97,7 +97,21 @@ public static class CombatValidation
                 case 0:
                     if (!run.Player.IsEncounterLocked) return; // Wait for Start.
                     if (warmupFrames++ < 4) return;
-                    Check(run.State == EnemyWaveState.Introduction && run.WaveCount == 4, "initial intro");
+                    // Keep stress coverage for the original larger specialist encounters as production teaching waves get easier.
+                    var teachingWaves = (EnemyWaveController.WaveDefinition[])typeof(EnemyWaveController).GetField("waves", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(run);
+                    var prefabs = teachingWaves.SelectMany(w => w.SpawnList()).ToArray();
+                    EnemyBumper spawnerPrefab = prefabs.First(e => e.GetComponent<SpawnerEnemy>() != null);
+                    EnemyBumper layerPrefab = prefabs.First(e => e.GetComponent<MineLayerEnemy>() != null);
+                    EnemyBumper mortarPrefab = prefabs.First(e => e.GetComponent<MortarEnemy>() != null);
+                    Field(run, "waves", new[] {
+                        new EnemyWaveController.WaveDefinition { title = "Spawners", count = 2, prefab = spawnerPrefab },
+                        new EnemyWaveController.WaveDefinition { title = "Mines", count = 3, prefab = layerPrefab },
+                        new EnemyWaveController.WaveDefinition { title = "Mortars", count = 3, prefab = mortarPrefab },
+                        new EnemyWaveController.WaveDefinition { title = "All Types", count = 1, prefab = spawnerPrefab, additionalGroups = new[] {
+                            new EnemyWaveController.EnemyGroup { prefab = layerPrefab }, new EnemyWaveController.EnemyGroup { prefab = mortarPrefab }
+                        } }
+                    });
+                    Check(run.State == EnemyWaveState.Introduction && run.WaveCount == 4, "stress-test intro");
                     Check(run.Health.Current == 100 && !run.Health.CombatEnabled, "initial health and combat lock");
                     Check(EnemyWaveController.ShouldDrop(0d) && EnemyWaveController.ShouldDrop(.049999d), "5% positive boundary");
                     Check(!EnemyWaveController.ShouldDrop(.05d) && !EnemyWaveController.ShouldDrop(.99d), "5% negative boundary");
@@ -107,7 +121,13 @@ public static class CombatValidation
                     Map01CombatSetup.ValidatePlacement(run.Placement, run.Player.ActivePosition);
                     Field(run.Placement, "randomAttempts", 100);
                     ValidateScoring();
+                    var presentation = run.GetComponent<CombatPresentation>();
+                    if (presentation != null) { presentation.DismissForValidation(); presentation.enabled = false; }
                     run.StartWave();
+                    foreach (SpawnerEnemy spawner in UnityEngine.Object.FindObjectsByType<SpawnerEnemy>(FindObjectsSortMode.None))
+                    {
+                        Field(spawner, "livingMinionCap", 3); Field(spawner, "totalSpawnBudget", 6); Field(spawner, "spawnInterval", 6f);
+                    }
                     Check(run.LivingEnemies == 2 + run.BasicMinionsPerWave && !run.Player.IsEncounterLocked, "spawner wave start");
                     initialMinions = Enemies().Where(e => e.IsBasicMinion).ToDictionary(e => e, e => e.transform.position);
                     EnemyBumper basic = Enemies().First(e => e.IsBasicMinion);

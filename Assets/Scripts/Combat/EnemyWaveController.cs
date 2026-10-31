@@ -1,6 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+
+public enum WaveFailureReason { None, HealthDepleted, Timeout, Placement }
+
+public struct WaveResultSnapshot
+{
+    public WaveFailureReason reason;
+    public int enemiesRemaining;
+    public float elapsedSeconds, health;
+}
 
 public enum EnemyWaveState { Introduction, Active, Cleared, Failed, Victory }
 
@@ -19,7 +29,10 @@ public sealed class EnemyWaveController : MonoBehaviour
         public string title;
         [TextArea] public string introduction;
         public EnemyBumper prefab;
-        [Min(1)] public int count;
+        [Tooltip("-1 uses the encounter default; 0 allows specialist-only waves.")]
+        public int basicMinions = -1;
+        [Min(0f)] public float minionSpeedInDiameters = 1.2f;
+        [Min(0)] public int count;
         [Min(1f)] public float seconds = 180f;
         public EnemyGroup[] additionalGroups = Array.Empty<EnemyGroup>();
 
@@ -41,7 +54,7 @@ public sealed class EnemyWaveController : MonoBehaviour
     [Min(0)] [SerializeField] private int basicMinionsPerWave = 12;
     [SerializeField] private PinballScore scoring = new PinballScore();
     public PinballScore Scoring => scoring;
-    public int BasicMinionsPerWave => basicMinionsPerWave;
+    public int BasicMinionsPerWave => CurrentWave.basicMinions >= 0 ? CurrentWave.basicMinions : basicMinionsPerWave;
     private PinballScore.Checkpoint scoreAtWaveStart;
     private bool retryingWave;
     [SerializeField] private CombatHazard minePrefab;
@@ -57,6 +70,7 @@ public sealed class EnemyWaveController : MonoBehaviour
     private Transform enemyRoot, transientRoot;
     private System.Random random = new System.Random();
     private bool tryingAllTypes;
+    private int nextMinionPatrol;
     // Injectable for deterministic drop tests, independent of placement randomness.
     public Func<double> DropRandom { get; set; }
     public EnemyWaveState State { get; private set; } = EnemyWaveState.Introduction;
@@ -65,9 +79,19 @@ public sealed class EnemyWaveController : MonoBehaviour
     public WaveDefinition CurrentWave => waves[WaveIndex];
     public float TimeRemaining { get; private set; }
     public string ResultMessage { get; private set; }
-    public bool IsCombatActive => State == EnemyWaveState.Active;
+    public WaveResultSnapshot Result { get; private set; }
+    public bool PresentationPaused { get; private set; }
+    public bool IsCombatActive => State == EnemyWaveState.Active && !PresentationPaused;
+    public EnemyBumper MinionPrefab => minionPrefab;
+    public void SetPresentationPaused(bool paused)
+    {
+        PresentationPaused = paused;
+        if (player != null) player.SetEncounterLocked(paused || State != EnemyWaveState.Active, false);
+        if (health != null) health.CombatEnabled = !paused && State == EnemyWaveState.Active;
+    }
     public int LivingEnemies => enemies.Count;
     public IReadOnlyCollection<EnemyBumper> LivingEnemyObjects => enemies;
+    public IEnumerable<Transform> WarningMarkers => transientRoot != null ? transientRoot.Cast<Transform>() : Array.Empty<Transform>();
     public bool CanSpawnMinion => IsCombatActive && minions.Count < globalMinionCap;
     public BonkRobotController Player => player;
     public PlayerHealth Health => health;
@@ -134,13 +158,15 @@ public sealed class EnemyWaveController : MonoBehaviour
             random, out List<Vector3> points))
         {
             ResultMessage = "No safe enemy positions. Check the arena spawn regions.";
+            CaptureResult(WaveFailureReason.Placement);
             SetState(EnemyWaveState.Failed);
             return;
         }
-        if (!placement.TryDistributedMinions(basicMinionsPerWave, playerStart, points, MinionRadius, MinionHeight,
+        if (!placement.TryDistributedMinions(BasicMinionsPerWave, playerStart, points, MinionRadius, MinionHeight,
             random, out List<Vector3> basicPoints))
         {
             ResultMessage = "Not enough clear floor to distribute the basic minions.";
+            CaptureResult(WaveFailureReason.Placement);
             SetState(EnemyWaveState.Failed);
             return;
         }
@@ -153,7 +179,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         foreach (Vector3 point in basicPoints)
         {
             EnemyBumper minion = SpawnEnemy(minionPrefab, point, false);
-            minion.ConfigureCombat(1, true, placement.Diameter * 1.5f, true, placement.ArenaMin, placement.ArenaMax);
+            minion.ConfigureCombat(1, true, placement.Diameter * CurrentWave.minionSpeedInDiameters, true, placement.ArenaMin, placement.ArenaMax);
         }
     }
 
@@ -164,6 +190,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         staging.SetActive(false);
         EnemyBumper enemy = Instantiate(prefab, point, Quaternion.identity, staging.transform);
         enemy.Bind(this);
+        if (enemy.IsBasicMinion) enemy.ConfigurePatrol((MinionPatrolAxis)(nextMinionPatrol++ % 4));
         enemies.Add(enemy);
         if (minion) minions.Add(enemy);
         enemy.Defeated += OnEnemyDefeated;
@@ -225,9 +252,16 @@ public sealed class EnemyWaveController : MonoBehaviour
     private void Finish(EnemyWaveState state, string message)
     {
         ResultMessage = message;
+        CaptureResult(state == EnemyWaveState.Failed ? (health.IsDead ? WaveFailureReason.HealthDepleted : WaveFailureReason.Timeout) : WaveFailureReason.None);
         scoring.BreakCombo(Time.time, false);
         SetState(state);
         ClearChildren(transientRoot);
+    }
+
+    private void CaptureResult(WaveFailureReason reason)
+    {
+        Result = new WaveResultSnapshot { reason = reason, enemiesRemaining = enemies.Count,
+            elapsedSeconds = Mathf.Max(0f, CurrentWave.seconds - TimeRemaining), health = health.Current };
     }
 
     private void SetState(EnemyWaveState state)
@@ -265,6 +299,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         if (mixedIndex < 0)
         {
             ResultMessage = "All Types needs spawner, mine-layer, and mortar prefabs. Run Setup Map01 Enemy Waves.";
+            CaptureResult(WaveFailureReason.Placement);
             SetState(EnemyWaveState.Failed);
             return;
         }
@@ -306,6 +341,8 @@ public sealed class EnemyWaveController : MonoBehaviour
 
     public void RestartRun()
     {
+        PresentationPaused = false;
+        Result = default;
         tryingAllTypes = false;
         retryingWave = false;
         scoring.Reset();
@@ -321,6 +358,7 @@ public sealed class EnemyWaveController : MonoBehaviour
     {
         foreach (EnemyBumper enemy in enemies) if (enemy != null) enemy.Defeated -= OnEnemyDefeated;
         enemies.Clear(); minions.Clear();
+        nextMinionPatrol = 0;
         ClearChildren(enemyRoot); ClearChildren(transientRoot);
     }
     private static void ClearChildren(Transform root)

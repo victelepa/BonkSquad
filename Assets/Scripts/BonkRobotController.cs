@@ -28,10 +28,10 @@ public class BonkRobotController : MonoBehaviour
     private float knockbackUntil;
     public bool IsKnockedBack => Time.time < knockbackUntil;
 
-    public void SetEncounterLocked(bool locked)
+    public void SetEncounterLocked(bool locked, bool clearKnockback = true)
     {
         IsEncounterLocked = locked;
-        if (locked) knockbackUntil = 0f;
+        if (locked && clearKnockback) knockbackUntil = 0f;
     }
 
     public void ApplyDamageKnockback(Vector3 sourcePosition)

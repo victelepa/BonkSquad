@@ -4,12 +4,16 @@ public sealed class HealthPickup : MonoBehaviour
 {
     [Min(1f)] [SerializeField] private float healAmount = 25f;
     private bool collected;
+    public float HealAmount => healAmount;
+    public float FullHealthFeedbackUntil { get; private set; }
     private void OnTriggerEnter(Collider other) => Collect(other);
     private void OnTriggerStay(Collider other) => Collect(other);
     private void Collect(Collider other)
     {
         if (collected) return;
         PlayerHealth health = other.GetComponentInParent<PlayerHealth>();
+        if (health != null && health.CombatEnabled && !health.IsDead && health.Current >= health.Maximum)
+            FullHealthFeedbackUntil = Time.time + .8f;
         if (health != null && health.TryHeal(healAmount))
         {
             collected = true;

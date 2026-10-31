@@ -15,6 +15,8 @@ public sealed class CombatHazard : MonoBehaviour
     private float blastUntil;
     private bool exploded;
     private GameObject marker;
+    public string WarningLabel => exploded ? "! BLAST" : !isMine ? "! MORTAR — MOVE" :
+        Time.time - createdAt < armSeconds ? "! MINE ARMING" : "! ARMED MINE";
     public float Radius => radiusInDiameters * (run != null ? run.Placement.Diameter : .8f);
     public bool Contains(Vector3 point, float clearance) =>
         PlayerMovementMath.Planar(point - transform.position).magnitude < Radius + clearance;

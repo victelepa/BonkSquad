@@ -4,10 +4,10 @@ using UnityEngine;
 [RequireComponent(typeof(EnemyBumper))]
 public sealed class SpawnerEnemy : MonoBehaviour
 {
-    [Min(1f)] [SerializeField] private float spawnInterval = 6f;
+    [Min(1f)] [SerializeField] private float spawnInterval = 8f;
     [Min(.1f)] [SerializeField] private float warningSeconds = 1f;
-    [Min(1)] [SerializeField] private int livingMinionCap = 3;
-    [Min(0)] [SerializeField] private int totalSpawnBudget = 6;
+    [Min(1)] [SerializeField] private int livingMinionCap = 2;
+    [Min(0)] [SerializeField] private int totalSpawnBudget = 3;
     private int totalSpawned;
     public int TotalSpawned => totalSpawned;
     public int SpawnBudget => totalSpawnBudget;

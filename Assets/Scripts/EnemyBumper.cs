@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.Serialization;
 
+public enum MinionPatrolAxis { Horizontal, Vertical, DiagonalUp, DiagonalDown }
+
 public enum EnemyHitResult { Rejected, Damaged, Defeated }
 
 // Size selects the shared player-speed threshold; hit points count qualifying impacts.
@@ -27,6 +29,26 @@ public class EnemyBumper : MonoBehaviour
     private CapsuleCollider capsule;
     private Vector3 direction;
     private float nextDirectionChange;
+    [Header("Predictable minion patrol")]
+    [SerializeField] private bool useStraightPatrol;
+    [SerializeField] private MinionPatrolAxis patrolAxis;
+    [Min(0f)] [SerializeField] private float reversalPause = .2f;
+    private float patrolResumeAt;
+    public bool UsesStraightPatrol => useStraightPatrol;
+    public Vector3 PatrolDirection => direction;
+    public string PatrolArrow => !useStraightPatrol ? "" : Mathf.Abs(direction.z) < .1f ? (direction.x > 0 ? "→" : "←") :
+        Mathf.Abs(direction.x) < .1f ? (direction.z > 0 ? "↑" : "↓") : direction.x > 0 ? (direction.z > 0 ? "↗" : "↘") : (direction.z > 0 ? "↖" : "↙");
+    public void ConfigurePatrol(MinionPatrolAxis axis)
+    {
+        useStraightPatrol = true; patrolAxis = axis; patrolResumeAt = 0f;
+        direction = axis == MinionPatrolAxis.Horizontal ? Vector3.right : axis == MinionPatrolAxis.Vertical ? Vector3.forward :
+            axis == MinionPatrolAxis.DiagonalUp ? new Vector3(1, 0, 1).normalized : new Vector3(1, 0, -1).normalized;
+    }
+    private void ReversePatrol()
+    {
+        direction = -direction;
+        patrolResumeAt = Time.time + reversalPause;
+    }
     [Header("Combat")]
     [Min(1)] [SerializeField] private int maximumHitPoints = 1;
     [SerializeField] private bool contactDamage;
@@ -99,7 +121,7 @@ public class EnemyBumper : MonoBehaviour
 
     private void OnEnable()
     {
-        ChooseDirection();
+        if (useStraightPatrol) ConfigurePatrol(patrolAxis); else ChooseDirection();
     }
 
     private void ChooseDirection()
@@ -118,13 +140,18 @@ public class EnemyBumper : MonoBehaviour
             return;
         }
 
-        if (Time.time >= nextDirectionChange)
+        if (useStraightPatrol && Time.time < patrolResumeAt) return;
+        if (!useStraightPatrol && Time.time >= nextDirectionChange)
         {
             ChooseDirection();
         }
 
         float distance = moveSpeed * Time.fixedDeltaTime;
         Vector3 destination = body.position + direction * distance;
+        if (useStraightPatrol && (destination.x < arenaMin.x || destination.x > arenaMax.x || destination.z < arenaMin.y || destination.z > arenaMax.y))
+        {
+            ReversePatrol(); return;
+        }
         if (destination.x < arenaMin.x || destination.x > arenaMax.x)
             direction.x = -direction.x;
         if (destination.z < arenaMin.y || destination.z > arenaMax.y)
@@ -143,7 +170,7 @@ public class EnemyBumper : MonoBehaviour
             if (obstacleHits[i].collider.attachedRigidbody == body)
                 continue;
 
-            ChooseDirection();
+            if (useStraightPatrol) ReversePatrol(); else ChooseDirection();
             return;
         }
 
