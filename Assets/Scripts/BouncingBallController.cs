@@ -123,6 +123,19 @@ public class BouncingBallController : MonoBehaviour
         rb.WakeUp();
     }
 
+    public bool DashTowards(Vector3 direction)
+    {
+        if (!isBallMode || (speedSystem != null && speedSystem.IsEncounterLocked)) return false;
+        direction = PlayerMovementMath.Planar(direction);
+        if (direction.sqrMagnitude < 0.0001f) return false;
+
+        InitializeBody();
+        simulationVelocity = direction.normalized * SpeedSettings.MaximumSpeed;
+        SetPlanarVelocity(simulationVelocity);
+        rb.WakeUp();
+        return true;
+    }
+
     public void EnterBallMode(Vector3 inheritedVelocity)
     {
         InitializeBody();

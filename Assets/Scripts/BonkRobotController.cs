@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -27,6 +28,78 @@ public class BonkRobotController : MonoBehaviour
     [Min(0f)] [SerializeField] private float knockbackRecoverySeconds = .2f;
     private float knockbackUntil;
     public bool IsKnockedBack => Time.time < knockbackUntil;
+
+    [Header("Ball Dash")]
+    [Min(0)] [SerializeField] private int dashUsesPerRun = 4;
+    [Min(0f)] [SerializeField] private float dashCooldownSeconds = 5f;
+    private int dashUsesRemaining;
+    private float nextDashReadyTime;
+    private EnemyWaveController encounter;
+    public int DashUsesPerRun => dashUsesPerRun;
+    public int DashUsesRemaining => dashUsesRemaining;
+    public float DashCooldownRemaining => Mathf.Max(0f, nextDashReadyTime - Time.time);
+    public bool CanDash => DashAllowedByState && TryFindDashDirection(out _);
+
+    public readonly struct DashCheckpoint
+    {
+        public readonly int usesRemaining;
+        public readonly float cooldownRemaining;
+        public DashCheckpoint(int uses, float cooldown)
+        {
+            usesRemaining = uses;
+            cooldownRemaining = cooldown;
+        }
+    }
+
+    public void ConfigureEncounter(EnemyWaveController owner) => encounter = owner;
+
+    public void ResetDashForRun()
+    {
+        dashUsesRemaining = dashUsesPerRun;
+        nextDashReadyTime = Time.time;
+    }
+
+    public DashCheckpoint SaveDashCheckpoint() => new DashCheckpoint(dashUsesRemaining, DashCooldownRemaining);
+
+    public void RestoreDashCheckpoint(DashCheckpoint checkpoint)
+    {
+        dashUsesRemaining = Mathf.Clamp(checkpoint.usesRemaining, 0, dashUsesPerRun);
+        nextDashReadyTime = Time.time + Mathf.Max(0f, checkpoint.cooldownRemaining);
+    }
+
+    private bool DashAllowedByState => isActiveAndEnabled && IsBallForm && CanAcceptPlayerInput &&
+        (encounter == null || encounter.IsCombatActive) && dashUsesRemaining > 0 && DashCooldownRemaining <= 0f;
+
+    private bool TryFindDashDirection(out Vector3 direction)
+    {
+        direction = Vector3.zero;
+        IEnumerable<EnemyBumper> candidates = encounter != null
+            ? encounter.LivingEnemyObjects
+            : FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None);
+        float nearestDistance = float.PositiveInfinity;
+        Vector3 origin = ballForm.transform.position;
+        foreach (EnemyBumper enemy in candidates)
+        {
+            if (enemy == null || !enemy.isActiveAndEnabled || enemy.IsDefeated) continue;
+            Collider shape = enemy.GetComponent<Collider>();
+            Vector3 center = shape != null ? shape.bounds.center : enemy.transform.position;
+            Vector3 offset = PlayerMovementMath.Planar(center - origin);
+            float distance = offset.sqrMagnitude;
+            if (distance < 0.0001f || distance >= nearestDistance) continue;
+            nearestDistance = distance;
+            direction = offset;
+        }
+        return nearestDistance < float.PositiveInfinity;
+    }
+
+    public bool TryUseDash()
+    {
+        if (!DashAllowedByState || !TryFindDashDirection(out Vector3 direction) ||
+            ballController == null || !ballController.DashTowards(direction)) return false;
+        dashUsesRemaining--;
+        nextDashReadyTime = Time.time + dashCooldownSeconds;
+        return true;
+    }
 
     public void SetEncounterLocked(bool locked, bool clearKnockback = true)
     {
@@ -102,11 +175,14 @@ public class BonkRobotController : MonoBehaviour
         if (dizzinessSettings == null) dizzinessSettings = new PlayerDizzinessSettings();
         dizzinessSettings.Validate();
         DizzinessValue = Mathf.Clamp(DizzinessValue, 0f, dizzinessSettings.MaximumDizziness);
+        dashUsesPerRun = Mathf.Max(0, dashUsesPerRun);
+        dashCooldownSeconds = Mathf.Max(0f, dashCooldownSeconds);
     }
 
     private void Awake()
     {
         OnValidate();
+        ResetDashForRun();
         if (cameraTransform == null && Camera.main != null)
         {
             cameraTransform = Camera.main.transform;
@@ -227,6 +303,12 @@ public class BonkRobotController : MonoBehaviour
     private void Update()
     {
         if (IsEncounterLocked) return;
+        bool dashPressed = Keyboard.current != null
+            ? Keyboard.current.qKey.wasPressedThisFrame
+            : UnityEngine.Input.GetKeyDown(KeyCode.Q);
+        if (Gamepad.current != null && Gamepad.current.rightShoulder.wasPressedThisFrame)
+            dashPressed = true;
+        if (dashPressed) TryUseDash();
         if (Keyboard.current == null && UnityEngine.Input.GetKeyDown(KeyCode.Space))
             ToggleForm();
 

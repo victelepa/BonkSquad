@@ -15,6 +15,8 @@ public sealed class CombatPresentation : MonoBehaviour
     private Font font;
     private RectTransform root, modal, hud, map;
     private Text objective, healthLabel, formLabel, speedLabel, dizzyLabel, chargeLabel, scoreLabel, comboLabel, playerHint;
+    private Button dashButton;
+    private Text dashButtonLabel, dashCountLabel;
     private Image healthFill, speedFill, dizzyFill, damageTint;
     private RectTransform comboBanner;
     private readonly List<Image> damageEdges = new List<Image>();
@@ -50,7 +52,7 @@ public sealed class CombatPresentation : MonoBehaviour
     };
     private static readonly string[] TourCopy = {
         "Clear every enemy before the timer ends. Move with WASD or arrow keys. Press Space to switch between robot and ball.",
-        "Ball form is for speed and bonking. Bounce off walls for a speed boost. When READY TO BONK lights up, your cyan halo also catches minion near misses.",
+        "Ball form is for speed and bonking. Press Q for a limited dash toward the nearest enemy. Bounce off walls for a speed boost. When READY TO BONK lights up, your cyan halo also catches minion near misses.",
         "Robot form gives better direction control and recovers dizziness. Use it to line up your next run. Switch before the dizziness warning expires to avoid a brief stun.",
         "Match enemy icons to the minimap. Leave blast warning rings. Pick up a green + to restore health; minion contact hurts robot form.",
         "Chain kills or bounce off a wall before a kill for bonus points. Every {0} points earns an Impact Charge: your next fast hit automatically deals double damage."
@@ -129,6 +131,14 @@ public sealed class CombatPresentation : MonoBehaviour
         Label("Recovery hint", bottom, "Robot = recover", 470, 65, 214, 40, 17);
         chargeLabel = Label("Impact charge", bottom, "", 716, 8, 240, 64, 18, Gold);
         scoreLabel = Label("Score", bottom, "", 716, 76, 240, 30, 17);
+        var dashPanel = Box("Ball dash", hud, 18, 500, 298, 70, Ink);
+        dashButton = Button("Q  DASH", dashPanel, 10, 13, 178, () => { run.Player.TryUseDash(); });
+        dashButtonLabel = dashButton.GetComponentInChildren<Text>();
+        dashCountLabel = Label("Dash uses", dashPanel, "", 196, 13, 94, 44, 19, Cyan);
+        dashCountLabel.alignment = TextAnchor.MiddleCenter;
+        var dashColors = dashButton.colors;
+        dashColors.disabledColor = new Color(.3f, .33f, .37f, 1f);
+        dashButton.colors = dashColors;
         comboBanner = Box("Combo banner", hud, 350, 96, 580, 82, Gold);
         Box("Backing", comboBanner, 3, 3, 574, 76, Ink);
         comboLabel = Label("Combo text", comboBanner, "", 12, 3, 556, 76, 26, Gold); comboLabel.alignment = TextAnchor.MiddleCenter;
@@ -496,6 +506,14 @@ public sealed class CombatPresentation : MonoBehaviour
         healthLabel.text = $"HEALTH  {run.Health.Current:0}/{run.Health.Maximum:0}";
         SetBar(healthFill, run.Health.Current / run.Health.Maximum, 180);
         formLabel.text = run.Player.IsBallForm ? "BALL   •   Space: robot" : "ROBOT   •   Space: ball";
+        dashCountLabel.text = $"{run.Player.DashUsesRemaining}/{run.Player.DashUsesPerRun}";
+        float dashCooldown = run.Player.DashCooldownRemaining;
+        dashButton.interactable = Page == CombatPage.Combat && run.Player.CanDash;
+        dashButtonLabel.text = run.Player.DashUsesRemaining == 0 ? "Q  DASH  EMPTY" :
+            !run.Player.IsBallForm ? "Q  DASH  BALL ONLY" :
+            dashCooldown > 0f ? $"Q  DASH  {dashCooldown:0.0}s" :
+            !run.IsCombatActive ? "Q  DASH  WAIT" :
+            !run.Player.CanDash ? "Q  DASH  NO TARGET" : "Q  DASH";
         speedLabel.text = ready ? "SPEED  •  READY TO BONK" : "SPEED  •  Too slow"; speedLabel.color = ready ? Cyan : Color.white;
         SetBar(speedFill, run.Player.CurrentSpeed / run.Player.SpeedSettings.MaximumSpeed, 228);
         dizzyLabel.text = $"DIZZINESS  {Mathf.RoundToInt(run.Player.DizzinessRatio * 100)}%";

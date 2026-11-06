@@ -56,6 +56,7 @@ public sealed class EnemyWaveController : MonoBehaviour
     public PinballScore Scoring => scoring;
     public int BasicMinionsPerWave => CurrentWave.basicMinions >= 0 ? CurrentWave.basicMinions : basicMinionsPerWave;
     private PinballScore.Checkpoint scoreAtWaveStart;
+    private BonkRobotController.DashCheckpoint dashAtWaveStart;
     private bool retryingWave;
     [SerializeField] private CombatHazard minePrefab;
     [SerializeField] private CombatHazard shellPrefab;
@@ -115,6 +116,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         transientRoot = new GameObject("Wave Hazards and Drops").transform;
         transientRoot.SetParent(transform, false);
         health.Damaged += OnPlayerDamaged;
+        player.ConfigureEncounter(this);
         player.GetComponentInChildren<BouncingBallController>(true).ConfigureEncounter(this);
         SetState(EnemyWaveState.Introduction);
         TimeRemaining = CurrentWave.seconds;
@@ -170,7 +172,11 @@ public sealed class EnemyWaveController : MonoBehaviour
             SetState(EnemyWaveState.Failed);
             return;
         }
-        if (!retryingWave) scoreAtWaveStart = scoring.Save();
+        if (!retryingWave)
+        {
+            scoreAtWaveStart = scoring.Save();
+            dashAtWaveStart = player.SaveDashCheckpoint();
+        }
         retryingWave = false;
         scoring.BreakCombo(Time.time, false);
         TimeRemaining = CurrentWave.seconds;
@@ -287,6 +293,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         player.ResetForEncounter(playerStart, playerRotation);
         health.ResetHealth();
         scoring.Restore(scoreAtWaveStart);
+        player.RestoreDashCheckpoint(dashAtWaveStart);
         retryingWave = true;
         StartWave();
     }
@@ -346,6 +353,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         tryingAllTypes = false;
         retryingWave = false;
         scoring.Reset();
+        player.ResetDashForRun();
         Cleanup();
         WaveIndex = 0;
         player.ResetForEncounter(playerStart, playerRotation);

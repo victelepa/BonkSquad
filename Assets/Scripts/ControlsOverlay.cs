@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 public class ControlsOverlay : MonoBehaviour
@@ -42,6 +44,10 @@ public class ControlsOverlay : MonoBehaviour
     private Text warningText;
     private Text lockText;
     private Text hint;
+    private Button dashButton;
+    private Text dashLabel;
+    private RectTransform dashRect;
+    private GameObject ownedEventSystem;
     private Font font;
 
     private void Awake()
@@ -51,7 +57,7 @@ public class ControlsOverlay : MonoBehaviour
         if (player == null) player = GetComponentInParent<BonkRobotController>();
         if (player == null) player = FindFirstObjectByType<BonkRobotController>();
         font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        canvasObject = new GameObject("Speed HUD", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+        canvasObject = new GameObject("Speed HUD", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         canvasObject.transform.SetParent(transform, false);
         Canvas canvas = canvasObject.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -60,6 +66,8 @@ public class ControlsOverlay : MonoBehaviour
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1280f, 720f);
         scaler.matchWidthOrHeight = 0.5f;
+        if (FindFirstObjectByType<EventSystem>() == null)
+            ownedEventSystem = new GameObject("Speed HUD Input", typeof(EventSystem), typeof(InputSystemUIInputModule));
 
         ghostFrameA = MakeContainer("Dizziness Ghost A", canvasObject.transform);
         ghostEdgesA = MakeBorder("Ghost A", ghostFrameA);
@@ -81,6 +89,16 @@ public class ControlsOverlay : MonoBehaviour
         lockText = MakeText("Stun Status", canvasObject.transform,
             "STUNNED", 16, TextAnchor.MiddleCenter);
         hint = MakeText("Controls", canvasObject.transform, movementHint, 15, TextAnchor.UpperRight);
+        dashRect = MakeImage("Ball Dash Button", canvasObject.transform, trackColor);
+        var dashImage = dashRect.GetComponent<Image>();
+        dashImage.raycastTarget = true;
+        dashButton = dashRect.gameObject.AddComponent<Button>();
+        dashButton.targetGraphic = dashImage;
+        dashButton.onClick.AddListener(() => { if (player != null) player.TryUseDash(); });
+        var dashColors = dashButton.colors;
+        dashColors.disabledColor = new Color(.3f, .33f, .37f, 1f);
+        dashButton.colors = dashColors;
+        dashLabel = MakeText("Ball Dash Status", dashRect, "", 17, TextAnchor.MiddleCenter);
         AddTextOutline(smallLabel);
         AddTextOutline(largeLabel);
         AddTextOutline(warningText);
@@ -181,6 +199,17 @@ public class ControlsOverlay : MonoBehaviour
         float width = Mathf.Max(140f, barSize.x);
         float height = Mathf.Max(4f, barSize.y);
         Place(track, barX, barY, width, height);
+        Place(dashRect, barX, barY + height + 36f, 260f, 44f);
+        Place(dashLabel.rectTransform, 0f, 0f, 260f, 44f);
+        dashButton.interactable = player != null && player.CanDash;
+        if (player != null)
+        {
+            string state = player.DashUsesRemaining == 0 ? "EMPTY" :
+                !player.IsBallForm ? "BALL ONLY" :
+                player.DashCooldownRemaining > 0f ? $"{player.DashCooldownRemaining:0.0}s" :
+                !player.CanDash ? "NO TARGET" : "READY";
+            dashLabel.text = $"Q DASH  {player.DashUsesRemaining}/{player.DashUsesPerRun}  {state}";
+        }
         PlaceTopRight(hint.rectTransform, screenPadding.x, screenPadding.y,
             Mathf.Max(100f, controlsSize.x), Mathf.Max(40f, controlsSize.y));
         PlaceTopRight(warningText.rectTransform, screenPadding.x, screenPadding.y + 65f,
@@ -276,5 +305,6 @@ public class ControlsOverlay : MonoBehaviour
     private void OnDestroy()
     {
         if (canvasObject != null) Destroy(canvasObject);
+        if (ownedEventSystem != null) Destroy(ownedEventSystem);
     }
 }
