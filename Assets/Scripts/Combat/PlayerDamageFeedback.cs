@@ -27,6 +27,10 @@ public sealed class PlayerDamageFeedback : MonoBehaviour
         int baseColor = Shader.PropertyToID("_BaseColor"), legacyColor = Shader.PropertyToID("_Color");
         foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
         {
+            if (renderer is TrailRenderer || renderer is ParticleSystemRenderer || renderer is LineRenderer)
+            {
+                continue; 
+            }
             Material[] materials = renderer.sharedMaterials;
             for (int slot = 0; slot < materials.Length; slot++)
             {

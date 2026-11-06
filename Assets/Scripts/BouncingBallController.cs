@@ -23,7 +23,6 @@ public class BouncingBallController : MonoBehaviour
     private readonly Collider[] haloOverlaps = new Collider[64];
     private readonly RaycastHit[] haloSweep = new RaycastHit[64];
     private LineRenderer attackRing;
-    private TrailRenderer speedTrail;
     private Material assistanceMaterial;
     private AudioSource boostAudio;
     private AudioClip boostClip;
@@ -281,7 +280,6 @@ public class BouncingBallController : MonoBehaviour
     private void OnDisable()
     {
         if (attackRing != null) attackRing.enabled = false;
-        if (speedTrail != null) { speedTrail.emitting = false; speedTrail.Clear(); }
         if (boostAudio != null) boostAudio.Stop();
         contactEnemies.Clear();
         contactSurfaces.Clear();
@@ -385,8 +383,6 @@ public class BouncingBallController : MonoBehaviour
         if (active && attackRing == null) BuildAssistanceVisuals();
         if (attackRing == null) return;
         attackRing.enabled = active && attackReady;
-        speedTrail.emitting = active;
-        if (!active) { speedTrail.Clear(); return; }
         Vector3 center = transform.position;
         center.y = encounter.Placement.Floor.bounds.max.y + .06f;
         for (int i = 0; i < attackRing.positionCount; i++)
@@ -396,7 +392,6 @@ public class BouncingBallController : MonoBehaviour
         }
         Color color = Time.time < boostFlashUntil ? new Color(1f, .85f, .15f) : new Color(.2f, 1f, 1f);
         attackRing.startColor = attackRing.endColor = color;
-        speedTrail.startColor = color; speedTrail.endColor = new Color(color.r, color.g, color.b, 0);
     }
     private void BuildAssistanceVisuals()
     {
@@ -405,9 +400,6 @@ public class BouncingBallController : MonoBehaviour
         var ring = new GameObject("Attack halo", typeof(LineRenderer)); ring.transform.SetParent(transform, false);
         attackRing = ring.GetComponent<LineRenderer>(); attackRing.sharedMaterial = assistanceMaterial;
         attackRing.useWorldSpace = true; attackRing.loop = true; attackRing.positionCount = 48; attackRing.widthMultiplier = BallRadius * .12f;
-        var trail = new GameObject("Speed trail", typeof(TrailRenderer)); trail.transform.SetParent(transform, false);
-        speedTrail = trail.GetComponent<TrailRenderer>(); speedTrail.sharedMaterial = assistanceMaterial;
-        speedTrail.time = .25f; speedTrail.startWidth = BallRadius * .55f; speedTrail.endWidth = 0; speedTrail.minVertexDistance = .1f;
     }
     private void PlayBoostSound()
     {
