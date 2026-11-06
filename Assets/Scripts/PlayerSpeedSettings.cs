@@ -94,6 +94,15 @@ public static class PlayerMovementMath
             Vector3.Angle(travelDirection, inputDirection) <= tolerance + 0.0001f;
     }
 
+    public static Vector3 KnockbackVelocity(Vector3 velocity, Vector3 away, float strength, float maximumSpeed)
+    {
+        away = Planar(away).normalized;
+        velocity = Planar(velocity);
+        // Cancel motion into the attacker, retain sideways momentum, then push outward.
+        velocity -= away * Mathf.Min(0f, Vector3.Dot(velocity, away));
+        return Vector3.ClampMagnitude(velocity + away * strength, maximumSpeed);
+    }
+
     public static Vector3 ReflectPlanar(Vector3 velocity, Vector3 normal)
     {
         Vector3 planarNormal = Planar(normal).normalized;

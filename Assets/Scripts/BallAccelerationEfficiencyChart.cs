@@ -25,6 +25,7 @@ public class BallAccelerationEfficiencyChart : MonoBehaviour
 
     private void Start()
     {
+        if (FindFirstObjectByType<EnemyWaveController>() != null) { enabled = false; return; }
         CreateUI();
         SetChartVisible(initiallyVisible);
     }

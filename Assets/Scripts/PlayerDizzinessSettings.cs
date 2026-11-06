@@ -19,6 +19,8 @@ public sealed class PlayerDizzinessSettings
     [Tooltip("Dizziness gained per second. X is speed from threshold (0) to maximum speed (1); Y is gain per second.")]
     [SerializeField] private AnimationCurve gainRateBySpeed = new AnimationCurve(
         new Keyframe(0f, 8f), new Keyframe(1f, 20f));
+    [Tooltip("2 gives twice as long at speed before dizziness fills, without extending recovery or stun.")]
+    [Min(.1f)] [SerializeField] private float buildupDurationMultiplier = 2f;
     [Min(0f)] [SerializeField] private float ballLowSpeedRecovery = 3f;
     [Min(0f)] [SerializeField] private float robotRecovery = 25f;
 
@@ -45,11 +47,12 @@ public sealed class PlayerDizzinessSettings
         if (speed < threshold) return 0f;
         float speedRange = Mathf.Max(0.01f, speedSettings.MaximumSpeed - threshold);
         float normalizedSpeed = Mathf.Clamp01((speed - threshold) / speedRange);
-        return Mathf.Max(0f, gainRateBySpeed.Evaluate(normalizedSpeed));
+        return Mathf.Max(0f, gainRateBySpeed.Evaluate(normalizedSpeed)) / Mathf.Max(.1f, buildupDurationMultiplier);
     }
 
     public void Validate()
     {
+        buildupDurationMultiplier = Mathf.Max(.1f, FiniteOr(buildupDurationMultiplier, 2f));
         maximumDizziness = Mathf.Max(1f, FiniteOr(maximumDizziness, 100f));
         highSpeedThreshold = Mathf.Max(0.01f, FiniteOr(highSpeedThreshold, 8f));
         ballLowSpeedRecovery = Mathf.Max(0f, FiniteOr(ballLowSpeedRecovery, 3f));

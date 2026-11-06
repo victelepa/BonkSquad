@@ -1,7 +1,11 @@
 using UnityEngine;
 using UnityEngine.Serialization;
 
-// Enemy size selects the shared player-speed threshold; there is no health or partial damage.
+public enum MinionPatrolAxis { Horizontal, Vertical, DiagonalUp, DiagonalDown }
+
+public enum EnemyHitResult { Rejected, Damaged, Defeated }
+
+// Size selects the shared player-speed threshold; hit points count qualifying impacts.
 [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
 public class EnemyBumper : MonoBehaviour
 {
@@ -25,10 +29,88 @@ public class EnemyBumper : MonoBehaviour
     private CapsuleCollider capsule;
     private Vector3 direction;
     private float nextDirectionChange;
+    [Header("Predictable minion patrol")]
+    [SerializeField] private bool useStraightPatrol;
+    [SerializeField] private MinionPatrolAxis patrolAxis;
+    [Min(0f)] [SerializeField] private float reversalPause = .2f;
+    private float patrolResumeAt;
+    public bool UsesStraightPatrol => useStraightPatrol;
+    public Vector3 PatrolDirection => direction;
+    public string PatrolArrow => !useStraightPatrol ? "" : Mathf.Abs(direction.z) < .1f ? (direction.x > 0 ? "→" : "←") :
+        Mathf.Abs(direction.x) < .1f ? (direction.z > 0 ? "↑" : "↓") : direction.x > 0 ? (direction.z > 0 ? "↗" : "↘") : (direction.z > 0 ? "↖" : "↙");
+    public void ConfigurePatrol(MinionPatrolAxis axis)
+    {
+        useStraightPatrol = true; patrolAxis = axis; patrolResumeAt = 0f;
+        direction = axis == MinionPatrolAxis.Horizontal ? Vector3.right : axis == MinionPatrolAxis.Vertical ? Vector3.forward :
+            axis == MinionPatrolAxis.DiagonalUp ? new Vector3(1, 0, 1).normalized : new Vector3(1, 0, -1).normalized;
+    }
+    private void ReversePatrol()
+    {
+        direction = -direction;
+        patrolResumeAt = Time.time + reversalPause;
+    }
+    [Header("Combat")]
+    [Min(1)] [SerializeField] private int maximumHitPoints = 1;
+    [SerializeField] private bool contactDamage;
+    [SerializeField] private bool showHealthBar;
+    public int HitPoints { get; private set; }
+    public int MaximumHitPoints => maximumHitPoints;
+    public bool IsDefeated => isDefeated;
+    public bool IsBasicMinion => contactDamage && maximumHitPoints == 1;
+    public EnemyWaveController Encounter { get; private set; }
+    public event System.Action<EnemyBumper> HealthChanged;
+    public event System.Action<EnemyBumper> Defeated;
     private bool isDefeated;
+    private float hitFlashUntil;
+
+    public void ConfigureCombat(int hitPoints, bool small, float wanderingSpeed, bool damagesOnContact,
+        Vector2 minimum, Vector2 maximum)
+    {
+        maximumHitPoints = Mathf.Max(1, hitPoints);
+        HitPoints = maximumHitPoints;
+        isSmallEnemy = small;
+        moveSpeed = wanderingSpeed;
+        contactDamage = damagesOnContact;
+        showHealthBar = true;
+        arenaMin = minimum;
+        arenaMax = maximum;
+    }
+
+    public void Bind(EnemyWaveController encounter) => Encounter = encounter;
+
+    public void ContactPlayer(PlayerHealth health)
+    {
+        if (!contactDamage || isDefeated || health == null || (Encounter != null && !Encounter.IsCombatActive)) return;
+        BonkRobotController player = health.GetComponent<BonkRobotController>();
+        if (player != null && player.IsBallForm) return; // The ball is safe from minion contact, not explosions.
+        health.TryDamageFrom(transform.position);
+    }
+
+    private void OnCollisionStay(Collision collision)
+    {
+        // Ball contacts are handled after its speed-qualified hit has been resolved.
+        if (collision.collider.GetComponentInParent<BouncingBallController>() == null)
+            ContactPlayer(collision.collider.GetComponentInParent<PlayerHealth>());
+    }
+
+    private void OnGUI()
+    {
+        if (!showHealthBar || isDefeated || Camera.main == null) return;
+        Vector3 screen = Camera.main.WorldToScreenPoint(transform.position + Vector3.up * (capsule.height + .3f));
+        if (screen.z <= 0f) return;
+        Color old = GUI.color;
+        float width = 52f / maximumHitPoints;
+        for (int i = 0; i < maximumHitPoints; i++)
+        {
+            GUI.color = i < HitPoints ? (Time.time < hitFlashUntil ? Color.white : new Color(.3f, 1f, .5f)) : Color.gray;
+            GUI.DrawTexture(new Rect(screen.x - 26 + i * width, Screen.height - screen.y, width - 2, 6), Texture2D.whiteTexture);
+        }
+        GUI.color = old;
+    }
 
     private void Awake()
     {
+        HitPoints = Mathf.Max(1, maximumHitPoints);
         body = GetComponent<Rigidbody>();
         capsule = GetComponent<CapsuleCollider>();
         body.isKinematic = true;
@@ -39,7 +121,7 @@ public class EnemyBumper : MonoBehaviour
 
     private void OnEnable()
     {
-        ChooseDirection();
+        if (useStraightPatrol) ConfigurePatrol(patrolAxis); else ChooseDirection();
     }
 
     private void ChooseDirection()
@@ -53,18 +135,23 @@ public class EnemyBumper : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (moveSpeed <= 0f)
+        if (isDefeated || (Encounter != null && !Encounter.IsCombatActive) || moveSpeed <= 0f)
         {
             return;
         }
 
-        if (Time.time >= nextDirectionChange)
+        if (useStraightPatrol && Time.time < patrolResumeAt) return;
+        if (!useStraightPatrol && Time.time >= nextDirectionChange)
         {
             ChooseDirection();
         }
 
         float distance = moveSpeed * Time.fixedDeltaTime;
         Vector3 destination = body.position + direction * distance;
+        if (useStraightPatrol && (destination.x < arenaMin.x || destination.x > arenaMax.x || destination.z < arenaMin.y || destination.z > arenaMax.y))
+        {
+            ReversePatrol(); return;
+        }
         if (destination.x < arenaMin.x || destination.x > arenaMax.x)
             direction.x = -direction.x;
         if (destination.z < arenaMin.y || destination.z > arenaMax.y)
@@ -83,23 +170,31 @@ public class EnemyBumper : MonoBehaviour
             if (obstacleHits[i].collider.attachedRigidbody == body)
                 continue;
 
-            ChooseDirection();
+            if (useStraightPatrol) ReversePatrol(); else ChooseDirection();
             return;
         }
 
         body.MovePosition(body.position + direction * distance);
     }
     
+    // Compatibility wrapper for existing callers; true still means the enemy was destroyed.
     public bool TryDefeatFromBall(float incomingPlayerSpeed, PlayerSpeedSettings settings)
-    {
-        if (isDefeated) return true;
-        if (!settings.CanKill(incomingPlayerSpeed, isSmallEnemy)) return false;
+        => TryHitFromBall(incomingPlayerSpeed, settings) == EnemyHitResult.Defeated;
 
+    public EnemyHitResult TryHitFromBall(float incomingPlayerSpeed, PlayerSpeedSettings settings, int damage = 1)
+    {
+        if (isDefeated) return EnemyHitResult.Defeated;
+        if ((Encounter != null && !Encounter.IsCombatActive) ||
+            !settings.CanKill(incomingPlayerSpeed, isSmallEnemy)) return EnemyHitResult.Rejected;
+        HitPoints = Mathf.Max(0, HitPoints - Mathf.Max(1, damage));
+        hitFlashUntil = Time.time + .18f;
+        HealthChanged?.Invoke(this);
+        if (HitPoints > 0) return EnemyHitResult.Damaged;
         isDefeated = true;
-        foreach (Collider enemyCollider in GetComponentsInChildren<Collider>())
-            enemyCollider.enabled = false;
+        foreach (Collider enemyCollider in GetComponentsInChildren<Collider>()) enemyCollider.enabled = false;
         enabled = false;
+        Defeated?.Invoke(this);
         Destroy(gameObject);
-        return true;
+        return EnemyHitResult.Defeated;
     }
 }

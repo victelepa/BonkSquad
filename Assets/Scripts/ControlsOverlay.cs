@@ -46,6 +46,8 @@ public class ControlsOverlay : MonoBehaviour
 
     private void Awake()
     {
+        // Map01 uses the unified combat Canvas. Keep this overlay for legacy scenes.
+        if (FindFirstObjectByType<EnemyWaveController>() != null) { enabled = false; return; }
         if (player == null) player = GetComponentInParent<BonkRobotController>();
         if (player == null) player = FindFirstObjectByType<BonkRobotController>();
         font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
