@@ -4,7 +4,10 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.UIElements;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.SceneManagement;
 
 // Drives the actual UI buttons and presentation flow in the saved Map01 scene.
 [InitializeOnLoad]
@@ -13,6 +16,15 @@ public static class OnboardingValidation
     private const string Running = "BonkSquad.OnboardingValidation";
     private static CombatPresentation ui;
     private static EnemyWaveController run;
+    private static Keyboard practiceKeyboard;
+    private static InputSettings originalInputSettings;
+    private static UIDocument practiceDocument;
+    private static BonkRobotController practicePlayer;
+    private static TrailRenderer[][] practiceTrails;
+    private static bool sawPracticeDashTrail;
+    private static Vector3 practiceDashStart;
+    private static float practiceDashAttemptedAt;
+    private static EnemyBumper practiceDashTarget;
     private static int stage, frames;
     private static double waitUntil, deadline;
     private static float timer, hitTime, stunTime, dizziness, gameTime;
@@ -24,22 +36,35 @@ public static class OnboardingValidation
         EditorSceneManager.OpenScene(Map01CombatSetup.ScenePath);
         SessionState.SetBool(Running, true); EditorApplication.EnterPlaymode();
     }
-    [MenuItem("Tools/BonkSquad/Preview Wave Cards (Play Mode)")]
-    public static void PreviewCards()
-    {
-        if (!EditorApplication.isPlaying) { Debug.Log("Enter Play Mode to preview the wave cards."); return; }
-        var presentation = UnityEngine.Object.FindFirstObjectByType<CombatPresentation>();
-        if (presentation != null) { presentation.PlayRun(); presentation.SkipTutorial(); }
-    }
     private static void Check(bool value, string message) { if (!value) throw new Exception("ONBOARDING_TEST_FAILED: " + message); }
     private static void Field(object target, string name, object value) => target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(target, value);
     private static void Property(object target, string name, object value) => target.GetType().GetProperty(name).SetValue(target, value);
+    private static VisualElement Root => ui.GetComponentInChildren<UIDocument>().rootVisualElement;
+
+    private static bool Visible(VisualElement element)
+    {
+        for (var current = element; current != null; current = current.parent)
+            if (current.ClassListContains("hidden")) return false;
+        return true;
+    }
+
     private static void Click(string name)
     {
-        var button = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None).FirstOrDefault(b => b.name == name && b.isActiveAndEnabled);
-        Check(button != null, "button available: " + name); button.onClick.Invoke();
+        var button = Root.Query<Button>().ToList().SingleOrDefault(b => b.text == name && Visible(b));
+        Check(button != null, "button available: " + name);
+        Submit(button);
     }
-    private static bool HasText(string value) => UnityEngine.Object.FindObjectsByType<Text>(FindObjectsSortMode.None).Any(t => t.text.Contains(value));
+
+    private static void Submit(Button button)
+    {
+        using var submit = NavigationSubmitEvent.GetPooled();
+        submit.target = button;
+        button.SendEvent(submit);
+    }
+
+    private static bool HasText(string value) => Root.Query<Label>().ToList().Any(t => Visible(t) && t.text.Contains(value));
+
+    private static int PinCount() => Root.Query<VisualElement>(className: "map-pin").ToList().Count(Visible);
     private static void Wait(int next)
     {
         waitUntil = EditorApplication.timeSinceStartup + .3; stage = next;
@@ -49,31 +74,20 @@ public static class OnboardingValidation
         foreach (EnemyBumper enemy in run.LivingEnemyObjects.ToArray())
             while (!enemy.IsDefeated) enemy.TryHitFromBall(run.Player.SpeedSettings.SmallEnemyKillSpeed, run.Player.SpeedSettings);
     }
-    private static void CheckPreviewSafety()
+    private static void CheckHud()
     {
-        Transform model = run.transform.Find("Preview meshes only"); Check(model != null, "actual enemy model preview exists");
-        Check(model.GetComponentsInChildren<Renderer>().Length > 0, "preview has meshes");
-        Check(model.GetComponentsInChildren<MonoBehaviour>().Length == 0 && model.GetComponentsInChildren<Collider>().Length == 0 &&
-            model.GetComponentsInChildren<Rigidbody>().Length == 0, "preview contains no gameplay components");
-        Check(run.LivingEnemies == 0, "preview never registers enemies");
-    }
-    private static void CheckTextLayout()
-    {
-        Canvas.ForceUpdateCanvases();
-        foreach (Text text in ui.GetComponentsInChildren<Text>())
-        {
-            if (!text.isActiveAndEnabled || string.IsNullOrEmpty(text.text) || text.name == "World cue" || text.name == "Map marker") continue;
-            float preferred = text.preferredHeight;
-            Check(preferred <= text.rectTransform.rect.height + 2, "text fits: " + text.name + " height=" + preferred + " available=" + text.rectTransform.rect.height);
-        }
-        // ScreenMatchMode.Expand keeps this reference layout inside all requested aspect ratios.
-        RectTransform layout = ui.GetComponentsInChildren<RectTransform>().First(r => r.name == "Safe layout");
-        Check(layout.rect.width == 1280 && layout.rect.height == 720, "fixed safe layout for 720p, 1080p, and 16:10");
-        foreach (Vector2 size in new[] { new Vector2(1280,720), new Vector2(1920,1080), new Vector2(1920,1200) })
-        {
-            float scale = Mathf.Min(size.x/1280f, size.y/720f);
-            Check(1280*scale <= size.x + .01f && 720*scale <= size.y + .01f, "reference fits aspect " + size);
-        }
+        var healthRow = Root.Q("health");
+        Check(Root.Q("score") == null, "combat score label is gone");
+        Check(healthRow.parent.IndexOf(Root.Q("combat-dash")) < healthRow.parent.IndexOf(healthRow)
+            && Root.Q("combat-dash").parent == healthRow.parent, "Dash is above the health row");
+        var dashUses = Root.Q("dash-uses");
+        Check(healthRow.childCount == 5 && dashUses.parent == healthRow.parent
+            && dashUses.parent.IndexOf(dashUses) > healthRow.parent.IndexOf(healthRow), "Dash circles are below five hearts");
+        Check(dashUses.childCount == run.Player.DashUsesPerRun && dashUses.childCount == 4,
+            "Dash circle count matches the configured total");
+        Check(Root.Q("map").Query<Label>().ToList().Count == 0, "minimap has no labels");
+        Check(Root.Q<Label>("timer").text.EndsWith("s remaining") && !HasText("starting enemies"), "objective shows timer without enemy count");
+        Check(!HasText("DIZZINESS") && !HasText("READY TO BONK"), "old bottom status text is absent");
     }
     private static void ValidatePredictablePatrols()
     {
@@ -103,6 +117,35 @@ public static class OnboardingValidation
         Check(enemy.PatrolDirection.x < 0, "solid obstacle reverses patrol without choosing a random heading");
         UnityEngine.Object.DestroyImmediate(obstacle); UnityEngine.Object.DestroyImmediate(fixture);
     }
+    private static TrailRenderer[][] SpeedTrails(BouncingBallController ball)
+    {
+        var controller = ball.GetComponent<PlayerSpeedTrailController>();
+        Check(controller != null, "player has the speed trail controller");
+        var settings = new SerializedObject(controller);
+        return new[] { "lowSpeedTrail", "mediumSpeedTrail", "highSpeedTrail" }.Select(field =>
+        {
+            var root = settings.FindProperty(field).objectReferenceValue as GameObject;
+            Check(root != null && root.transform.IsChildOf(ball.transform), field + " attached to ball");
+            var renderers = root.GetComponentsInChildren<TrailRenderer>(true);
+            Check(renderers.Length > 0 && renderers.All(trail => trail.sharedMaterial != null), field + " has renderers and materials");
+            return renderers;
+        }).ToArray();
+    }
+
+    private static void ValidateSpeedTrails(BouncingBallController ball)
+    {
+        var groups = SpeedTrails(ball);
+        float[] speeds = { 0f, ball.SpeedSettings.SmallEnemyKillSpeed / 2f,
+            ball.SpeedSettings.SmallEnemyKillSpeed, ball.SpeedSettings.MaximumSpeed };
+        for (int i = 0; i < speeds.Length; i++)
+        {
+            ball.EnterBallMode(Vector3.right * speeds[i]);
+            ball.SendMessage("LateUpdate");
+            for (int tier = 0; tier < groups.Length; tier++)
+                Check(groups[tier].All(trail => trail.emitting == (tier == i - 1)), "trail tier matches speed " + speeds[i]);
+        }
+    }
+
     private static void ValidatePinballAssistance()
     {
         Vector3 start = run.Player.ActivePosition;
@@ -150,7 +193,9 @@ public static class OnboardingValidation
         while (!specialist.IsDefeated) specialist.TryHitFromBall(threshold, run.Player.SpeedSettings);
         ball.SendMessage("LateUpdate");
         Check(ball.GetComponentsInChildren<LineRenderer>().Any(r => r.name == "Attack halo" && r.enabled), "attack-ready halo is visible");
+        ValidateSpeedTrails(ball);
         run.Player.ResetForEncounter(start, Quaternion.identity);
+        Check(SpeedTrails(ball).SelectMany(group => group).All(trail => !trail.emitting), "robot form clears all trail emitters");
         Check(!ball.GetComponentsInChildren<LineRenderer>(true).Any(r => r.name == "Attack halo" && r.enabled), "robot form clears halo");
     }
     private static void Tick()
@@ -159,7 +204,9 @@ public static class OnboardingValidation
         try
         {
             if (deadline == 0) deadline = EditorApplication.timeSinceStartup + 60;
-            Check(EditorApplication.timeSinceStartup < deadline, "timeout at stage " + stage);
+            if (EditorApplication.timeSinceStartup >= deadline)
+                Check(false, $"timeout at stage {stage}; practice speed={practicePlayer?.CurrentSpeed:0.00}, ball={practicePlayer?.IsBallForm}, W={practiceKeyboard?.wKey.isPressed}");
+            if (stage >= 7) { TickPractice(); return; }
             if (ui == null) ui = UnityEngine.Object.FindFirstObjectByType<CombatPresentation>();
             if (ui == null || frames++ < 6) return;
             run = ui.GetComponent<EnemyWaveController>();
@@ -168,40 +215,62 @@ public static class OnboardingValidation
             {
                 case 0:
                     Check(ui.Page == CombatPage.MainMenu && Time.timeScale == 0 && run.Player.IsEncounterLocked, "launch menu locks game");
-                    Check(HasText("One player. Two forms."), "single-player goal stated"); CheckTextLayout();
-                    Click("How to Play"); Check(ui.IsTourOpen, "menu help opens tour"); Click("Skip Tutorial");
-                    Check(ui.Page == CombatPage.MainMenu, "menu help returns to menu"); Click("Play");
-                    Check(ui.IsTourOpen && ui.TutorialIndex == 0, "Play starts tour");
-                    timer = run.TimeRemaining; gameTime = Time.time; position = run.Player.ActivePosition; Wait(1); break;
+                    var menu = Root.Q("menu");
+                    Check(menu.parent == Root.Q("modal").parent && !Visible(Root.Q("modal")), "menu is separate from the modal");
+                    Check(Mathf.Approximately(menu.layout.width, menu.parent.layout.width)
+                        && Mathf.Approximately(menu.layout.height, menu.parent.layout.height), "menu fills the Game view");
+                    Check(menu.Query<Label>().ToList().Select(label => label.text).SequenceEqual(new[] { "BONK SQUAD" }), "main menu only has the game title and buttons");
+                    var menuButtons = menu.Query<Button>().ToList().Select(button => button.text);
+                    Check(menuButtons.SequenceEqual(new[] { "Start", "Tutorial" }), "main menu has Start and Tutorial");
+                    Click("Start");
+                    Check(ui.Page == CombatPage.Combat && run.IsCombatActive, "Start enters combat directly");
+                    Wait(1); break;
                 case 1:
-                    Check(Time.time == gameTime && run.TimeRemaining == timer && run.LivingEnemies == 0 && run.Player.ActivePosition == position, "tour freezes simulation");
-                    for (int i = 0; i < 4; i++) { CheckTextLayout(); Click("Next"); }
-                    Check(ui.TutorialIndex == 4 && HasText("automatically"), "charge needs no activation key"); CheckTextLayout();
-                    Click("Back"); Check(ui.TutorialIndex == 3, "tour back"); Click("Next"); Click("Meet the enemies");
-                    Check(ui.Page == CombatPage.WavePreview && ui.PreviewCount == 1, "first wave only has basic minions"); CheckPreviewSafety(); CheckTextLayout();
-                    Click("→"); Check(ui.PreviewIndex == 0 && HasText("1 fast ball hit"), "minion card one hit"); CheckTextLayout();
-                    Click("→"); Check(ui.PreviewIndex == 0, "single-card carousel wraps");
+                    Click("Help");
+                    Check(ui.IsTourOpen && ui.TutorialIndex == 0, "Help opens the controls guide");
+                    for (int i = 0; i < 4; i++) Click("Next");
+                    Check(ui.TutorialIndex == 4 && HasText("automatically"), "charge needs no activation key");
+                    Click("Back"); Check(ui.TutorialIndex == 3, "guide back"); Click("Next"); Click("Done");
+                    Check(ui.Page == CombatPage.Combat && run.IsCombatActive, "Done resumes combat");
                     ValidatePredictablePatrols();
                     Check(run.WaveCount == 5 && run.BasicMinionsPerWave == 4 && run.CurrentWave.count == 0, "gentle first-wave roster");
                     Check(run.MinionRadius >= .49f * run.Placement.Diameter, "wider minion hit area");
                     var settings = new PlayerDizzinessSettings();
                     Check(Mathf.Abs(settings.GainRate(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings) - 10f) < .01f, "dizziness gain halved");
-                    Click("Start Wave"); Check(run.IsCombatActive && run.LivingEnemies == 4 && ui.Page == CombatPage.Combat, "start releases locks");
+                    Check(run.IsCombatActive && run.LivingEnemies == 4 && ui.Page == CombatPage.Combat, "start releases locks");
                     Check(run.LivingEnemyObjects.All(e => e.UsesStraightPatrol) && run.LivingEnemyObjects.Select(e => e.PatrolDirection).Distinct().Count() == 4,
                         "first wave gets four distinct readable patrol axes");
                     ui.SendMessage("Update");
-                    var pins = ui.GetComponentsInChildren<RectTransform>().Where(r => r.name == "Map pin").ToArray();
-                    Check(pins.Length == 5 && pins.Any(p => p.rect.width == 24) && pins.Count(p => p.rect.width == 12) == 4, "player and all starting minions have visible map pins");
+                    CheckHud();
+                    var dashButton = Root.Q<Button>("dash-button");
+                    Check(Visible(dashButton) && !dashButton.enabledSelf, "Dash is visible but disabled in robot form");
+                    run.Player.ToggleForm();
+                    ui.SendMessage("Update");
+                    Check(dashButton.enabledSelf, "Dash is available with a target in ball form");
+                    int uses = run.Player.DashUsesRemaining;
+                    Click(dashButton.text);
+                    ui.SendMessage("Update");
+                    Check(run.Player.DashUsesRemaining == uses - 1 && !dashButton.enabledSelf
+                        && run.Player.DashCooldownRemaining > 0f, "HUD Dash consumes a use and starts cooldown");
+                    var dashUses = Root.Q("dash-uses");
+                    Check(dashUses.Children().Count(indicator => indicator.ClassListContains("dash-use-spent")) == 1,
+                        "Dash empties one circle without removing its slot");
+                    Check(!Root.Q<Label>("dash-status").text.Contains("/"), "Dash status has no numeric use counter");
+                    run.Player.ResetDashForRun();
+                    run.Player.ToggleForm();
+                    Check(PinCount() == 5, "player and all starting minions have visible map pins");
                     run.DropRandom = () => .99d;
                     Check(run.TryFindMinionSpawn(out Vector3 childPoint), "safe reinforcement location");
                     var child = run.SpawnMinion(childPoint); Check(child.UsesStraightPatrol, "reinforcements use predictable patrols"); ui.SendMessage("Update");
-                    Check(ui.GetComponentsInChildren<RectTransform>().Count(r => r.name == "Map pin") == 6, "spawned minion appears on map immediately");
+                    Check(PinCount() == 6, "spawned minion appears on map immediately");
                     child.TryHitFromBall(run.Player.SpeedSettings.SmallEnemyKillSpeed, run.Player.SpeedSettings);
                     ui.SendMessage("Update");
-                    Check(ui.GetComponentsInChildren<RectTransform>().Count(r => r.name == "Map pin") == 5, "defeated reinforcement leaves map");
+                    Check(PinCount() == 5, "defeated reinforcement leaves map");
                     ValidatePinballAssistance();
                     Check(Mathf.Abs(run.Player.DizzinessSettings.GainRate(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings) - 10f) < .01f, "scene dizziness gain halved");
                     run.Health.TryDamageFrom(run.Player.ActivePosition - Vector3.right);
+                    ui.SendMessage("Update");
+                    Check(Root.Q("health").Query<VisualElement>(className: "empty").ToList().Count == 1, "damage empties a heart");
                     run.Player.ToggleForm();
                     Property(run.Player, "DizzinessPhase", PlayerDizzinessPhase.Stunned);
                     Property(run.Player, "PhaseTimeRemaining", 1.7f);
@@ -217,46 +286,198 @@ public static class OnboardingValidation
                     Check(!run.Health.TryDamage(), "protection remains after help");
                     run.Scoring.Reset();
                     run.Scoring.RecordKill(false, Time.time);
+                    ui.SendMessage("Update");
+                    Check(run.Scoring.Progress == 50 && run.Scoring.ImpactCharges == 0, "partial Impact still accumulates");
                     run.Scoring.RegisterBounce(Time.time); run.Scoring.RecordKill(false, Time.time);
-                    ui.SendMessage("Update"); CheckTextLayout();
                     run.Scoring.RegisterBounce(Time.time); run.Scoring.RecordKill(false, Time.time);
-                    ui.SendMessage("Update"); CheckTextLayout();
+                    ui.SendMessage("Update");
+                    Check(run.Scoring.ImpactCharges == 2 && Root.Q("dash-uses").Children().All(indicator => !indicator.ClassListContains("dash-use-spent")),
+                        "earning Impact charges does not affect Dash circles");
                     Property(run.Player, "DizzinessPhase", PlayerDizzinessPhase.Normal); run.Health.ResetHealth();
                     Property(run, "TimeRemaining", 0f); Wait(3); break;
                 case 3:
                     Check(ui.Page == CombatPage.Results && run.Result.reason == WaveFailureReason.Timeout && run.Result.enemiesRemaining == 4, "timeout snapshot");
-                    Check(HasText("Time ran out — 4 enemies remained"), "explicit timeout reason"); CheckTextLayout();
+                    Check(HasText("Time ran out — 4 enemies remained"), "explicit timeout reason");
                     Click("Retry Wave"); Check(ui.Page == CombatPage.Combat && run.Health.Current == 100 && run.IsCombatActive, "retry bypasses tutorial");
                     KillAll(); Wait(4); break;
                 case 4:
                     Check(run.State == EnemyWaveState.Cleared && ui.Page == CombatPage.Results, "clear results");
-                    Click("Next Wave"); Check(ui.Page == CombatPage.WavePreview && ui.PreviewCount == 2 && HasText("Spawner") && HasText("2 fast ball hits"), "next wave adds one specialist");
-                    ui.SendMessage("Update"); Check(HasText("S  Spawner"), "legend introduces specialist with its wave");
-                    CheckTextLayout(); Click("Start Wave");
+                    Click("Next Wave");
+                    Check(ui.Page == CombatPage.Combat && run.IsCombatActive && run.WaveIndex == 1
+                        && run.LivingEnemyObjects.Any(e => e.GetComponent<SpawnerEnemy>() != null), "next wave starts immediately with its specialist");
                     run.Health.TryDamage(1000); Wait(5); break;
                 case 5:
                     Check(run.Result.reason == WaveFailureReason.HealthDepleted && HasText("Health reached zero"), "explicit death reason");
                     Click("Main Menu"); Check(ui.Page == CombatPage.MainMenu && run.LivingEnemies == 0, "menu cleans encounter");
-                    Click("Play"); Check(ui.IsTourOpen, "new run repeats tour"); Click("Skip Tutorial");
-                    Check(ui.Page == CombatPage.WavePreview, "skip goes to preview");
-                    ui.DismissForValidation(); run.TryAllEnemyTypes(); run.RestartRun();
-                    // Use the actual mixed definition while keeping the developer shortcut off the player UI.
-                    Field(run, "<WaveIndex>k__BackingField", run.WaveCount - 1); ui.ShowWavePreview();
-                    Check(ui.PreviewCount == 4, "mixed wave has all four enemy cards");
-                    for (int i = 0; i < 4; i++) { CheckPreviewSafety(); CheckTextLayout(); ui.BrowseEnemy(1); }
-                    Check(!UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None).Any(b => b.name == "Try All Enemy Types"), "developer shortcut hidden");
-                    Click("Start Wave"); KillAll(); Wait(6); break;
+                    Click("Start");
+                    Check(ui.Page == CombatPage.Combat && run.IsCombatActive, "new run starts combat directly");
+                    // Jump to the saved mixed definition to check the final-wave result.
+                    run.RestartRun();
+                    Field(run, "<WaveIndex>k__BackingField", run.WaveCount - 1);
+                    run.StartWave();
+                    Check(run.LivingEnemyObjects.Select(EnemyPresentationProfile.Kind).Distinct().Count() == 4, "mixed wave has all four enemy types");
+                    KillAll(); Wait(6); break;
                 case 6:
                     Check(ui.Page == CombatPage.Results && run.State == EnemyWaveState.Victory, "victory screen");
-                    Click("Restart Run"); Check(ui.IsTourOpen && run.WaveIndex == 0, "victory restart repeats tutorial");
-                    Debug.Log("ONBOARDING_VALIDATION_OK: fixed minion patrol axes, no timer randomness, edge/obstacle reversals and reinforcement routes; wall boost/cap/cooldown, speed-qualified minion halo, obstacle rejection, specialist exclusion and form visuals; launch/menu, five cards, skip/back, model-only roster carousel, gameplay start, paused help with stun/protection preservation, timeout/death reasons, retries, next wave, mixed roster, victory/restart, safe aspect layouts and text fit.");
-                    Finish(0); break;
+                    Click("Restart Run"); Check(ui.Page == CombatPage.Combat && run.WaveIndex == 0, "victory restart starts wave one");
+                    ui.ShowMainMenu();
+                    Click("Tutorial");
+                    stage = 7; break;
             }
         }
         catch (Exception exception) { Debug.LogException(exception); Finish(1); }
     }
+    private static void Press(params Key[] keys) => InputSystem.QueueStateEvent(practiceKeyboard, new KeyboardState(keys));
+
+    private static bool CheckTutorialKeycaps(VisualElement page, params string[] expected)
+    {
+        var hints = page.Q(className: "key-hint-row");
+        Check(hints != null, "lesson has an input hint template");
+        if (!(hints.layout.width > 0f)) return false;
+
+        var labels = hints.Query<VisualElement>(className: "key-hint").ToList()
+            .Where(group => group.resolvedStyle.display != DisplayStyle.None)
+            .SelectMany(group => group.Query<Label>(className: "keycap").ToList())
+            .Select(key => key.text);
+        Check(labels.SequenceEqual(expected), "lesson shows only its supported keycaps: " + page.name);
+        return true;
+    }
+
+    private static void TickPractice()
+    {
+        if (stage == 22)
+        {
+            if (SceneManager.GetActiveScene().name != "Map01_RefractionArena") return;
+            var arena = UnityEngine.Object.FindFirstObjectByType<CombatPresentation>();
+            if (arena == null || arena.GetComponentInChildren<UIDocument>() == null) return;
+            Check(arena.Page == CombatPage.MainMenu, "tutorial returns to main menu");
+            Debug.Log("ONBOARDING_VALIDATION_OK: arena HUD, Dash, direct waves, and all tutorial steps with real keyboard input and wall collision.");
+            Finish(0);
+            return;
+        }
+
+        if (SceneManager.GetActiveScene().name != TutorialLevel.SceneName) return;
+        if (practiceDocument == null)
+        {
+            practiceDocument = UnityEngine.Object.FindFirstObjectByType<UIDocument>();
+            practicePlayer = UnityEngine.Object.FindFirstObjectByType<BonkRobotController>();
+        }
+        var root = practiceDocument?.rootVisualElement;
+        if (root == null) return;
+
+        switch (stage)
+        {
+            case 7:
+                Check(Visible(root.Q("move")), "tutorial starts on movement");
+                if (!CheckTutorialKeycaps(root.Q("move"), "Space", "W", "A", "S", "D", "↑", "←", "↓", "→")) return;
+                practiceTrails = SpeedTrails(practicePlayer.GetComponentInChildren<BouncingBallController>(true));
+                var pad = GameObject.Find("Directional Boost Pad").GetComponentInChildren<MeshRenderer>().bounds;
+                var floorCollider = GameObject.Find("Arena Floor").GetComponent<Collider>();
+                Check(floorCollider.sharedMaterial == null || floorCollider.sharedMaterial.bounciness == 0f, "tutorial floor is non-bouncy");
+                var floor = floorCollider.bounds;
+                Check(pad.min.x >= floor.min.x && pad.max.x <= floor.max.x && pad.min.z >= floor.min.z
+                    && pad.max.z <= floor.max.z, "directional pad is inside the arena");
+                originalInputSettings = InputSystem.settings;
+                var testSettings = UnityEngine.Object.Instantiate(originalInputSettings);
+                testSettings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+                testSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+                InputSystem.settings = testSettings;
+                practiceKeyboard = InputSystem.AddDevice<Keyboard>();
+                practiceKeyboard.MakeCurrent();
+                Press(Key.Space, Key.W);
+                stage++; break;
+            case 8:
+                if (!Visible(root.Q("bounce"))) return;
+                Check(practicePlayer.IsBallForm, "Space and W advance ball acceleration lesson");
+                Press(Key.W);
+                stage++; break;
+            case 9:
+                if (!Visible(root.Q("stun"))) return;
+                Check(practicePlayer.CurrentPlanarVelocity.z < 0, "wall collision reflected the ball");
+                var body = practicePlayer.GetComponentInChildren<BouncingBallController>().GetComponent<Rigidbody>();
+                Check(Mathf.Abs(body.linearVelocity.y) < .2f, "ball rolls on the ground after hitting the wall");
+                Press();
+                stage++; break;
+            case 10:
+                if (!Visible(root.Q("stunned"))) return;
+                Check(!practicePlayer.IsBallForm && !practicePlayer.CanAcceptPlayerInput, "actual stun switches form and locks controls");
+                stage++; break;
+            case 11:
+                if (!Visible(root.Q("recover")) || !CheckTutorialKeycaps(root.Q("recover"), "Space")) return;
+                Press(Key.Space, Key.W);
+                stage++; break;
+            case 12:
+                if (!practicePlayer.IsBallForm || practicePlayer.DizzinessRatio < .15f) return;
+                Check(practicePlayer.DizzinessPhase == PlayerDizzinessPhase.Normal && !Visible(root.Q("dizziness-countdown")), "partial dizziness does not require the warning countdown");
+                Press(Key.W);
+                stage++; break;
+            case 13:
+                Press(Key.Space, Key.D);
+                stage++; break;
+            case 14:
+                if (!Visible(root.Q("dash")) || !CheckTutorialKeycaps(root.Q("dash"), "Space", "Q", "Click Dash")) return;
+                Check(!practicePlayer.IsBallForm && practicePlayer.DizzinessPhase == PlayerDizzinessPhase.Normal && practicePlayer.DizzinessValue > 0f, "switching with partial dizziness advances the lesson immediately");
+                var enemies = UnityEngine.Object.FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None);
+                Check(enemies.Length == 2 && enemies.Count(e => e.IsSmallEnemy) == 1, "one basic small and one basic large enemy");
+                practiceDashStart = new Vector3(0f, practicePlayer.ActivePosition.y, -5f);
+                practicePlayer.ResetForEncounter(practiceDashStart, Quaternion.identity);
+                practicePlayer.RestoreDashCheckpoint(new BonkRobotController.DashCheckpoint(1, 0f));
+                // Put both targets behind the practice wall so the first Dash cannot reach them.
+                for (int i = 0; i < enemies.Length; i++)
+                    enemies[i].transform.position = new Vector3(0f, enemies[i].transform.position.y, 11f + i * 2f);
+                Physics.SyncTransforms();
+                Press();
+                stage++; break;
+            case 15:
+                Press(Key.Space);
+                stage++; break;
+            case 16:
+                if (!root.Q<Button>("dash-button").enabledSelf) return;
+                practiceDashAttemptedAt = Time.time;
+                Press(Key.Q);
+                stage++; break;
+            case 17:
+                if (Time.time - practiceDashAttemptedAt < 1f) return;
+                Check(practicePlayer.DashUsesRemaining == 0 && Visible(root.Q("dash")), "a Dash blocked by the wall does not finish practice");
+                practicePlayer.ResetForEncounter(practiceDashStart, Quaternion.identity);
+                practiceDashTarget = UnityEngine.Object.FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None).First(e => e.IsSmallEnemy);
+                practiceDashTarget.transform.position = new Vector3(0f, practiceDashTarget.transform.position.y, 2f);
+                Physics.SyncTransforms();
+                Press();
+                stage++; break;
+            case 18:
+                if (practicePlayer.DashUsesRemaining == 0) return;
+                Check(practicePlayer.DashUsesRemaining == practicePlayer.DashUsesPerRun, "practice refills spent Dash uses");
+                Press(Key.Space);
+                stage++; break;
+            case 19:
+                if (!root.Q<Button>("dash-button").enabledSelf) return;
+                Press(Key.Q);
+                stage++; break;
+            case 20:
+                if (practicePlayer.DashUsesRemaining == practicePlayer.DashUsesPerRun) return;
+                Check(Visible(root.Q("dash")) && practiceDashTarget != null && !practiceDashTarget.IsDefeated, "releasing Dash alone does not finish practice");
+                stage++; break;
+            case 21:
+                sawPracticeDashTrail |= practiceTrails[2].Any(trail => trail.emitting);
+                if (!Visible(root.Q("complete"))) return;
+                Check(sawPracticeDashTrail, "tutorial dash plays the high-speed trail before completion");
+                Check(practiceDashTarget == null || practiceDashTarget.IsDefeated, "Dash physically hits the practice target before completion");
+                Press();
+                Submit(root.Q<Button>("tutorial-done"));
+                stage++; break;
+        }
+    }
+
     private static void Finish(int code)
     {
+        if (practiceKeyboard != null) InputSystem.RemoveDevice(practiceKeyboard);
+        if (originalInputSettings != null)
+        {
+            var testSettings = InputSystem.settings;
+            InputSystem.settings = originalInputSettings;
+            UnityEngine.Object.Destroy(testSettings);
+        }
         SessionState.SetBool(Running, false); EditorApplication.update -= Tick;
         if (Application.isBatchMode) EditorApplication.Exit(code); else EditorApplication.ExitPlaymode();
     }

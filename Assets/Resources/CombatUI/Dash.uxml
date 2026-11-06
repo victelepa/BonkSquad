@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="Combat.uss" />
+    <ui:VisualElement name="dash-panel" class="dash-panel panel" picking-mode="Ignore">
+        <ui:Button name="dash-button" text="Q  ·  DASH" />
+        <ui:Label name="dash-status" text="Ready" class="dash-status" picking-mode="Ignore" />
+    </ui:VisualElement>
+</ui:UXML>

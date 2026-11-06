@@ -1,0 +1,12 @@
+.key-hint-row { flex-direction: row; flex-wrap: wrap; align-items: flex-start; margin-top: 9px; margin-bottom: 8px; }
+.key-hint { margin: 0 15px 6px 0; flex-shrink: 0; }
+.key-hint-title { margin: 0 0 4px 2px; color: rgb(136, 192, 216); font-size: 12px; -unity-font-style: bold; }
+.key-line { flex-direction: row; align-items: center; }
+.key-cluster { align-items: center; }
+.key-alternative { margin: 0 5px; color: rgb(173, 192, 207); font-size: 13px; }
+.keycap { min-width: 28px; height: 27px; margin: 1px 2px; padding: 0 7px; background-color: rgb(226, 238, 246); border-width: 1px; border-bottom-width: 3px; border-color: rgb(136, 163, 183); border-radius: 5px; color: rgb(15, 32, 48); font-size: 14px; -unity-font-style: bold; -unity-text-align: middle-center; }
+.keycap-square { width: 27px; min-width: 27px; padding: 0; }
+.keycap-space { min-width: 81px; }
+.keycap-mouse { background-color: rgb(34, 65, 86); border-color: rgb(68, 112, 140); color: rgb(228, 247, 255); }
+.input-hints .key-hint { display: none; }
+.input-hints.show-form .form-hint, .input-hints.show-move .move-hint, .input-hints.show-dash .dash-hint { display: flex; }

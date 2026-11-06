@@ -19,6 +19,7 @@ public class BonkRobotController : MonoBehaviour
     public float DizzinessValue { get; private set; }
     public float DizzinessRatio => DizzinessValue / dizzinessSettings.MaximumDizziness;
     public float PhaseTimeRemaining { get; private set; }
+    public event System.Action SwitchedToRobotManually;
     public bool IsEncounterLocked { get; private set; }
     public bool CanAcceptPlayerInput => !IsEncounterLocked && DizzinessPhase != PlayerDizzinessPhase.Stunned;
     public Vector3 ActivePosition => IsBallForm ? ballForm.transform.position : standingForm.transform.position;
@@ -281,6 +282,7 @@ public class BonkRobotController : MonoBehaviour
             SwitchToRobot(ballVelocity);
             if (DizzinessPhase == PlayerDizzinessPhase.Warning)
                 CancelWarning();
+            SwitchedToRobotManually?.Invoke();
         }
     }
 

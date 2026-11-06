@@ -30,6 +30,8 @@ public class BouncingBallController : MonoBehaviour
     public float AttackHaloRadius => BallRadius + minionHaloExtraDiameters * BallRadius * 2f;
     private float BallRadius => ballShape != null ? ballShape.radius * Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.y), Mathf.Abs(transform.lossyScale.z)) : .5f;
     public float WallBoostFlashUntil => boostFlashUntil;
+    public event System.Action WallBounced;
+    public event System.Action<EnemyBumper> DashHitEnemy;
 
     private Rigidbody rb;
     private Transform cameraTransform;
@@ -42,6 +44,7 @@ public class BouncingBallController : MonoBehaviour
     public void ConfigureEncounter(EnemyWaveController owner) => encounter = owner;
 
     private bool isBallMode;
+    private bool dashInProgress;
     private float inputTime;
     private float matchingDirectionTime;
 
@@ -129,6 +132,7 @@ public class BouncingBallController : MonoBehaviour
         if (direction.sqrMagnitude < 0.0001f) return false;
 
         InitializeBody();
+        dashInProgress = true;
         simulationVelocity = direction.normalized * SpeedSettings.MaximumSpeed;
         SetPlanarVelocity(simulationVelocity);
         rb.WakeUp();
@@ -153,6 +157,7 @@ public class BouncingBallController : MonoBehaviour
         inputTime = 0f;
         matchingDirectionTime = 0f;
         isBallMode = true;
+        dashInProgress = false;
 
         resolvedEnemies.Clear();
         contactEnemies.Clear();
@@ -164,6 +169,7 @@ public class BouncingBallController : MonoBehaviour
     public void ExitBallMode()
     {
         isBallMode = false;
+        dashInProgress = false;
         AccelerationEfficiency01 = 0f;
         
         if (rb == null)
@@ -279,6 +285,7 @@ public class BouncingBallController : MonoBehaviour
 
     private void OnDisable()
     {
+        dashInProgress = false;
         if (attackRing != null) attackRing.enabled = false;
         if (boostAudio != null) boostAudio.Stop();
         contactEnemies.Clear();
@@ -298,13 +305,22 @@ public class BouncingBallController : MonoBehaviour
         if (enemy != null)
         {
             if (!resolvedEnemies.Add(enemy)) return;
-            if (contactEnemies.Add(enemy) &&
-                (enemy.Encounter != null
-                    ? enemy.Encounter.TryBonk(enemy, simulationVelocity.magnitude, SpeedSettings)
-                    : enemy.TryHitFromBall(simulationVelocity.magnitude, SpeedSettings)) == EnemyHitResult.Defeated)
+            if (contactEnemies.Add(enemy))
             {
-                SetPlanarVelocity(simulationVelocity);
-                return;
+                if (dashInProgress)
+                {
+                    dashInProgress = false;
+                    if (!enemy.IsDefeated) DashHitEnemy?.Invoke(enemy);
+                }
+
+                EnemyHitResult hit = enemy.Encounter != null
+                    ? enemy.Encounter.TryBonk(enemy, simulationVelocity.magnitude, SpeedSettings)
+                    : enemy.TryHitFromBall(simulationVelocity.magnitude, SpeedSettings);
+                if (hit == EnemyHitResult.Defeated)
+                {
+                    SetPlanarVelocity(simulationVelocity);
+                    return;
+                }
             }
         }
         if (enemy != null) enemy.ContactPlayer(GetComponentInParent<PlayerHealth>());
@@ -331,6 +347,8 @@ public class BouncingBallController : MonoBehaviour
             }
         }
 
+        if (enemy == null && reflected) dashInProgress = false;
+        if (freshSurface && meaningfulWall && isBallMode) WallBounced?.Invoke();
         if (freshSurface && reflected && encounter != null && encounter.IsCombatActive)
         {
             if (meaningfulWall) TryWallBoost();

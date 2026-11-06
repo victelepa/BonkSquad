@@ -759,7 +759,6 @@ MonoBehaviour:
   placement: {fileID: 324729112}
   waves:
   - title: Learn to bonk
-    introduction: Just four slow minions. Build speed and hit them in ball form.
     prefab: {fileID: 0}
     basicMinions: 4
     minionSpeedInDiameters: 0.65
@@ -767,8 +766,6 @@ MonoBehaviour:
     seconds: 180
     additionalGroups: []
   - title: Meet the spawner
-    introduction: One spawner joins a few minions. Stop the source, then clear its
-      children.
     prefab: {fileID: 7076426847113777988, guid: 978949b8623a64d8b8d1a0e16540c2b8, type: 3}
     basicMinions: 3
     minionSpeedInDiameters: 1.2
@@ -776,7 +773,6 @@ MonoBehaviour:
     seconds: 180
     additionalGroups: []
   - title: Watch for mines
-    introduction: One mine layer. Avoid its warning rings and line up a fast hit.
     prefab: {fileID: 3021923979590987134, guid: 5717f51dd1e6a4f2e8580c4e584694b9, type: 3}
     basicMinions: 4
     minionSpeedInDiameters: 1.2
@@ -784,7 +780,6 @@ MonoBehaviour:
     seconds: 180
     additionalGroups: []
   - title: Keep moving
-    introduction: One mortar. Leave its landing marks before returning to attack.
     prefab: {fileID: 1804741076410313430, guid: 4a2db4bc0afe74ce4b4e297ff9a61090, type: 3}
     basicMinions: 4
     minionSpeedInDiameters: 1.2
@@ -792,7 +787,6 @@ MonoBehaviour:
     seconds: 180
     additionalGroups: []
   - title: All Types
-    introduction: One of each specialist. Use the map symbols to plan your route.
     prefab: {fileID: 7076426847113777988, guid: 978949b8623a64d8b8d1a0e16540c2b8, type: 3}
     basicMinions: 4
     minionSpeedInDiameters: 1.2
@@ -894,29 +888,18 @@ MonoBehaviour:
     displayName: Spawner
     symbol: S
     color: {r: 0.3, g: 1, b: 0.5, a: 1}
-    ability: Sends more minions into the arena. Green rings warn where they will
-      appear.
-    killTip: Destroy the spawner, then clear its surviving minions.
   - kind: 1
     displayName: Mine layer
     symbol: L
     color: {r: 1, g: 0.6, b: 0.18, a: 1}
-    ability: Roams and leaves proximity mines. Flashing rings mean a mine is arming.
-    killTip: Avoid armed rings. Build speed on a clear route, then hit the layer.
   - kind: 2
     displayName: Mortar
     symbol: M
     color: {r: 0.8, g: 0.5, b: 1, a: 1}
-    ability: Marks your position and launches a shell. The marked landing point stays
-      fixed.
-    killTip: Leave the warning circle, then line up a fast return attack.
   - kind: 3
     displayName: Basic minion
     symbol: "\u2022"
     color: {r: 1, g: 0.88, b: 0.2, a: 1}
-    ability: Patrols straight horizontal, vertical, or diagonal routes, reversing
-      at obstacles. Contact hurts robot form; ball form is safe.
-    killTip: Bonk it in ball form at attack speed. Minion kills also help build combos.
 --- !u!1 &330196631
 GameObject:
   m_ObjectHideFlags: 0

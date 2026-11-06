@@ -1,0 +1,53 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="Combat.uss" />
+    <ui:Template name="dash" src="Dash.uxml" />
+    <ui:Template name="input-hints" src="InputHints.uxml" />
+    <ui:VisualElement class="screen" picking-mode="Ignore">
+        <ui:Button name="tutorial-exit" text="Main Menu" class="help-button" />
+        <ui:Instance template="dash" class="tutorial-dash" picking-mode="Ignore" />
+        <ui:VisualElement class="tutorial-card panel" picking-mode="Ignore">
+            <ui:Label name="tutorial-progress" text="Practice  1 / 5" class="eyebrow" picking-mode="Ignore" />
+            <ui:VisualElement name="tutorial-stages" picking-mode="Ignore">
+                <ui:VisualElement name="move" picking-mode="Ignore">
+                    <ui:Label text="Move and build speed" class="tutorial-title" />
+                    <ui:Label text="Switch to ball form, then hold the key that matches your travel direction to accelerate." class="tutorial-copy" />
+                    <ui:Instance template="input-hints" class="input-hints show-form show-move" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement name="bounce" class="hidden" picking-mode="Ignore">
+                    <ui:Label text="Bounce off a wall" class="tutorial-title" />
+                    <ui:Label text="Roll into a wall. The wall reflects your direction so you can keep moving after the bounce." class="tutorial-copy" />
+                </ui:VisualElement>
+                <ui:VisualElement name="stun" class="hidden" picking-mode="Ignore">
+                    <ui:Label text="Experience dizziness" class="tutorial-title" />
+                    <ui:Label name="stun-build" text="Roll at high speed to build dizziness. When the bar fills, a warning countdown starts before you get stunned. Stay in ball form and let it run out this time." class="tutorial-copy" />
+                    <ui:Label name="stun-warning" text="Dizziness is full. Stay in ball form until the warning runs out to experience the stun." class="tutorial-copy hidden" />
+                    <ui:Label name="stunned" text="You're stunned. The game switched you to robot form and briefly locked your controls." class="tutorial-copy hidden" />
+                </ui:VisualElement>
+                <ui:VisualElement name="recover" class="hidden" picking-mode="Ignore">
+                    <ui:Label text="Recover in robot form" class="tutorial-title" />
+                    <ui:Label name="recover-build" text="Build up some dizziness in ball form, then switch back to robot form to move on. Robot form turns more easily and clears dizziness quickly." class="tutorial-copy" />
+                    <ui:Label name="recover-switch" text="Switch to robot form before the countdown ends. Robot form turns more easily and clears dizziness quickly." class="tutorial-copy hidden" />
+                    <ui:Label name="recover-missed" text="The warning ran out. When you can move again, build up some dizziness and switch back to robot form yourself." class="tutorial-copy hidden" />
+                    <ui:Instance template="input-hints" class="input-hints show-form" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement name="dash" class="hidden" picking-mode="Ignore">
+                    <ui:Label text="Try a Dash" class="tutorial-title" />
+                    <ui:Label text="Switch to ball form and land a Dash hit on an enemy. If you miss, try again after the cooldown. Uses refill here." class="tutorial-copy" />
+                    <ui:Instance template="input-hints" class="input-hints show-form show-dash" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement name="complete" class="hidden" picking-mode="Ignore">
+                    <ui:Label text="Tutorial complete" class="tutorial-title" />
+                    <ui:Label text="You're ready for the arena." class="tutorial-copy" />
+                    <ui:Button name="tutorial-done" text="Return to Main Menu" class="tutorial-done" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="practice-dizziness" class="practice-dizziness hidden" picking-mode="Ignore">
+                <ui:Label text="Dizziness" class="practice-meter-label" picking-mode="Ignore" />
+                <ui:VisualElement class="practice-track" picking-mode="Ignore">
+                    <ui:VisualElement name="practice-fill" class="practice-fill" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:Label name="dizziness-countdown" text="Warning: 3.0s" class="practice-countdown hidden" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

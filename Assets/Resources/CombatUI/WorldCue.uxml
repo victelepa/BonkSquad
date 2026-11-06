@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="Combat.uss" />
+    <ui:VisualElement class="cue" picking-mode="Ignore">
+        <ui:Label name="caption" picking-mode="Ignore" />
+        <ui:VisualElement name="enemy-health" class="enemy-health" picking-mode="Ignore" />
+    </ui:VisualElement>
+</ui:UXML>

@@ -98,16 +98,11 @@ public static class Map01CombatSetup
     }
 
     public static EnemyWaveController.WaveDefinition[] TeachingWaves(EnemyBumper spawner, EnemyBumper layer, EnemyBumper mortar) => new[] {
-        new EnemyWaveController.WaveDefinition { title = "Learn to bonk", count = 0, basicMinions = 4, minionSpeedInDiameters = .65f,
-            introduction = "Just four slow minions. Build speed and hit them in ball form." },
-        new EnemyWaveController.WaveDefinition { title = "Meet the spawner", prefab = spawner, count = 1, basicMinions = 3,
-            introduction = "One spawner joins a few minions. Stop the source, then clear its children." },
-        new EnemyWaveController.WaveDefinition { title = "Watch for mines", prefab = layer, count = 1, basicMinions = 4,
-            introduction = "One mine layer. Avoid its warning rings and line up a fast hit." },
-        new EnemyWaveController.WaveDefinition { title = "Keep moving", prefab = mortar, count = 1, basicMinions = 4,
-            introduction = "One mortar. Leave its landing marks before returning to attack." },
-        new EnemyWaveController.WaveDefinition { title = "All Types", prefab = spawner, count = 1, basicMinions = 4,
-            introduction = "One of each specialist. Use the map symbols to plan your route.", additionalGroups = new[] {
+        new EnemyWaveController.WaveDefinition { title = "Learn to bonk", count = 0, basicMinions = 4, minionSpeedInDiameters = .65f },
+        new EnemyWaveController.WaveDefinition { title = "Meet the spawner", prefab = spawner, count = 1, basicMinions = 3 },
+        new EnemyWaveController.WaveDefinition { title = "Watch for mines", prefab = layer, count = 1, basicMinions = 4 },
+        new EnemyWaveController.WaveDefinition { title = "Keep moving", prefab = mortar, count = 1, basicMinions = 4 },
+        new EnemyWaveController.WaveDefinition { title = "All Types", prefab = spawner, count = 1, basicMinions = 4, additionalGroups = new[] {
                 new EnemyWaveController.EnemyGroup { prefab = layer, count = 1 },
                 new EnemyWaveController.EnemyGroup { prefab = mortar, count = 1 }
             } }
@@ -141,7 +136,7 @@ public static class Map01CombatSetup
         Debug.Log("TEACHING_BALANCE_APPLIED: four slow wider minions, then one specialist per wave, twice the dizziness buildup time.");
     }
 
-    [MenuItem("Tools/BonkSquad/Install Map01 Onboarding UI")]
+    [MenuItem("Tools/BonkSquad/Install Map01 Combat UI")]
     public static void InstallPresentation()
     {
         var scene = EditorSceneManager.OpenScene(ScenePath);

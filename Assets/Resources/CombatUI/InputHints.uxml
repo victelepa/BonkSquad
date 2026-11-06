@@ -1,0 +1,41 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="InputHints.uss" />
+    <ui:VisualElement class="key-hint-row" picking-mode="Ignore">
+        <ui:VisualElement class="key-hint form-hint" picking-mode="Ignore">
+            <ui:Label text="SWITCH FORM" class="key-hint-title" picking-mode="Ignore" />
+            <ui:VisualElement class="key-line" picking-mode="Ignore">
+                <ui:Label text="Space" class="keycap keycap-space" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="key-hint move-hint" picking-mode="Ignore">
+            <ui:Label text="MOVE" class="key-hint-title" picking-mode="Ignore" />
+            <ui:VisualElement class="key-line" picking-mode="Ignore">
+                <ui:VisualElement class="key-cluster" picking-mode="Ignore">
+                    <ui:Label text="W" class="keycap keycap-square" picking-mode="Ignore" />
+                    <ui:VisualElement class="key-line" picking-mode="Ignore">
+                        <ui:Label text="A" class="keycap keycap-square" picking-mode="Ignore" />
+                        <ui:Label text="S" class="keycap keycap-square" picking-mode="Ignore" />
+                        <ui:Label text="D" class="keycap keycap-square" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label text="or" class="key-alternative" picking-mode="Ignore" />
+                <ui:VisualElement class="key-cluster" picking-mode="Ignore">
+                    <ui:Label text="↑" class="keycap keycap-square" picking-mode="Ignore" />
+                    <ui:VisualElement class="key-line" picking-mode="Ignore">
+                        <ui:Label text="←" class="keycap keycap-square" picking-mode="Ignore" />
+                        <ui:Label text="↓" class="keycap keycap-square" picking-mode="Ignore" />
+                        <ui:Label text="→" class="keycap keycap-square" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="key-hint dash-hint" picking-mode="Ignore">
+            <ui:Label text="DASH" class="key-hint-title" picking-mode="Ignore" />
+            <ui:VisualElement class="key-line" picking-mode="Ignore">
+                <ui:Label text="Q" class="keycap keycap-square" picking-mode="Ignore" />
+                <ui:Label text="or" class="key-alternative" picking-mode="Ignore" />
+                <ui:Label text="Click Dash" class="keycap keycap-mouse" picking-mode="Ignore" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

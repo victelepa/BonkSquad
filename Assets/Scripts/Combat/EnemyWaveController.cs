@@ -27,7 +27,6 @@ public sealed class EnemyWaveController : MonoBehaviour
     public sealed class WaveDefinition
     {
         public string title;
-        [TextArea] public string introduction;
         public EnemyBumper prefab;
         [Tooltip("-1 uses the encounter default; 0 allows specialist-only waves.")]
         public int basicMinions = -1;
@@ -335,7 +334,6 @@ public sealed class EnemyWaveController : MonoBehaviour
         // Support scene data already loaded before the mixed wave was added to the saved scene.
         var mixed = new WaveDefinition {
             title = "All Types", prefab = spawner, count = 1, seconds = 180f,
-            introduction = "Spawners, mine layers, and mortars together. Use the minimap to choose your targets.",
             additionalGroups = new[] {
                 new EnemyGroup { prefab = layer, count = 1 },
                 new EnemyGroup { prefab = mortar, count = 1 }

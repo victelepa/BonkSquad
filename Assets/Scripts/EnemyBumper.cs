@@ -55,6 +55,8 @@ public class EnemyBumper : MonoBehaviour
     [SerializeField] private bool showHealthBar;
     public int HitPoints { get; private set; }
     public int MaximumHitPoints => maximumHitPoints;
+    public bool ShowHealthBar => showHealthBar;
+    public bool IsHitFlashing => Time.time < hitFlashUntil;
     public bool IsDefeated => isDefeated;
     public bool IsBasicMinion => contactDamage && maximumHitPoints == 1;
     public EnemyWaveController Encounter { get; private set; }
@@ -91,21 +93,6 @@ public class EnemyBumper : MonoBehaviour
         // Ball contacts are handled after its speed-qualified hit has been resolved.
         if (collision.collider.GetComponentInParent<BouncingBallController>() == null)
             ContactPlayer(collision.collider.GetComponentInParent<PlayerHealth>());
-    }
-
-    private void OnGUI()
-    {
-        if (!showHealthBar || isDefeated || Camera.main == null) return;
-        Vector3 screen = Camera.main.WorldToScreenPoint(transform.position + Vector3.up * (capsule.height + .3f));
-        if (screen.z <= 0f) return;
-        Color old = GUI.color;
-        float width = 52f / maximumHitPoints;
-        for (int i = 0; i < maximumHitPoints; i++)
-        {
-            GUI.color = i < HitPoints ? (Time.time < hitFlashUntil ? Color.white : new Color(.3f, 1f, .5f)) : Color.gray;
-            GUI.DrawTexture(new Rect(screen.x - 26 + i * width, Screen.height - screen.y, width - 2, 6), Texture2D.whiteTexture);
-        }
-        GUI.color = old;
     }
 
     private void Awake()

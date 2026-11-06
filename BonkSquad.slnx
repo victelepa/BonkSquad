@@ -1,6 +1,6 @@
 ﻿<Solution>
   <Project Path="XCharts.Runtime.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="XCharts.Editor.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
 </Solution>

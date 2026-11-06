@@ -1,0 +1,84 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="Combat.uss" />
+    <ui:Template name="dash" src="Dash.uxml" />
+    <ui:Template name="input-hints" src="InputHints.uxml" />
+    <ui:Template name="main-menu" src="MainMenu.uxml" />
+    <ui:VisualElement class="screen" picking-mode="Ignore">
+        <ui:VisualElement name="hud" class="screen" picking-mode="Ignore">
+            <ui:VisualElement name="world-cues" class="screen" picking-mode="Ignore" />
+            <ui:VisualElement name="objective" class="objective panel" picking-mode="Ignore">
+                <ui:Label text="CLEAR ALL ENEMIES" class="objective-title" picking-mode="Ignore" />
+                <ui:Label name="wave" text="Wave 1/5" picking-mode="Ignore" />
+                <ui:Label name="timer" text="180s remaining" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:Button name="help-button" text="Help" class="help-button" />
+            <ui:VisualElement name="combo" class="combo panel hidden" picking-mode="Ignore">
+                <ui:Label name="combo-text" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:Label name="player-warning" class="player-warning hidden" picking-mode="Ignore" />
+            <ui:VisualElement name="player-status" class="player-status" picking-mode="Ignore">
+                <ui:Instance name="combat-dash" template="dash" class="combat-dash" picking-mode="Ignore" />
+                <ui:VisualElement name="health" class="meter-row" picking-mode="Ignore">
+                    <ui:VisualElement class="meter heart" picking-mode="Ignore"><ui:VisualElement class="fill heart-fill" picking-mode="Ignore" /></ui:VisualElement>
+                    <ui:VisualElement class="meter heart" picking-mode="Ignore"><ui:VisualElement class="fill heart-fill" picking-mode="Ignore" /></ui:VisualElement>
+                    <ui:VisualElement class="meter heart" picking-mode="Ignore"><ui:VisualElement class="fill heart-fill" picking-mode="Ignore" /></ui:VisualElement>
+                    <ui:VisualElement class="meter heart" picking-mode="Ignore"><ui:VisualElement class="fill heart-fill" picking-mode="Ignore" /></ui:VisualElement>
+                    <ui:VisualElement class="meter heart" picking-mode="Ignore"><ui:VisualElement class="fill heart-fill" picking-mode="Ignore" /></ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="dash-uses" class="meter-row dash-uses" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="map" class="map" picking-mode="Ignore">
+                <ui:VisualElement name="map-obstacles" class="screen" picking-mode="Ignore" />
+                <ui:VisualElement name="map-markers" class="screen" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="damage" class="screen damage" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:Instance name="menu" template="main-menu" class="screen hidden" />
+        <ui:VisualElement name="modal" class="screen modal hidden">
+            <ui:VisualElement name="guide" class="card panel hidden">
+                <ui:Label name="guide-progress" class="eyebrow" />
+                <ui:VisualElement name="guide-pages">
+                    <ui:VisualElement>
+                        <ui:Label text="One player. Two forms." class="heading" />
+                        <ui:Label text="Use the controls below to move or switch between robot and ball." class="body guide-control-copy" />
+                        <ui:Instance template="input-hints" class="input-hints show-form show-move" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="hidden">
+                        <ui:Label text="Build speed in ball form." class="heading" />
+                        <ui:Label text="Bounce off walls for a speed boost. The cyan halo shows when you're ready to bonk. Dash is available in ball form. The circles below your hearts show how many uses remain." class="body guide-control-copy" />
+                        <ui:Instance template="input-hints" class="input-hints show-dash" picking-mode="Ignore" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="hidden">
+                        <ui:Label text="Robot form gives you control." class="heading" />
+                        <ui:Label text="Switch to robot form to steer more precisely and recover from dizziness. Switch before the dizziness warning expires to avoid a brief stun." class="body" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="hidden">
+                        <ui:Label text="Watch your health." class="heading" />
+                        <ui:Label text="The red hearts show your health. Collect green health pickups to refill them." class="body" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="hidden">
+                        <ui:Label text="Charge your impact." class="heading" />
+                        <ui:Label name="guide-impact" text="Every {0} points grants one Impact Charge. Your next qualifying fast hit automatically spends a charge to deal double damage." class="body" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="actions">
+                    <ui:Button name="back" text="Back" />
+                    <ui:Button name="close-help" text="Close Help" />
+                    <ui:Button name="next" text="Next" />
+                    <ui:Button name="done" text="Done" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="results" class="card panel hidden">
+                <ui:Label name="result-wave" text="Wave 1 result" class="eyebrow" />
+                <ui:Label name="result-title" text="Wave cleared!" class="heading" />
+                <ui:Label name="result-detail" class="body" />
+                <ui:VisualElement class="actions">
+                    <ui:Button name="main-menu" text="Main Menu" />
+                    <ui:Button name="retry-wave" text="Retry Wave" />
+                    <ui:Button name="next-wave" text="Next Wave" />
+                    <ui:Button name="restart-run" text="Restart Run" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

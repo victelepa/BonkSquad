@@ -1,0 +1,6 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="Combat.uss" />
+    <ui:VisualElement class="meter orb" picking-mode="Ignore">
+        <ui:VisualElement class="fill orb-fill" picking-mode="Ignore" />
+    </ui:VisualElement>
+</ui:UXML>
