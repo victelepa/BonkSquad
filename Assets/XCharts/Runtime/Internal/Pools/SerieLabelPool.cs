@@ -6,7 +6,7 @@ namespace XCharts.Runtime
     public static class SerieLabelPool
     {
         private static readonly Stack<GameObject> m_Stack = new Stack<GameObject>(200);
-        private static Dictionary<int, bool> m_ReleaseDic = new Dictionary<int, bool>(1000);
+        private static readonly HashSet<GameObject> m_ReleaseDic = new HashSet<GameObject>();
 
         public static GameObject Get(string name, Transform parent, LabelStyle label, Color color,
             float iconWidth, float iconHeight, ThemeStyle theme)
@@ -23,7 +23,7 @@ namespace XCharts.Runtime
                 {
                     element = CreateSerieLabel(name, parent, label, color, iconWidth, iconHeight, theme);
                 }
-                m_ReleaseDic.Remove(element.GetInstanceID());
+                m_ReleaseDic.Remove(element);
                 element.name = name;
                 element.transform.SetParent(parent);
                 var text = new ChartText(element);
@@ -40,10 +40,10 @@ namespace XCharts.Runtime
             if (element == null) return;
             ChartHelper.SetActive(element, false);
             if (!Application.isPlaying) return;
-            if (!m_ReleaseDic.ContainsKey(element.GetInstanceID()))
+            if (!m_ReleaseDic.Contains(element))
             {
                 m_Stack.Push(element);
-                m_ReleaseDic.Add(element.GetInstanceID(), true);
+                m_ReleaseDic.Add(element);
             }
         }
 

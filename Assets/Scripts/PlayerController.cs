@@ -25,6 +25,12 @@ public class PlayerController : MonoBehaviour
 
     public void Configure(BonkRobotController owner) => speedSystem = owner;
 
+    public void ApplyKnockback(Vector3 direction, float strength)
+    {
+        planarVelocity = PlayerMovementMath.KnockbackVelocity(planarVelocity, direction, strength, SpeedSettings.MaximumSpeed);
+        carryingMomentum = true;
+    }
+
     public void SetControlLocked(bool locked)
     {
         controlLocked = locked;
@@ -60,7 +66,8 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        if (controlLocked)
+        if (speedSystem != null && speedSystem.IsEncounterLocked) return;
+        if (controlLocked && (speedSystem == null || !speedSystem.IsKnockedBack))
         {
             // Gravity continues, but no horizontal movement or facing change is allowed.
             planarVelocity = Vector3.zero;
@@ -70,7 +77,8 @@ public class PlayerController : MonoBehaviour
             return;
         }
         if (cameraTransform == null && Camera.main != null) cameraTransform = Camera.main.transform;
-        Vector3 inputDirection = PlayerMovementMath.ReadInputDirection(cameraTransform);
+        Vector3 inputDirection = speedSystem != null && speedSystem.IsKnockedBack
+            ? Vector3.zero : PlayerMovementMath.ReadInputDirection(cameraTransform);
         float speed = planarVelocity.magnitude;
         if (speed > SpeedSettings.RobotBaseSpeed) carryingMomentum = true;
         if (carryingMomentum)
@@ -108,7 +116,8 @@ public class PlayerController : MonoBehaviour
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        if (controlLocked) return;
+        if (controlLocked && (speedSystem == null || !speedSystem.IsKnockedBack)) return;
+        hit.collider.GetComponentInParent<EnemyBumper>()?.ContactPlayer(GetComponentInParent<PlayerHealth>());
         Vector3 normal = PlayerMovementMath.Planar(hit.normal);
         if (normal.sqrMagnitude < 0.0001f || Vector3.Dot(planarVelocity, normal) >= 0f) return;
         // CharacterController can report several contacts during one Move. Resolve
