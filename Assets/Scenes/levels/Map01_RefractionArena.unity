@@ -649,6 +649,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1678529258}
     m_Modifications:
+    - target: {fileID: 1814538232, guid: f6bbcfa7e746d0340bd78dd22f35b3b3, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 753552020542912727, guid: f6bbcfa7e746d0340bd78dd22f35b3b3, type: 3}
       propertyPath: m_Time
       value: 0.4
@@ -3311,6 +3315,10 @@ PrefabInstance:
     - target: {fileID: 4902781039296221114, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
       propertyPath: m_Time
       value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4936983900422567026, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6249941258657119635, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
       propertyPath: m_Time
@@ -7844,6 +7852,10 @@ PrefabInstance:
     - target: {fileID: 2101545345413760777, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
       propertyPath: m_Time
       value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2945724958592830080, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8318778908538311867, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
       propertyPath: m_Time
