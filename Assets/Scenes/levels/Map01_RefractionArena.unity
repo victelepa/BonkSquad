@@ -709,6 +709,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6666282043616776576, guid: f6bbcfa7e746d0340bd78dd22f35b3b3, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -3318,6 +3322,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4936983900422567026, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
       propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5935994036608315268, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
+      propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6249941258657119635, guid: ae6bdf3417a5d6047a559654858dac31, type: 3}
@@ -7853,9 +7861,17 @@ PrefabInstance:
       propertyPath: m_Time
       value: 0.5
       objectReference: {fileID: 0}
+    - target: {fileID: 2269298158820841204, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2945724958592830080, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
       propertyPath: m_Enabled
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5982652236239526039, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8318778908538311867, guid: a64a37f3dcfb87f44a8c6236b5d49b20, type: 3}
       propertyPath: m_Time
