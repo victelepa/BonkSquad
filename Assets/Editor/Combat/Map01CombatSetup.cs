@@ -46,6 +46,8 @@ public static class Map01CombatSetup
         EnemyBumper layer = MakeEnemy("MineLayer", d, orange, dark, 1, minimum, maximum);
         EnemyBumper mortar = MakeEnemy("Mortar", d, purple, dark, 2, minimum, maximum);
         EnemyBumper minion = MakeEnemy("Minion", d, minionMaterial, dark, 3, minimum, maximum);
+        MakeEnemy("NetShooter", d, Material("Net Cyan", Color.cyan), dark, 4, minimum, maximum);
+        MakeEnemy("Runner", d, Material("Runner Red", new Color(1f,.2f,.35f)), dark, 5, minimum, maximum);
         CombatHazard mine = MakeHazard("Mine", d, orange, true);
         CombatHazard shell = MakeHazard("MortarShell", d, purple, false);
         var pickupObject = new GameObject("HealthPickup");
@@ -89,6 +91,7 @@ public static class Map01CombatSetup
             minion, mine, shell, pickup, marker, start, rotation);
         encounter.AddComponent<CombatPresentation>();
         encounter.AddComponent<CombatHUD>();
+        InstallBats(run, dark);
         Physics.SyncTransforms();
         ValidatePlacement(placement, start);
         EditorSceneManager.MarkSceneDirty(scene);
@@ -97,16 +100,82 @@ public static class Map01CombatSetup
         Debug.Log("MAP01_COMBAT_SETUP_OK: four waves including all enemy types, reusable prefabs, random placement and 5% healing drops.");
     }
 
-    public static EnemyWaveController.WaveDefinition[] TeachingWaves(EnemyBumper spawner, EnemyBumper layer, EnemyBumper mortar) => new[] {
-        new EnemyWaveController.WaveDefinition { title = "Learn to bonk", count = 0, basicMinions = 4, minionSpeedInDiameters = .65f },
-        new EnemyWaveController.WaveDefinition { title = "Meet the spawner", prefab = spawner, count = 1, basicMinions = 3 },
-        new EnemyWaveController.WaveDefinition { title = "Watch for mines", prefab = layer, count = 1, basicMinions = 4 },
-        new EnemyWaveController.WaveDefinition { title = "Keep moving", prefab = mortar, count = 1, basicMinions = 4 },
-        new EnemyWaveController.WaveDefinition { title = "All Types", prefab = spawner, count = 1, basicMinions = 4, additionalGroups = new[] {
-                new EnemyWaveController.EnemyGroup { prefab = layer, count = 1 },
-                new EnemyWaveController.EnemyGroup { prefab = mortar, count = 1 }
-            } }
-    };
+    public static EnemyWaveController.WaveDefinition[] TeachingWaves(EnemyBumper spawner, EnemyBumper layer, EnemyBumper mortar,
+        EnemyBumper net = null, EnemyBumper runner = null)
+    {
+        net = net != null ? net : AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/NetShooter.prefab");
+        runner = runner != null ? runner : AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/Runner.prefab");
+        return new[] {
+            new EnemyWaveController.WaveDefinition { title = "Mortar", prefab = mortar, count = 1, basicMinions = 3, minionSpeedInDiameters = .9f },
+            new EnemyWaveController.WaveDefinition { title = "Blasts and mines", prefab = mortar, count = 1, basicMinions = 3, additionalGroups = new[] { new EnemyWaveController.EnemyGroup { prefab = layer } } },
+            new EnemyWaveController.WaveDefinition { title = "Spawn and snare", prefab = spawner, count = 1, basicMinions = 4, additionalGroups = new[] { new EnemyWaveController.EnemyGroup { prefab = net } } },
+            new EnemyWaveController.WaveDefinition { title = "Moving targets", prefab = mortar, count = 1, basicMinions = 4, additionalGroups = new[] {
+                new EnemyWaveController.EnemyGroup { prefab = layer }, new EnemyWaveController.EnemyGroup { prefab = runner } } },
+            new EnemyWaveController.WaveDefinition { title = "Final pursuit", prefab = spawner, count = 1, basicMinions = 4, additionalGroups = new[] {
+                new EnemyWaveController.EnemyGroup { prefab = net }, new EnemyWaveController.EnemyGroup { prefab = runner } } }
+        };
+    }
+
+    [MenuItem("Tools/BonkSquad/Install Pinball Expansion")]
+    public static void InstallPinballExpansion()
+    {
+        var scene = EditorSceneManager.OpenScene(ScenePath);
+        var run = UnityEngine.Object.FindFirstObjectByType<EnemyWaveController>();
+        if (run == null) throw new InvalidOperationException("Set up enemy waves first.");
+        float d = run.Placement.Diameter;
+        var dark = Material("Combat Dark", new Color(.07f,.1f,.13f));
+        var net = MakeEnemy("NetShooter", d, Material("Net Cyan", Color.cyan), dark, 4, run.Placement.ArenaMin, run.Placement.ArenaMax);
+        var runner = MakeEnemy("Runner", d, Material("Runner Red", new Color(1f,.2f,.35f)), dark, 5, run.Placement.ArenaMin, run.Placement.ArenaMax);
+        var spawner = AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/Spawner.prefab");
+        var layer = AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/MineLayer.prefab");
+        var mortar = AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/Mortar.prefab");
+        typeof(EnemyWaveController).GetField("waves", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            .SetValue(run, TeachingWaves(spawner, layer, mortar, net, runner));
+        var shell = PrefabUtility.LoadPrefabContents(Folder + "/MortarShell.prefab");
+        var shellData = new SerializedObject(shell.GetComponent<CombatHazard>());
+        shellData.FindProperty("radiusInDiameters").floatValue = 2.75f;
+        shellData.ApplyModifiedPropertiesWithoutUndo(); PrefabUtility.SaveAsPrefabAsset(shell, Folder + "/MortarShell.prefab"); PrefabUtility.UnloadPrefabContents(shell);
+        var playerData = new SerializedObject(run.Player); playerData.FindProperty("initialDashUses").intValue = 4;
+        playerData.ApplyModifiedPropertiesWithoutUndo();
+        InstallBats(run, dark);
+        EditorUtility.SetDirty(run); EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
+        Debug.Log("PINBALL_EXPANSION_INSTALLED");
+    }
+    private static void InstallBats(EnemyWaveController run, Material dark)
+    {
+        foreach (var bat in run.GetComponentsInChildren<RotatingPinballBat>()) UnityEngine.Object.DestroyImmediate(bat.gameObject);
+        Physics.SyncTransforms();
+        float d = run.Placement.Diameter; Bounds floor = run.Placement.Floor.bounds;
+        var candidates = new List<Vector3>();
+        for (float x = floor.min.x + 5*d; x < floor.max.x-5*d; x += 3*d)
+            for (float z = floor.min.z + 5*d; z < floor.max.z-5*d; z += 3*d)
+                candidates.Add(new Vector3(x, floor.max.y, z));
+        candidates = candidates.OrderBy(p => Mathf.Abs(Mathf.Abs(p.x-floor.center.x)-floor.extents.x*.55f) + Mathf.Abs(p.z-floor.center.z)).ToList();
+        int placed = 0;
+        var batPositions = new List<Vector3>();
+        var cyan = Material("Bat Cyan", new Color(.15f,1f,1f));
+        foreach (Vector3 point in candidates)
+        {
+            if (PlayerMovementMath.Planar(point-run.Player.ActivePosition).magnitude < 7*d ||
+                batPositions.Any(p => PlayerMovementMath.Planar(p-point).magnitude < 14*d) ||
+                !run.Placement.IsClear(point, 4*d, 3*d)) continue;
+            var go = new GameObject("Rotating bat " + (placed+1)); go.transform.SetParent(run.transform, false); go.transform.position = point;
+            var body = go.AddComponent<Rigidbody>(); body.isKinematic = true; body.useGravity = false;
+            var collider = go.AddComponent<BoxCollider>(); collider.center = Vector3.up*.6f*d; collider.size = new Vector3(5*d, 1.2f*d, .45f*d);
+            Model(go.transform, "Rod", PrimitiveType.Cube, collider.center, collider.size, cyan);
+            Model(go.transform, "Pivot", PrimitiveType.Cylinder, Vector3.up*.6f*d, new Vector3(.7f, .65f, .7f)*d, dark);
+            Model(go.transform, "Launch arrow shaft", PrimitiveType.Cube, new Vector3(0,.7f,1.1f)*d, new Vector3(.14f,.14f,1.6f)*d, cyan);
+            for (int sign = -1; sign <= 1; sign += 2)
+            {
+                var wing = Model(go.transform, "Arrow head", PrimitiveType.Cube, new Vector3(sign*.3f,.7f,1.65f)*d, new Vector3(.14f,.14f,.9f)*d, cyan);
+                wing.localRotation = Quaternion.Euler(0, sign*45, 0);
+            }
+            var bat = go.AddComponent<RotatingPinballBat>(); bat.Configure(run); bat.SetReservedRadius(3.4f*d);
+            batPositions.Add(point); Physics.SyncTransforms(); placed++;
+            if (placed == 2) break;
+        }
+        if (placed != 2) throw new InvalidOperationException("Could not place two bats with clear sweep space.");
+    }
 
     [MenuItem("Tools/BonkSquad/Apply Map01 Teaching Balance")]
     public static void ApplyTeachingBalance()
@@ -192,11 +261,11 @@ public static class Map01CombatSetup
         var go = new GameObject(name);
         go.AddComponent<Rigidbody>();
         var capsule = go.AddComponent<CapsuleCollider>();
-        capsule.height = (kind == 3 ? 1f : 1.6f) * d;
-        capsule.radius = (kind == 3 ? .5f : .55f) * d;
+        capsule.height = (kind == 3 ? 1f : kind == 5 ? 2f : 1.6f) * d;
+        capsule.radius = (kind == 3 ? .5f : kind == 5 ? .8f : .55f) * d;
         capsule.center = Vector3.up * capsule.height * .5f;
         var enemy = go.AddComponent<EnemyBumper>();
-        enemy.ConfigureCombat(kind == 3 ? 1 : 2, true, kind == 1 ? d * 1.5f : kind == 3 ? d * 2f : 0f,
+        enemy.ConfigureCombat(kind == 3 ? 1 : kind == 5 ? 3 : 2, true, kind == 1 ? d * 1.5f : kind == 3 ? d * 2f : 0f,
             kind == 3, minimum, maximum);
         Model(go.transform, "Body", kind == 0 ? PrimitiveType.Cylinder : kind == 1 ? PrimitiveType.Cube : PrimitiveType.Capsule,
             capsule.center, new Vector3(kind == 3 ? .95f : 1f, kind == 0 || kind == 2 || kind == 3 ? capsule.height/d*.5f : 1.2f, kind == 3 ? .95f : 1f)*d, color);
@@ -216,6 +285,19 @@ public static class Map01CombatSetup
             go.AddComponent<MortarEnemy>();
             Transform barrel = Model(go.transform, "Mortar barrel", PrimitiveType.Cylinder, new Vector3(0, 1.4f, .2f)*d, new Vector3(.4f,.6f,.4f)*d, dark);
             barrel.localRotation = Quaternion.Euler(35, 0, 0);
+        }
+        if (kind == 4)
+        {
+            go.AddComponent<NetShooterEnemy>();
+            Model(go.transform, "Net crossbar", PrimitiveType.Cube, Vector3.up*d, new Vector3(1.7f,.18f,.22f)*d, dark);
+        }
+        if (kind == 5)
+        {
+            enemy.ConfigurePatrol(MinionPatrolAxis.DiagonalUp);
+            go.transform.Find("Body").localScale = new Vector3(1.5f, 1f, 1.5f)*d;
+            go.AddComponent<RunnerEnemy>();
+            for (int sign = -1; sign <= 1; sign += 2)
+                Model(go.transform, "Runner leg", PrimitiveType.Cube, new Vector3(sign*.7f,.3f,0)*d, new Vector3(.3f,.5f,1.2f)*d, dark);
         }
         return Save(go, name).GetComponent<EnemyBumper>();
     }

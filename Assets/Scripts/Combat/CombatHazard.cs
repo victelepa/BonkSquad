@@ -11,6 +11,10 @@ public sealed class CombatHazard : MonoBehaviour
     [SerializeField] private Transform visual;
     private EnemyWaveController run;
     private Vector3 launchPoint;
+    private EnemyBumper shooter;
+    private float blastStarted;
+    [Range(0f,1f)] [SerializeField] private float blastVolume = .2f;
+    private AudioClip blastClip;
     private float createdAt;
     private float blastUntil;
     private bool exploded;
@@ -24,13 +28,13 @@ public sealed class CombatHazard : MonoBehaviour
     public void ConfigurePrefab(bool mine, Transform model)
     {
         isMine = mine;
-        radiusInDiameters = mine ? 1.5f : 2f;
+        radiusInDiameters = mine ? 1.5f : 2.75f;
         visual = model;
     }
 
-    public void Initialize(EnemyWaveController owner, Vector3 origin)
+    public void Initialize(EnemyWaveController owner, Vector3 origin, EnemyBumper shellOwner = null)
     {
-        run = owner;
+        run = owner; shooter = shellOwner;
         createdAt = Time.time;
         launchPoint = origin;
         marker = run.CreateMarker(isMine ? "Mine arming" : "Mortar landing zone", transform.position,
@@ -43,6 +47,14 @@ public sealed class CombatHazard : MonoBehaviour
         if (run == null || !run.IsCombatActive) return;
         if (exploded)
         {
+            if (marker != null)
+            {
+                float fraction = Mathf.Clamp01((Time.time - blastStarted) / .45f);
+                marker.transform.localScale = Vector3.one * Mathf.Lerp(.45f, 1f, fraction);
+                var line = marker.GetComponent<LineRenderer>();
+                Color color = isMine ? new Color(1f, .45f, .05f, 1f-fraction) : new Color(1f, .2f, .5f, 1f-fraction);
+                line.startColor = line.endColor = color;
+            }
             if (Time.time >= blastUntil) Destroy(gameObject);
             return;
         }
@@ -69,8 +81,12 @@ public sealed class CombatHazard : MonoBehaviour
     {
         if (exploded) return;
         exploded = true;
-        if (InBlast()) run.Health.TryDamageFrom(transform.position);
-        blastUntil = Time.time + .25f;
+        PlayBlastSound();
+        if (InBlast()) run.Health.TryDamageFrom(transform.position, isMine ? "Mine blast" : "Mortar blast");
+        if (!isMine && shooter != null && !shooter.IsDefeated &&
+            Contains(shooter.transform.position, shooter.GetComponent<CapsuleCollider>().radius)) shooter.TakeOwnMortarHit();
+        blastStarted = Time.time;
+        blastUntil = Time.time + .45f;
         if (visual != null) visual.gameObject.SetActive(false);
         if (marker != null)
         {
@@ -79,5 +95,19 @@ public sealed class CombatHazard : MonoBehaviour
             if (ring != null) { ring.startColor = ring.endColor = Color.white; ring.widthMultiplier *= 3f; }
         }
     }
-    private void OnDestroy() { if (marker != null) Destroy(marker); }
+    private void PlayBlastSound()
+    {
+        if (blastVolume <= 0) return;
+        var source = gameObject.AddComponent<AudioSource>(); source.playOnAwake = false; source.spatialBlend = .6f;
+        source.minDistance = 4; source.maxDistance = 35;
+        var samples = new float[6615];
+        for (int i = 0; i < samples.Length; i++)
+        {
+            float t = i/44100f, fade = 1f-(float)i/samples.Length;
+            samples[i] = (Mathf.Sin(t*Mathf.PI*2*(isMine ? 110 : 75)) + .25f*Mathf.Sin(i*12.9898f))*.6f*fade*fade;
+        }
+        blastClip = AudioClip.Create("Blast feedback", samples.Length, 1, 44100, false); blastClip.SetData(samples,0);
+        source.PlayOneShot(blastClip,blastVolume);
+    }
+    private void OnDestroy() { if (marker != null) Destroy(marker); if (blastClip != null) Destroy(blastClip); }
 }

@@ -1,75 +1,55 @@
-# Enemy wave prototype
+# Map01 pinball combat
 
-Open `Assets/Scenes/levels/Map01_RefractionArena.unity` and enter Play mode. The single-player main menu opens first. Play shows five short guided cards with Back, Next, and Skip Tutorial on every new run; How to Play returns to the menu afterward. Start each wave from its enemy preview carousel. The teaching sequence is four slow basic minions; one spawner plus three minions; one mine layer plus four minions; one mortar plus four minions; then one of each specialist plus four minions. Each wave lasts 180 seconds. Minions have a one-ball-diameter-wide collider and a wider matching silhouette to make aiming more forgiving. The developer-only `TryAllEnemyTypes` API remains available for validation; it is not shown in the player UI.
+Open `Assets/Scenes/levels/Map01_RefractionArena.unity` and enter Play Mode. Start opens a preview of that wave's actual specialist roster, counts, models, abilities, and kill tips. Start Wave begins the 180-second timer. The separate playable Tutorial and in-arena Help remain available.
 
-## Combat rules
+## Waves
 
-- Specialists have two health segments. A ball impact at the shared small-enemy speed threshold removes one segment; lower speeds do no damage. Separate before hitting the same enemy again. Surviving enemies rebound the ball without reducing its speed.
-- Green spawners produce one-hit, contact-damaging minions after a one-second warning. Each spawner can produce three minions over its lifetime, with two living children per spawner and an eight-second spawn interval. The shared generated-minion cap remains six; each teaching wave has only one spawner. These caps are separate from the starting minions. Destroy surviving minions to clear the wave.
-- Orange mine layers wander and leave mines. Pulsing rings indicate the 1.5-second arming period. Mines expire after 12 seconds and have a blast radius of 1.5 ball diameters.
-- Purple mortars fire at a snapshot of the player's position. Leave the marked two-diameter blast area before the shell lands two seconds later.
-- Player health is shared across forms: 100 maximum, 20 damage per attack, and one second of protection after damage. Accepted enemy hits push the player away from the damage source with strength 6 and a 0.2-second recovery before steering/acceleration resumes. Sideways momentum is retained and total speed stays capped. The existing one-second protection also prevents repeated knockback. Minion contact damages robot form only; explosions affect both forms. Both forms respond, including a robot stunned by dizziness. Retry clears knockback. Tune strength and recovery on the player’s BonkRobotController.
-- Accepted damage briefly tints both player forms red and flashes the screen edges with a faint screen tint, fading over 0.35 seconds. Protected hits do not retrigger feedback; retry clears it.
-- Every defeat, including minions, rolls independently for a 5% chance of dropping +25 health. Full-health players leave pickups available. Drops persist until collection or the wave ends; there are no guaranteed healing objects.
-- Health carries between successful waves. Death or timeout offers a full-health retry of the current wave with fresh positions. Restart Run returns to the first introduction.
+| Wave | Specialists, one of each listed | Starting basic minions |
+|---|---|---:|
+| 1 — Mortar practice | Mortar | 3 |
+| 2 — Blasts and mines | Mortar, mine layer | 3 |
+| 3 — Spawn and snare | Spawner, net shooter | 4 |
+| 4 — Moving targets | Mortar, mine layer, runner | 4 |
+| 5 — Final pursuit | Spawner, net shooter, runner | 4 |
 
-## Pinball scoring and Impact Charge
+Positions change every attempt. Broad specialist clearance, supported floor checks, minimum separation, bounded sampling, and fallback positions remain in use. Bat sweep circles are reserved during placement. Basic minions follow horizontal, vertical, or diagonal patrols and reverse at obstacles; their visible attack halo catch range and wider silhouette remain unchanged. The first wave's minions move at 0.65 ball diameters/second; later starting minions use 1.2.
 
-- Each basic minion defeat awards 10 points; each specialist awards 50.
-- A meaningful ball rebound from a wall or obstacle at attack speed lights Ricochet Shot for three seconds. The next defeat adds 25 bonus points and consumes that bounce opportunity. Ground contact, enemy collisions, and repeated callbacks from an unbroken surface contact do not light it.
-- A second kill within three seconds adds Double Bonk (+30); a third adds Triple Bonk (+50). The window refreshes on each kill. Later kills in the same chain earn base points and any fresh ricochet bonus, without repeatedly awarding Triple Bonk.
-- Damage interrupts the current chain and ricochet opportunity. Missed/expired combos never subtract earned points.
-- Every 100 points automatically grants one Impact Charge; excess meter progress and charges are retained. The next speed-qualified ball hit consumes one charge to deal two health segments. Below-speed hits consume nothing. A charge also applies to a minion if that is the next qualifying target.
-- The HUD shows score, charge count, progress to the next charge, and combo feedback. Bonus announcements also use a large gold-rimmed banner with a white-to-gold highlight, a brief size pulse, and a soft fade; interrupted combos do not trigger the reward banner. Successful kills preserve momentum and pass through; damage causes disruptive knockback.
-- Score, meter progress, and charges carry between cleared waves. Retry restores the values from the beginning of that wave, preventing repeated failed attempts from farming rewards. Restart Run and the Try All shortcut begin a fresh score.
-- Common minions wander at 0.65 ball diameters per second in wave one and 1.2 in later waves, on fixed patrol lines. Spawner children patrol at two diameters per second and arrive at safe positions throughout the map after a one-second warning. All must be defeated to clear the wave.
+## Enemies and damage
 
-## Minimap
+- **Spawner (S, green):** two health segments, eight-second spawn interval, one-second warning, two living children, three lifetime children. Surviving a hit preserves its spawn schedule and pending warning. A blocked placement retries safely; defeat immediately cancels its warning. Surviving children must still be cleared.
+- **Mine layer (L, orange):** two health segments; leaves mines with a 1.5-second arming warning, 12-second lifetime, and 1.5-ball-diameter blast radius. An accepted hit shows `Mine blast −20`, an expanding orange blast, the shared player flash, and a short blast sound.
+- **Mortar (M, purple):** two health segments; records the player's location when firing. The warning and blast share a 2.75-ball-diameter radius, with two seconds to leave. Its own shell removes one segment if the mortar remains in its own blast. Other enemies are not hit by that shell. Self-defeats award 50 base points and one health-drop roll, without a ball-hit combo bonus.
+- **Net shooter (N, cyan):** two health segments; telegraphs for one second, then fires a straight projectile every six seconds. Projectiles move at seven ball diameters/second, expire after three seconds, and stop on solid obstacles. A net deals no direct health damage. It stops either form for 0.6 seconds, shows a net cage and release countdown, and interrupts the combo. Nets cannot extend an active snare or catch a dizziness-stunned player. Release grants 1.5 seconds of net immunity.
+- **Runner (R, red):** three health segments and a predictable diagonal patrol. Speed increases from 0.8 to 1.2 to 1.6 ball diameters/second after surviving hits, with hit feedback and a `FASTER!` cue.
 
-The unified runtime Canvas groups health, current form, speed readiness, dizziness, Impact Charges, and score at the bottom. The objective, enemy count, and time sit at top center. The legacy controls and acceleration-chart overlays remain available in other scenes but are suppressed in Map01.
+Specialists require physical ball impacts at the shared small-enemy speed threshold. Impact can remove two segments; the minion halo excludes specialists. Below-speed hits do no damage and consume no charge. Surviving collision hits rebound at preserved speed; killing hits pass through. Separate before hitting the same enemy again.
 
-The lower-right minimap shows the arena floor and obstacles with north fixed at the top. A large cyan P marks the player; green S marks a spawner, orange L a mine layer, purple M a mortar, and solid yellow squares mark minions. Markers use filled backgrounds rather than tiny text dots, and the player draws last so it remains visible. The legend updates with each wave’s roster and any living reinforcements. Markers follow living enemies and disappear immediately when defeated. The map uses the active player's position in either form.
+Player health is shared across forms: 100 maximum, 20 damage per attack, and one second of protection after accepted damage. Minion contact hurts robot form; explosions hurt both. Accepted damage pushes away from the source and flashes the player/screen. Rejected hits do not change the damage explanation or retrigger the flash.
 
-## Onboarding and results
+Every actual defeat, including minions and mortar self-defeats, independently rolls a 5% chance to drop +25 health. Pickups cap health at maximum and remain available when health is full. Cleanup and expiry do not roll drops. Health carries between cleared waves.
 
-Every wave previews only its actual specialist roster and basic minions. Manual arrows change cards, and Start Wave is always available. Mesh-only copies of prefab visuals render in an isolated camera; they have no scripts, colliders, or rigidbodies. Names, colors, symbols, abilities, and kill tips are Inspector fields on CombatPresentation. Hit counts, speed thresholds, counts, and timers come from gameplay data.
+## Score and green Q charges
 
-Help reopens the guided cards while saving and pausing the simulation time scale. Wave time, enemy attacks, health protection, stun duration, dizziness, and player momentum remain frozen. Closing Help restores the prior page and time scale. A new run repeats the tour; retry starts the same wave directly.
+Start with four green charges below health. Every 100 points automatically adds another charge, including above four; there is no separate token purchase screen. Q spends one charge to Dash in ball form, keeping the existing five-second cooldown. A popup announces earned charges. Score, progress, charges, and cooldown carry between waves and restore to the wave-start checkpoint on retry.
 
-Failure results distinguish health reaching zero from timeout and show elapsed time, remaining health, and score. Timeout also shows the remaining enemy count. Retry restores full health, resets the wave score checkpoint, and reshuffles enemies. Main Menu cleans up the encounter. Successful waves retain health and scoring; victory offers Restart Run.
+Wave previews show abilities and **How to Kill**, without roster counts, speed thresholds, or bat instructions. Mortars patrol predictable routes at 0.5 ball diameters per second. Minions move at 0.9 in wave one and 1.5 in later waves, including spawned reinforcements.
 
-World cues match preview/minimap symbols. Mines distinguish arming from armed, mortar circles say to move, incoming minions are labeled, and healing objects show +25 health or Health full while rejected.
+## Rotating bats and map readability
 
-`Tools > BonkSquad > Install Map01 Onboarding UI` adds the presentation component to an existing setup without changing encounter tuning. The full setup command below also installs it.
+Two cyan rods rotate in validated open areas, at least 14 ball diameters apart. Their visible arrows show the launch direction. A fresh ball contact launches along that direction with at least 12 world units/second or a 15% increase over the incoming speed, capped at the player's maximum. Robot form is not launched. The bat requires separation and a 0.4-second cooldown before another launch, and bat impacts do not also receive a wall boost.
 
-## Placement and setup
+Ordinary meaningful wall/object impacts retain their 15% speed bonus, gold feedback, short sound, and speed cap. Floor contact, glancing scraping, enemy hits, and uninterrupted contacts cannot farm wall boosts.
 
-Every wave starts the player at the saved starting pose, with velocity and dizziness reset. Specialists are randomly positioned in four connected outer spawn strips, with at least six ball diameters from the player and four between enemies. Placement checks floor support, obstacle clearance, and hazard exclusion. Broad clearance keeps stationary enemies out of narrow passages. Bounded random attempts fall back to shuffled, validated corner positions.
+The map uses matching specialist letters, solid minion markers, a larger P for the player, + for health, and B for bats. Its legend updates for each roster and living reinforcements. World cues identify arming mines, armed mines, incoming minions, net-shot warnings, runner speed increases, and accepted damage sources. Help pauses the wave, protection, cooldown, snare, and enemy attack timers.
 
-`Tools > BonkSquad > Setup Map01 Enemy Waves` regenerates the reusable prefabs in `Assets/Prefabs/Combat` and configures Map01. It replaces the previous static enemies and can be rerun without duplicating encounter objects. Save custom prefab tuning before rerunning, because this command restores prototype defaults. SampleScene remains a separate legacy test scene.
+## Setup and validation
 
-The `Map01 Enemy Waves` object holds wave definitions, placement regions, and the HUD. Enemy behaviour, player health, hazard timings, radii, and drop chance are Inspector settings. The 5% drop default is independent of placement random rolls and can be supplied a deterministic random function for checks.
+`Tools > BonkSquad > Install Pinball Expansion` updates existing Map01 combat with the agreed roster, reusable NetShooter/Runner prefabs and materials, larger mortar radius, four starting charges, and exactly two bats. It preserves arena geometry and the existing player movement tuning. It can be rerun without duplicating bats. The full `Setup Map01 Enemy Waves` command creates the same progression but restores prototype prefab defaults.
 
-## Validation
+Tuning lives on the relevant prefab/components: score threshold and bonuses on PinballScore; net speed/lifetime/snare/immunity on NetShooterEnemy; runner speed stages on RunnerEnemy; blast radius/timing on CombatHazard; rotation/launch/cooldown on RotatingPinballBat; initial Dash and capacity on BonkRobotController.
 
-`Tools > BonkSquad > Validate Combat (Play Mode)` runs scripted integration checks in Map01 and exits Play mode afterward. It covers seeded random and fallback placement, health and protection, exact drop boundaries, two-hit enemies, capped spawning, hazard timing, wave progression, death/clear priority, timeout, retries, and restart. It does not save the Play mode changes. `Tools > BonkSquad > Validate Onboarding (Play Mode)` separately drives actual UI buttons through menus, tour/back/skip, preview isolation, paused help, timeout/death, retries, next wave, mixed roster, and victory/restart, with text-fit and aspect-ratio checks.
+- **Validate Pinball Expansion (Play Mode):** actual roster/preview flow, mine labels/protection, mortar self-damage and single defeat, token boundaries and purchases, full-Dash rejection, retry checkpoints, surviving-spawner scheduling/caps/cancellation, net cover and immunity, pause preservation, runner stages, bat direction/caps/forms, and all five wave transitions.
+- **Validate Combat (Play Mode):** larger legacy stress encounters, 500 seeded normal/fallback placement cases, health/drop boundaries, speed-qualified multi-hit combat, spawn budgets, hazards, wave priority, retry, and restart.
+- **Validate Onboarding (Play Mode):** HUD, skill-token messaging, wave-preview flow, Dash, Help, and the existing playable tutorial with real keyboard input.
 
-Also manually play through the encounter to tune warning visibility, movement space, aim difficulty, and time limits. Visuals are primitive prototype models; final art remains future work. First-time-player comprehension still needs an external playtest.
-
-### Recorded validation — October 30, 2026
-
-Setup and Play Mode integration checks passed in an isolated Unity 6000.5.10f1 project copy, including 500 seeded random/fallback placement cases, arena-wide minion distribution, actual roaming movement, and accepted-hit flash trigger/reset/fade checks. Repeated setup leaves one encounter. The project was subsequently restored to its previously working Unity 6000.5.10f1 version with matching packages, and XCharts pooling was updated to avoid removed instance-ID APIs. The repository's older 6000.3.6f1 editor installation has an invalid application signature. Manual game-feel tuning remains.
-
-### Teaching balance
-
-Dizziness builds at half the previous rate using an Inspector multiplier of two, doubling time at a given speed before a warning. Recovery, warning duration, and stun duration remain unchanged. `Tools > BonkSquad > Apply Map01 Teaching Balance` reapplies the five-wave progression, wider minion prefab, and lower spawner budget without rebuilding arena geometry. Full setup uses the same wave definitions and prefab defaults.
-
-### Pinball assistance
-
-Fresh, meaningful wall or obstacle rebounds add 15% speed, capped at the existing maximum. Floor contact, enemy hits, glancing scrapes, and uninterrupted contact do not earn boosts. A short cooldown prevents multiple boost awards in one corner impact. Boosts flash the attack ring gold and play a short synthesized sound; attack-speed movement leaves a cyan trail.
-
-At bonking speed, a visible cyan attack halo extends 0.3 ball diameters beyond the ball radius and catches nearby basic minions along the next physics step. It uses the normal defeat, combo, charge, and drop path, preserves momentum, and checks solid occlusion. Specialists still require physical impacts. Slow movement, robot form, and inactive encounters cannot use the halo. Wall bonus, minimum impact speed, cooldown, halo reach, and sound volume are Inspector settings on BouncingBallController. Aim assist and last-enemy movement changes are not enabled in this trial.
-
-### Predictable minion routes
-
-Starting minions and spawner children cycle through horizontal, vertical, and the two diagonal axes. Each follows a straight line at constant speed and reverses along that same line at an arena edge or solid obstacle, with a 0.2-second turnaround pause. Random direction timers no longer affect these minions. World labels show the current direction arrow, so players can plan an intercept. Specialist wandering is unchanged.
+These validations exit Play Mode without saving gameplay changes. Visual polish, warning readability, bat routes, and mixed-wave difficulty still benefit from a human playtest.

@@ -11,6 +11,14 @@
                 <ui:Label name="wave" text="Wave 1/5" picking-mode="Ignore" />
                 <ui:Label name="timer" text="180s remaining" picking-mode="Ignore" />
             </ui:VisualElement>
+            <ui:VisualElement name="skill-status" class="skill-status panel">
+                <ui:Label name="score-status" text="Score 0" />
+                <ui:Button name="skills-button" text="Skills · 0 tokens" />
+                <ui:Label name="impact-status" text="Impact ×0" />
+            </ui:VisualElement>
+            <ui:Label name="token-popup" class="token-popup panel hidden" text="Skill token earned! Choose Impact or Dash" picking-mode="Ignore" />
+            <ui:Label name="damage-reason" class="damage-reason hidden" picking-mode="Ignore" />
+            <ui:Label name="map-legend" class="map-legend panel" picking-mode="Ignore" />
             <ui:Button name="help-button" text="Help" class="help-button" />
             <ui:VisualElement name="combo" class="combo panel hidden" picking-mode="Ignore">
                 <ui:Label name="combo-text" picking-mode="Ignore" />
@@ -35,6 +43,23 @@
         </ui:VisualElement>
         <ui:Instance name="menu" template="main-menu" class="screen hidden" />
         <ui:VisualElement name="modal" class="screen modal hidden">
+            <ui:VisualElement name="wave-preview" class="card panel preview-card hidden">
+                <ui:Label name="preview-heading" class="heading" />
+                <ui:Label name="preview-summary" class="preview-summary" />
+                <ui:VisualElement name="preview-enemies" class="preview-enemies" />
+                <ui:Button name="start-wave" text="Start Wave" />
+            </ui:VisualElement>
+            <ui:VisualElement name="skill-choice" class="card panel hidden">
+                <ui:Label text="Choose your skill" class="heading" />
+                <ui:Label name="skill-balance" class="body" />
+                <ui:Label text="Impact: next fast hit deals double damage. Dash: restore one use; cooldown stays unchanged." class="preview-summary" />
+                <ui:VisualElement class="actions">
+                    <ui:Button name="buy-impact" text="1 token → Impact Charge" />
+                    <ui:Button name="buy-dash" text="1 token → Dash use" />
+                    <ui:Button name="close-skills" text="Resume" />
+                </ui:VisualElement>
+                <ui:Label name="purchase-feedback" class="preview-summary" />
+            </ui:VisualElement>
             <ui:VisualElement name="guide" class="card panel hidden">
                 <ui:Label name="guide-progress" class="eyebrow" />
                 <ui:VisualElement name="guide-pages">
@@ -58,7 +83,7 @@
                     </ui:VisualElement>
                     <ui:VisualElement class="hidden">
                         <ui:Label text="Charge your impact." class="heading" />
-                        <ui:Label name="guide-impact" text="Every {0} points grants one Impact Charge. Your next qualifying fast hit automatically spends a charge to deal double damage." class="body" />
+                        <ui:Label name="guide-impact" text="Start with four green charges below your health. Every {0} points adds another. Press Q in ball form to Dash towards an enemy." class="body" />
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:VisualElement class="actions">

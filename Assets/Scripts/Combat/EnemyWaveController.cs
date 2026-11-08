@@ -30,7 +30,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         public EnemyBumper prefab;
         [Tooltip("-1 uses the encounter default; 0 allows specialist-only waves.")]
         public int basicMinions = -1;
-        [Min(0f)] public float minionSpeedInDiameters = 1.2f;
+        [Min(0f)] public float minionSpeedInDiameters = 1.5f;
         [Min(0)] public int count;
         [Min(1f)] public float seconds = 180f;
         public EnemyGroup[] additionalGroups = Array.Empty<EnemyGroup>();
@@ -146,6 +146,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         if (IsCombatActive) return;
         Cleanup();
         player.ResetForEncounter(playerStart, playerRotation);
+        foreach (var bat in GetComponentsInChildren<RotatingPinballBat>()) bat.ResetForWave();
         List<EnemyBumper> spawnList = CurrentWave.SpawnList();
         float radius = 0f, height = 0f;
         foreach (EnemyBumper prefab in spawnList)
@@ -195,7 +196,8 @@ public sealed class EnemyWaveController : MonoBehaviour
         staging.SetActive(false);
         EnemyBumper enemy = Instantiate(prefab, point, Quaternion.identity, staging.transform);
         enemy.Bind(this);
-        if (enemy.IsBasicMinion) enemy.ConfigurePatrol((MinionPatrolAxis)(nextMinionPatrol++ % 4));
+        if (enemy.IsBasicMinion) enemy.SetMoveSpeed(placement.Diameter * CurrentWave.minionSpeedInDiameters);
+        if (enemy.IsBasicMinion || enemy.GetComponent<MortarEnemy>() != null) enemy.ConfigurePatrol((MinionPatrolAxis)(nextMinionPatrol++ % 4));
         enemies.Add(enemy);
         if (minion) minions.Add(enemy);
         enemy.Defeated += OnEnemyDefeated;
@@ -226,6 +228,9 @@ public sealed class EnemyWaveController : MonoBehaviour
 
     public EnemyBumper SpawnMinion(Vector3 point) => CanSpawnMinion ? SpawnEnemy(minionPrefab, point, true) : null;
 
+    public bool BuyImpact() => State == EnemyWaveState.Active && !health.IsDead && scoring.BuyImpact();
+    public bool BuyDash() => State == EnemyWaveState.Active && !health.IsDead && scoring.SpendDashToken(player);
+    public Transform TransientRoot => transientRoot;
     public static bool ShouldDrop(double roll, float chance = .05f) => roll >= 0d && roll < Math.Round(chance, 6);
 
     private void OnEnemyDefeated(EnemyBumper enemy)
@@ -234,7 +239,8 @@ public sealed class EnemyWaveController : MonoBehaviour
         minions.Remove(enemy);
         enemy.Defeated -= OnEnemyDefeated;
         if (!IsCombatActive) return;
-        scoring.RecordKill(enemy.IsBasicMinion, Time.time);
+        scoring.RecordKill(enemy.IsBasicMinion, Time.time, enemy.LastDamageCause == EnemyDamageCause.Ball);
+        while (scoring.SkillTokens > 0) scoring.SpendDashToken(player);
         double roll = DropRandom != null ? DropRandom() : random.NextDouble();
         if (ShouldDrop(roll, healthDropChance) &&
             placement.TryNearby(enemy.transform.position, placement.Diameter * .35f,
@@ -379,11 +385,11 @@ public sealed class EnemyWaveController : MonoBehaviour
         mine.Initialize(this, point);
         return mine;
     }
-    public void SpawnShell(Vector3 launch, Vector3 target)
+    public void SpawnShell(Vector3 launch, Vector3 target, EnemyBumper shooter = null)
     {
         target.y = placement.Floor.bounds.max.y;
         CombatHazard shell = Instantiate(shellPrefab, target, Quaternion.identity, transientRoot);
-        shell.Initialize(this, launch);
+        shell.Initialize(this, launch, shooter);
     }
     public GameObject CreateMarker(string label, Vector3 position, float radius, Color color)
     {

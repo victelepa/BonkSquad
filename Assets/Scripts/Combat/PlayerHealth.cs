@@ -10,6 +10,7 @@ public sealed class PlayerHealth : MonoBehaviour
     public float Current { get; private set; }
     public float Maximum => maximumHealth;
     public bool IsDead => Current <= 0f;
+    public string LastDamageLabel { get; private set; } = "";
     public float LastHitTime { get; private set; } = float.NegativeInfinity;
     public bool CombatEnabled { get; set; } = true;
     public event Action Changed;
@@ -27,13 +28,19 @@ public sealed class PlayerHealth : MonoBehaviour
         Current = maximumHealth;
         protectedUntil = float.NegativeInfinity;
         LastHitTime = float.NegativeInfinity;
+        LastDamageLabel = "";
         GetComponent<PlayerDamageFeedback>()?.Clear();
         Changed?.Invoke();
     }
 
     public bool TryDamage() => TryDamage(attackDamage);
     public bool TryDamage(float damage) => ApplyDamage(damage, null);
-    public bool TryDamageFrom(Vector3 sourcePosition) => ApplyDamage(attackDamage, sourcePosition);
+    public bool TryDamageFrom(Vector3 sourcePosition) => TryDamageFrom(sourcePosition, "Enemy hit");
+    public bool TryDamageFrom(Vector3 sourcePosition, string cause)
+    {
+        if (!ApplyDamage(attackDamage, sourcePosition)) return false;
+        LastDamageLabel = $"{cause} −{attackDamage:0}"; return true;
+    }
 
     private bool ApplyDamage(float damage, Vector3? sourcePosition)
     {

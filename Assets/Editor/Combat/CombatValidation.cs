@@ -64,7 +64,7 @@ public static class CombatValidation
         Check(score.RecordKill(true, 2f) == 35, "ricochet adds 25 to minion base score");
         Check(score.RecordKill(true, 4f) == 40, "double bonk bonus");
         Check(score.RecordKill(true, 6f) == 60, "triple bonk bonus");
-        Check(score.Points == 135 && score.Progress == 35 && score.ImpactCharges == 1, "meter overflow and charge award");
+        Check(score.Points == 135 && score.Progress == 35 && score.SkillTokens == 1 && score.ImpactCharges == 0 && score.BuyImpact(), "meter overflow and skill choice");
         Check(score.ConsumeImpactCharge() && !score.ConsumeImpactCharge(), "single-use charge");
         Check(score.RecordKill(true, 7f) == 10, "fourth kill cannot repeat triple bonus");
         int earned = score.Points;
@@ -256,6 +256,14 @@ public static class CombatValidation
                     stage = 2;
                     break;
                 case 150:
+                    // Blocked warnings can make the first batch smaller. Free living-cap slots until the lifetime budgets are spent.
+                    foreach (var producer in UnityEngine.Object.FindObjectsByType<SpawnerEnemy>(FindObjectsSortMode.None))
+                    {
+                        var living = (System.Collections.Generic.List<EnemyBumper>)typeof(SpawnerEnemy).GetField("children", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(producer);
+                        Check(living.Count(e => e != null && !e.IsDefeated) <= 3, "per-spawner living cap");
+                        if (producer.TotalSpawned < producer.SpawnBudget)
+                            foreach (var child in living.Where(e => e != null && !e.IsDefeated).ToArray()) child.TryHitFromBall(run.Player.SpeedSettings.SmallEnemyKillSpeed, run.Player.SpeedSettings);
+                    }
                     if (Time.time - started < 20f) return;
                     if (Time.time - started < 60f && UnityEngine.Object.FindObjectsByType<SpawnerEnemy>(FindObjectsSortMode.None)
                         .Any(s => s.TotalSpawned < s.SpawnBudget)) return;
@@ -362,7 +370,7 @@ public static class CombatValidation
                         "minimap south-west orientation");
                     run.Scoring.Reset();
                     for (int i = 0; i < 10; i++) run.Scoring.RecordKill(true, Time.time + i * 4f);
-                    Check(run.Scoring.ImpactCharges == 1, "100 points grants Impact Charge");
+                    Check(run.Scoring.SkillTokens == 1 && run.BuyImpact(), "100 points grants a token to buy Impact");
                     EnemyBumper target = Enemies().First(e => e.GetComponent<MortarEnemy>() != null);
                     Check(run.TryBonk(target, run.Player.SpeedSettings.SmallEnemyKillSpeed - .01f, run.Player.SpeedSettings) == EnemyHitResult.Rejected &&
                         run.Scoring.ImpactCharges == 1, "under-speed hit does not consume charge");

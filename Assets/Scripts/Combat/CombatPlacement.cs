@@ -43,6 +43,8 @@ public sealed class CombatPlacement : MonoBehaviour
             if (obstacle == arenaFloor) continue;
             if (!obstacle.isTrigger || (avoidHazards && obstacle.GetComponentInParent<CombatHazard>() != null)) return false;
         }
+        foreach (var bat in FindObjectsByType<RotatingPinballBat>(FindObjectsSortMode.None))
+            if (bat.Reserves(point, radius)) return false;
         // Mortar markers have no colliders. Reserve their full blast footprint too.
         if (avoidHazards)
             foreach (CombatHazard hazard in FindObjectsByType<CombatHazard>(FindObjectsSortMode.None))

@@ -7,7 +7,7 @@ public sealed class PinballScore
 {
     [Min(1)] [SerializeField] private int minionPoints = 10;
     [Min(1)] [SerializeField] private int specialistPoints = 50;
-    [Min(1)] [SerializeField] private int pointsPerCharge = 100;
+    [InspectorName("Points per green charge")] [Min(1)] [SerializeField] private int pointsPerCharge = 100;
     [Min(.1f)] [SerializeField] private float comboWindow = 3f;
     [Min(0)] [SerializeField] private int ricochetBonus = 25;
     [Min(0)] [SerializeField] private int doubleBonus = 30;
@@ -15,6 +15,18 @@ public sealed class PinballScore
     public int Points { get; private set; }
     public int Progress { get; private set; }
     public int ImpactCharges { get; private set; }
+    public int SkillTokens { get; private set; }
+    public event Action<int> TokensEarned;
+    public bool BuyImpact()
+    {
+        if (SkillTokens <= 0) return false;
+        SkillTokens--; ImpactCharges++; return true;
+    }
+    public bool SpendDashToken(BonkRobotController player)
+    {
+        if (SkillTokens <= 0 || player == null || !player.TryRestoreDashUse()) return false;
+        SkillTokens--; return true;
+    }
     public int ChainCount { get; private set; }
     public int ChargeThreshold => pointsPerCharge;
     public string Feedback { get; private set; } = "";
@@ -26,12 +38,12 @@ public sealed class PinballScore
 
     public struct Checkpoint
     {
-        public int points, progress, charges;
+        public int points, progress, charges, tokens;
     }
-    public Checkpoint Save() => new Checkpoint { points = Points, progress = Progress, charges = ImpactCharges };
+    public Checkpoint Save() => new Checkpoint { points = Points, progress = Progress, charges = ImpactCharges, tokens = SkillTokens };
     public void Restore(Checkpoint checkpoint)
     {
-        Points = checkpoint.points; Progress = checkpoint.progress; ImpactCharges = checkpoint.charges;
+        Points = checkpoint.points; Progress = checkpoint.progress; ImpactCharges = checkpoint.charges; SkillTokens = checkpoint.tokens;
         BreakCombo(0f, false);
     }
     public void Reset() => Restore(default);
@@ -50,8 +62,14 @@ public sealed class PinballScore
         FeedbackIsReward = false;
         FeedbackUntil = now + 1.5f;
     }
-    public int RecordKill(bool minion, float now)
+    public int RecordKill(bool minion, float now, bool ballKill = true)
     {
+        if (!ballKill)
+        {
+            int basePoints = minion ? minionPoints : specialistPoints;
+            Feedback = $"Mortar bait +{basePoints}"; FeedbackStartedAt = now; FeedbackUntil = now + 2f; FeedbackIsReward = true;
+            AddPoints(basePoints, now); return basePoints;
+        }
         ChainCount = now - lastKill <= comboWindow ? ChainCount + 1 : 1;
         lastKill = now;
         int earned = minion ? minionPoints : specialistPoints;
@@ -72,16 +90,21 @@ public sealed class PinballScore
             earned += tripleBonus;
             Feedback += (Feedback.Length > 0 ? " · " : "") + $"Triple Bonk +{tripleBonus}";
         }
-        Points += earned;
-        Progress += earned;
-        int granted = Progress / pointsPerCharge;
-        Progress %= pointsPerCharge;
-        ImpactCharges += granted;
-        if (granted > 0) Feedback += (Feedback.Length > 0 ? " · " : "") + "Impact Charge ready!";
+        AddPoints(earned, now);
         FeedbackStartedAt = now;
         FeedbackIsReward = Feedback.Length > 0;
         FeedbackUntil = now + 2f;
         return earned;
+    }
+    private void AddPoints(int earned, float now)
+    {
+        Points += earned; Progress += earned;
+        int granted = Progress / pointsPerCharge; Progress %= pointsPerCharge;
+        if (granted <= 0) return;
+        SkillTokens += granted;
+        Feedback += (Feedback.Length > 0 ? " · " : "") + "Green charge earned! Q to Dash";
+        FeedbackStartedAt = now; FeedbackUntil = now + 3f; FeedbackIsReward = true;
+        TokensEarned?.Invoke(granted);
     }
     public bool ConsumeImpactCharge()
     {

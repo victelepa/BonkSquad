@@ -85,7 +85,7 @@ public static class OnboardingValidation
             && dashUses.parent.IndexOf(dashUses) > healthRow.parent.IndexOf(healthRow), "Dash circles are below five hearts");
         Check(dashUses.childCount == run.Player.DashUsesPerRun && dashUses.childCount == 4,
             "Dash circle count matches the configured total");
-        Check(Root.Q("map").Query<Label>().ToList().Count == 0, "minimap has no labels");
+        Check(Root.Q("map").Query<Label>().ToList().Count > 0, "minimap symbols identify specialists and bats");
         Check(Root.Q<Label>("timer").text.EndsWith("s remaining") && !HasText("starting enemies"), "objective shows timer without enemy count");
         Check(!HasText("DIZZINESS") && !HasText("READY TO BONK"), "old bottom status text is absent");
     }
@@ -223,22 +223,23 @@ public static class OnboardingValidation
                     var menuButtons = menu.Query<Button>().ToList().Select(button => button.text);
                     Check(menuButtons.SequenceEqual(new[] { "Start", "Tutorial" }), "main menu has Start and Tutorial");
                     Click("Start");
-                    Check(ui.Page == CombatPage.Combat && run.IsCombatActive, "Start enters combat directly");
+                    Check(ui.Page == CombatPage.WavePreview && !run.IsCombatActive, "Start opens roster preview");
+                    ui.StartPresentedWave();
                     Wait(1); break;
                 case 1:
                     Click("Help");
                     Check(ui.IsTourOpen && ui.TutorialIndex == 0, "Help opens the controls guide");
                     for (int i = 0; i < 4; i++) Click("Next");
-                    Check(ui.TutorialIndex == 4 && HasText("automatically"), "charge needs no activation key");
+                    Check(ui.TutorialIndex == 4 && HasText("automatically") || HasText("automatically doubles"), "charge needs no activation key");
                     Click("Back"); Check(ui.TutorialIndex == 3, "guide back"); Click("Next"); Click("Done");
                     Check(ui.Page == CombatPage.Combat && run.IsCombatActive, "Done resumes combat");
                     ValidatePredictablePatrols();
-                    Check(run.WaveCount == 5 && run.BasicMinionsPerWave == 4 && run.CurrentWave.count == 0, "gentle first-wave roster");
+                    Check(run.WaveCount == 5 && run.BasicMinionsPerWave == 3 && run.CurrentWave.count == 1, "gentle first-wave roster");
                     Check(run.MinionRadius >= .49f * run.Placement.Diameter, "wider minion hit area");
                     var settings = new PlayerDizzinessSettings();
                     Check(Mathf.Abs(settings.GainRate(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings) - 10f) < .01f, "dizziness gain halved");
                     Check(run.IsCombatActive && run.LivingEnemies == 4 && ui.Page == CombatPage.Combat, "start releases locks");
-                    Check(run.LivingEnemyObjects.All(e => e.UsesStraightPatrol) && run.LivingEnemyObjects.Select(e => e.PatrolDirection).Distinct().Count() == 4,
+                    Check(run.LivingEnemyObjects.Where(e => e.IsBasicMinion).All(e => e.UsesStraightPatrol) && run.LivingEnemyObjects.Where(e => e.IsBasicMinion).Select(e => e.PatrolDirection).Distinct().Count() == 3,
                         "first wave gets four distinct readable patrol axes");
                     ui.SendMessage("Update");
                     CheckHud();
@@ -253,19 +254,19 @@ public static class OnboardingValidation
                     Check(run.Player.DashUsesRemaining == uses - 1 && !dashButton.enabledSelf
                         && run.Player.DashCooldownRemaining > 0f, "HUD Dash consumes a use and starts cooldown");
                     var dashUses = Root.Q("dash-uses");
-                    Check(dashUses.Children().Count(indicator => indicator.ClassListContains("dash-use-spent")) == 1,
+                    Check(dashUses.Children().Count(indicator => indicator.ClassListContains("dash-use-spent")) == run.Player.DashUsesPerRun - run.Player.DashUsesRemaining,
                         "Dash empties one circle without removing its slot");
                     Check(!Root.Q<Label>("dash-status").text.Contains("/"), "Dash status has no numeric use counter");
                     run.Player.ResetDashForRun();
                     run.Player.ToggleForm();
-                    Check(PinCount() == 5, "player and all starting minions have visible map pins");
+                    Check(PinCount() == 7, "player and all starting minions have visible map pins");
                     run.DropRandom = () => .99d;
                     Check(run.TryFindMinionSpawn(out Vector3 childPoint), "safe reinforcement location");
                     var child = run.SpawnMinion(childPoint); Check(child.UsesStraightPatrol, "reinforcements use predictable patrols"); ui.SendMessage("Update");
-                    Check(PinCount() == 6, "spawned minion appears on map immediately");
+                    Check(PinCount() == 8, "spawned minion appears on map immediately");
                     child.TryHitFromBall(run.Player.SpeedSettings.SmallEnemyKillSpeed, run.Player.SpeedSettings);
                     ui.SendMessage("Update");
-                    Check(PinCount() == 5, "defeated reinforcement leaves map");
+                    Check(PinCount() == 7, "defeated reinforcement leaves map");
                     ValidatePinballAssistance();
                     Check(Mathf.Abs(run.Player.DizzinessSettings.GainRate(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings) - 10f) < .01f, "scene dizziness gain halved");
                     run.Health.TryDamageFrom(run.Player.ActivePosition - Vector3.right);
@@ -291,7 +292,7 @@ public static class OnboardingValidation
                     run.Scoring.RegisterBounce(Time.time); run.Scoring.RecordKill(false, Time.time);
                     run.Scoring.RegisterBounce(Time.time); run.Scoring.RecordKill(false, Time.time);
                     ui.SendMessage("Update");
-                    Check(run.Scoring.ImpactCharges == 2 && Root.Q("dash-uses").Children().All(indicator => !indicator.ClassListContains("dash-use-spent")),
+                    Check(run.Scoring.SkillTokens == 2 && run.Scoring.ImpactCharges == 0 && Root.Q("dash-uses").Children().Count(indicator => !indicator.ClassListContains("dash-use-spent")) == run.Player.DashUsesRemaining,
                         "earning Impact charges does not affect Dash circles");
                     Property(run.Player, "DizzinessPhase", PlayerDizzinessPhase.Normal); run.Health.ResetHealth();
                     Property(run, "TimeRemaining", 0f); Wait(3); break;
@@ -303,14 +304,16 @@ public static class OnboardingValidation
                 case 4:
                     Check(run.State == EnemyWaveState.Cleared && ui.Page == CombatPage.Results, "clear results");
                     Click("Next Wave");
-                    Check(ui.Page == CombatPage.Combat && run.IsCombatActive && run.WaveIndex == 1
-                        && run.LivingEnemyObjects.Any(e => e.GetComponent<SpawnerEnemy>() != null), "next wave starts immediately with its specialist");
+                    Check(ui.Page == CombatPage.WavePreview, "next wave previews its specialists");
+                    ui.StartPresentedWave();
+                    Check(run.IsCombatActive && run.WaveIndex == 1 && run.LivingEnemyObjects.Any(e => e.GetComponent<MineLayerEnemy>() != null), "mixed second wave starts");
                     run.Health.TryDamage(1000); Wait(5); break;
                 case 5:
                     Check(run.Result.reason == WaveFailureReason.HealthDepleted && HasText("Health reached zero"), "explicit death reason");
                     Click("Main Menu"); Check(ui.Page == CombatPage.MainMenu && run.LivingEnemies == 0, "menu cleans encounter");
                     Click("Start");
-                    Check(ui.Page == CombatPage.Combat && run.IsCombatActive, "new run starts combat directly");
+                    Check(ui.Page == CombatPage.WavePreview, "new run previews roster");
+                    ui.StartPresentedWave();
                     // Jump to the saved mixed definition to check the final-wave result.
                     run.RestartRun();
                     Field(run, "<WaveIndex>k__BackingField", run.WaveCount - 1);
@@ -319,7 +322,7 @@ public static class OnboardingValidation
                     KillAll(); Wait(6); break;
                 case 6:
                     Check(ui.Page == CombatPage.Results && run.State == EnemyWaveState.Victory, "victory screen");
-                    Click("Restart Run"); Check(ui.Page == CombatPage.Combat && run.WaveIndex == 0, "victory restart starts wave one");
+                    Click("Restart Run"); Check(ui.Page == CombatPage.WavePreview && run.WaveIndex == 0, "victory restart previews wave one");
                     ui.ShowMainMenu();
                     Click("Tutorial");
                     stage = 7; break;

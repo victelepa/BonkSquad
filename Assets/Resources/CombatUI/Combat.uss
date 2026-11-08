@@ -67,3 +67,21 @@ Button:disabled { background-color: rgb(37, 48, 60); color: rgb(155, 174, 188); 
 .menu-tutorial { background-color: rgb(26, 48, 67); }
 .practice-countdown { color: rgb(255, 211, 76); font-size: 15px; margin: 0 0 0 10px; -unity-font-style: bold; }
 .guide-control-copy { min-height: 0; margin-bottom: 0; }
+
+.skill-status { position: absolute; top: 12px; left: 18px; padding: 6px 10px; max-width: 230px; }
+.skill-status Label { font-size: 15px; white-space: normal; }
+.token-popup { position: absolute; top: 118px; align-self: center; padding: 12px 20px; color: rgb(255,225,80); -unity-font-style: bold; font-size: 23px; max-width: 76%; white-space: normal; }
+.damage-reason { position: absolute; align-self: center; top: 43%; color: rgb(255,175,70); font-size: 25px; -unity-font-style: bold; -unity-text-outline-width: 1px; -unity-text-outline-color: black; }
+.map-legend { position: absolute; right: 20px; bottom: 244px; width: 220px; padding: 7px; white-space: normal; font-size: 14px; }
+.preview-card { width: 88%; max-width: 1050px; }
+.preview-summary { white-space: normal; font-size: 18px; margin: 8px 0; }
+.preview-enemies { flex-direction: row; justify-content: space-around; margin: 8px 0 16px 0; }
+.enemy-card { flex-grow: 1; flex-basis: 0; margin: 0 6px; padding: 10px; background-color: rgb(20,32,45); border-radius: 6px; }
+.enemy-card Label { white-space: normal; font-size: 17px; }
+.enemy-name { font-size: 22px; -unity-font-style: bold; }
+.enemy-model { height: 105px; align-self: center; width: 105px; }
+.enemy-tip { margin-top: 8px; color: rgb(255,224,120); }
+
+.map-letter { margin: 0; padding: 0; color: rgb(0,12,22); -unity-text-align: middle-center; font-size: 12px; -unity-font-style: bold; }
+
+#dash-uses { flex-wrap: wrap; max-width: 320px; }
