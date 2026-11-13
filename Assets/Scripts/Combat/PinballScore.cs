@@ -8,15 +8,20 @@ public sealed class PinballScore
     [Min(1)] [SerializeField] private int minionPoints = 10;
     [Min(1)] [SerializeField] private int specialistPoints = 50;
     [Min(1)] [SerializeField] private int pointsPerCharge = 100;
+    [Min(1)] [SerializeField] private int pointsPerDashUse = 100;
     [Min(.1f)] [SerializeField] private float comboWindow = 3f;
     [Min(0)] [SerializeField] private int ricochetBonus = 25;
     [Min(0)] [SerializeField] private int doubleBonus = 30;
     [Min(0)] [SerializeField] private int tripleBonus = 50;
     public int Points { get; private set; }
     public int Progress { get; private set; }
+    public int DashProgress { get; private set; }
     public int ImpactCharges { get; private set; }
+    public event Action<int> DashUsesEarned;
     public int ChainCount { get; private set; }
     public int ChargeThreshold => pointsPerCharge;
+    public int DashThreshold => Mathf.Max(1, pointsPerDashUse);
+    public float DashRecharge01 => Mathf.Clamp01((float)DashProgress / DashThreshold);
     public string Feedback { get; private set; } = "";
     public float FeedbackUntil { get; private set; }
     public float FeedbackStartedAt { get; private set; }
@@ -26,12 +31,13 @@ public sealed class PinballScore
 
     public struct Checkpoint
     {
-        public int points, progress, charges;
+        public int points, progress, dashProgress, charges;
     }
-    public Checkpoint Save() => new Checkpoint { points = Points, progress = Progress, charges = ImpactCharges };
+    public Checkpoint Save() => new Checkpoint { points = Points, progress = Progress, dashProgress = DashProgress, charges = ImpactCharges };
     public void Restore(Checkpoint checkpoint)
     {
-        Points = checkpoint.points; Progress = checkpoint.progress; ImpactCharges = checkpoint.charges;
+        Points = checkpoint.points; Progress = checkpoint.progress; DashProgress = checkpoint.dashProgress;
+        ImpactCharges = checkpoint.charges;
         BreakCombo(0f, false);
     }
     public void Reset() => Restore(default);
@@ -74,10 +80,15 @@ public sealed class PinballScore
         }
         Points += earned;
         Progress += earned;
-        int granted = Progress / pointsPerCharge;
-        Progress %= pointsPerCharge;
+        int chargeThreshold = Mathf.Max(1, pointsPerCharge);
+        int granted = Progress / chargeThreshold;
+        Progress %= chargeThreshold;
         ImpactCharges += granted;
         if (granted > 0) Feedback += (Feedback.Length > 0 ? " · " : "") + "Impact Charge ready!";
+        DashProgress += earned;
+        int dashUsesEarned = DashProgress / DashThreshold;
+        DashProgress %= DashThreshold;
+        if (dashUsesEarned > 0) DashUsesEarned?.Invoke(dashUsesEarned);
         FeedbackStartedAt = now;
         FeedbackIsReward = Feedback.Length > 0;
         FeedbackUntil = now + 2f;

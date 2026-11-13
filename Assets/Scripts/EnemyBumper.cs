@@ -55,6 +55,8 @@ public class EnemyBumper : MonoBehaviour
     [SerializeField] private bool showHealthBar;
     public int HitPoints { get; private set; }
     public int MaximumHitPoints => maximumHitPoints;
+    public float MoveSpeed => moveSpeed;
+    public void SetMoveSpeed(float speed) => moveSpeed = Mathf.Max(0f, speed);
     public bool ShowHealthBar => showHealthBar;
     public bool IsHitFlashing => Time.time < hitFlashUntil;
     public bool IsDefeated => isDefeated;

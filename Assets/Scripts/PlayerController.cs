@@ -25,6 +25,12 @@ public class PlayerController : MonoBehaviour
 
     public void Configure(BonkRobotController owner) => speedSystem = owner;
 
+    public void StopForSnare()
+    {
+        planarVelocity = Vector3.zero;
+        carryingMomentum = false;
+    }
+
     public void ApplyKnockback(Vector3 direction, float strength)
     {
         planarVelocity = PlayerMovementMath.KnockbackVelocity(planarVelocity, direction, strength, SpeedSettings.MaximumSpeed);
@@ -66,7 +72,7 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        if (speedSystem != null && speedSystem.IsEncounterLocked) return;
+        if (speedSystem != null && (speedSystem.IsEncounterLocked || speedSystem.IsSnared)) return;
         if (controlLocked && (speedSystem == null || !speedSystem.IsKnockedBack))
         {
             // Gravity continues, but no horizontal movement or facing change is allowed.

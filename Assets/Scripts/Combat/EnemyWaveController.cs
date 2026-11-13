@@ -91,6 +91,7 @@ public sealed class EnemyWaveController : MonoBehaviour
     }
     public int LivingEnemies => enemies.Count;
     public IReadOnlyCollection<EnemyBumper> LivingEnemyObjects => enemies;
+    public Transform TransientRoot => transientRoot;
     public IEnumerable<Transform> WarningMarkers => transientRoot != null ? transientRoot.Cast<Transform>() : Array.Empty<Transform>();
     public bool CanSpawnMinion => IsCombatActive && minions.Count < globalMinionCap;
     public BonkRobotController Player => player;
@@ -115,6 +116,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         transientRoot = new GameObject("Wave Hazards and Drops").transform;
         transientRoot.SetParent(transform, false);
         health.Damaged += OnPlayerDamaged;
+        scoring.DashUsesEarned += OnDashUsesEarned;
         player.ConfigureEncounter(this);
         player.GetComponentInChildren<BouncingBallController>(true).ConfigureEncounter(this);
         SetState(EnemyWaveState.Introduction);
@@ -125,6 +127,8 @@ public sealed class EnemyWaveController : MonoBehaviour
     {
         if (IsCombatActive) scoring.BreakCombo(Time.time);
     }
+
+    private void OnDashUsesEarned(int count) => player.RestoreDashUses(count);
 
     public void RegisterRicochet(float speed)
     {
@@ -414,5 +418,6 @@ public sealed class EnemyWaveController : MonoBehaviour
             health.Damaged -= OnPlayerDamaged;
             health.CombatEnabled = true;
         }
+        if (scoring != null) scoring.DashUsesEarned -= OnDashUsesEarned;
     }
 }
