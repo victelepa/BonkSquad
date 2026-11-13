@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chart Gallery</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f6fa;
+            color: #17253c;
+            font-family: Arial, sans-serif;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: auto;
+            padding: 30px 22px;
+        }
+
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+
+        header .heading {
+            flex: 1;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+        header p {
+            margin: 0;
+            color: #64748b;
+        }
+
+        button,
+        .back-link {
+            padding: 10px 16px;
+            border: 1px solid #d7deeb;
+            border-radius: 8px;
+            background: white;
+            color: #2458c6;
+            font: inherit;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        button:focus-visible,
+        a:focus-visible {
+            outline: 3px solid #4f83f4;
+            outline-offset: 3px;
+        }
+
+        #status {
+            margin: 24px 0;
+            color: #64748b;
+            white-space: pre-line;
+        }
+
+        #gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            overflow: hidden;
+            border: 1px solid #e1e7f0;
+            border-radius: 12px;
+            background: white;
+        }
+
+        .thumbnail-button {
+            display: block;
+            width: 100%;
+            padding: 0;
+            border: none;
+            border-radius: 0;
+            background: white;
+        }
+
+        .thumbnail-button img {
+            display: block;
+            width: 100%;
+            height: 210px;
+            padding: 12px;
+            object-fit: contain;
+        }
+
+        .filename {
+            margin: 0;
+            padding: 14px;
+            border-top: 1px solid #eef1f6;
+            overflow-wrap: anywhere;
+        }
+
+        .image-error {
+            padding: 24px;
+            color: #b03535;
+        }
+
+        dialog {
+            width: min(1200px, 94vw);
+            max-height: 92vh;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+        }
+
+        dialog::backdrop {
+            background: rgba(10, 20, 40, 0.75);
+        }
+
+        .viewer-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        #viewer-title {
+            overflow-wrap: anywhere;
+        }
+
+        #viewer-image {
+            display: block;
+            width: 100%;
+            max-height: 75vh;
+            object-fit: contain;
+        }
+
+        @media (max-width: 520px) {
+            main {
+                padding: 22px 16px;
+            }
+
+            #gallery {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<main>
+    <header>
+        <div class="heading">
+            <h1>Chart Gallery</h1>
+            <p>Select a thumbnail to view the full image.</p>
+        </div>
+
+        <button id="refresh-button" type="button">Refresh</button>
+        <a class="back-link" href="./index.html">Back to Main Page</a>
+    </header>
+
+    <p id="status" role="status" aria-live="polite">
+        Loading charts...
+    </p>
+
+    <section id="gallery" aria-label="Chart gallery"></section>
+
+    <noscript>Please enable JavaScript to view the charts.</noscript>
+</main>
+
+<dialog id="viewer" aria-labelledby="viewer-title">
+    <div class="viewer-toolbar">
+        <strong id="viewer-title"></strong>
+        <button id="close-button" type="button" autofocus>Close</button>
+    </div>
+    <img id="viewer-image" alt="">
+</dialog>
+
+<script>
+    const IMAGE_DIRECTORY = "./charts/";
+    const LIST_URL = "./charts/list.json";
+    
+    const gallery = document.getElementById("gallery");
+    const status = document.getElementById("status");
+    const refreshButton = document.getElementById("refresh-button");
+    const viewer = document.getElementById("viewer");
+    const viewerTitle = document.getElementById("viewer-title");
+    const viewerImage = document.getElementById("viewer-image");
+
+    document.getElementById("close-button").addEventListener("click", () => {
+        viewer.close();
+    });
+
+    viewer.addEventListener("close", () => {
+        viewerImage.removeAttribute("src");
+    });
+
+    function createCard(filename) {
+        const imageUrl = new URL(
+            IMAGE_DIRECTORY + encodeURIComponent(filename),
+            document.baseURI
+        ).href;
+
+        const card = document.createElement("article");
+        card.className = "card";
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "thumbnail-button";
+        button.setAttribute("aria-label", "View " + filename);
+
+        const image = document.createElement("img");
+        image.alt = filename;
+        image.loading = "lazy";
+        image.decoding = "async";
+
+        image.addEventListener("error", () => {
+            const message = document.createElement("p");
+            message.className = "image-error";
+            message.textContent = "Unable to load this image.";
+            button.replaceWith(message);
+        }, { once: true });
+
+        image.src = imageUrl;
+        button.appendChild(image);
+
+        button.addEventListener("click", () => {
+            viewerTitle.textContent = filename;
+            viewerImage.alt = filename;
+            viewerImage.src = imageUrl;
+            viewer.showModal();
+        });
+
+        const caption = document.createElement("p");
+        caption.className = "filename";
+        caption.textContent = filename;
+
+        card.append(button, caption);
+        return card;
+    }
+
+    async function loadCharts() {
+        refreshButton.disabled = true;
+        gallery.replaceChildren();
+        status.textContent = "Loading charts...";
+
+        try {
+            if (location.protocol === "file:") {
+                throw new Error(
+                    "Open this page through an HTTP/HTTPS server instead of opening the HTML file directly."
+                );
+            }
+
+            const response = await fetch(LIST_URL, {
+                cache: "no-store"
+            });
+
+            if (!response.ok) {
+                throw new Error(
+                    "Unable to load " + LIST_URL +
+                    " (HTTP " + response.status + ")."
+                );
+            }
+
+            const data = await response.json();
+
+            if (!Array.isArray(data)) {
+                throw new Error(
+                    'The image list must be a JSON array, such as ["sales.png", "trend.jpg"].'
+                );
+            }
+
+            const filenames = [...new Set(data.filter(filename => {
+                return typeof filename === "string" &&
+                    !/[/\\]/.test(filename) &&
+                    /\.(png|jpe?g|webp|gif|avif)$/i.test(filename);
+            }))];
+
+            filenames.sort((a, b) =>
+                a.localeCompare(b, "en", { numeric: true })
+            );
+
+            const fragment = document.createDocumentFragment();
+
+            for (const filename of filenames) {
+                fragment.appendChild(createCard(filename));
+            }
+
+            gallery.appendChild(fragment);
+
+            status.textContent = filenames.length
+                ? filenames.length + (filenames.length === 1 ? " chart" : " charts")
+                : "No chart images found.";
+        } catch (error) {
+            status.textContent = "Loading failed: " + error.message;
+        } finally {
+            refreshButton.disabled = false;
+        }
+    }
+
+    refreshButton.addEventListener("click", loadCharts);
+    loadCharts();
+</script>
+</body>
+</html>
