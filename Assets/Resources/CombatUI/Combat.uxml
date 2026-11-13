@@ -7,14 +7,13 @@
         <ui:VisualElement name="hud" class="screen" picking-mode="Ignore">
             <ui:VisualElement name="world-cues" class="screen" picking-mode="Ignore" />
             <ui:VisualElement name="objective" class="objective panel" picking-mode="Ignore">
-                <ui:Label text="CLEAR ALL ENEMIES" class="objective-title" picking-mode="Ignore" />
-                <ui:Label name="wave" text="Wave 1/5" picking-mode="Ignore" />
-                <ui:Label name="timer" text="180s remaining" picking-mode="Ignore" />
+                <ui:Label name="score" text="0 / 350" class="objective-score" picking-mode="Ignore" />
+                <ui:VisualElement class="objective-details" picking-mode="Ignore">
+                    <ui:Label name="wave" text="Wave 1/2" picking-mode="Ignore" />
+                    <ui:Label name="timer" text="180s remaining" picking-mode="Ignore" />
+                </ui:VisualElement>
             </ui:VisualElement>
             <ui:Button name="help-button" text="Help" class="help-button" />
-            <ui:VisualElement name="combo" class="combo panel hidden" picking-mode="Ignore">
-                <ui:Label name="combo-text" picking-mode="Ignore" />
-            </ui:VisualElement>
             <ui:Label name="player-warning" class="player-warning hidden" picking-mode="Ignore" />
             <ui:VisualElement name="player-status" class="player-status" picking-mode="Ignore">
                 <ui:Instance name="combat-dash" template="dash" class="combat-dash" picking-mode="Ignore" />
@@ -40,7 +39,7 @@
                 <ui:VisualElement name="guide-pages">
                     <ui:VisualElement>
                         <ui:Label text="One player. Two forms." class="heading" />
-                        <ui:Label text="Use the controls below to move or switch between robot and ball." class="body guide-control-copy" />
+                        <ui:Label text="Reach the score goal in the top-left corner to advance. Defeat enemies and chain hits for points. Use the controls below to move or switch between robot and ball." class="body guide-control-copy" />
                         <ui:Instance template="input-hints" class="input-hints show-form show-move" picking-mode="Ignore" />
                     </ui:VisualElement>
                     <ui:VisualElement class="hidden">
@@ -70,7 +69,7 @@
             </ui:VisualElement>
             <ui:VisualElement name="results" class="card panel hidden">
                 <ui:Label name="result-wave" text="Wave 1 result" class="eyebrow" />
-                <ui:Label name="result-title" text="Wave cleared!" class="heading" />
+                <ui:Label name="result-title" text="Score goal reached!" class="heading" />
                 <ui:Label name="result-detail" class="body" />
                 <ui:VisualElement class="actions">
                     <ui:Button name="main-menu" text="Main Menu" />
@@ -80,5 +79,6 @@
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
+        <ui:VisualElement name="score-popups" class="screen" picking-mode="Ignore" />
     </ui:VisualElement>
 </ui:UXML>

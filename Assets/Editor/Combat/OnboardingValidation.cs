@@ -80,10 +80,21 @@ public static class OnboardingValidation
             Check(enemy.IsDefeated, "combat validation can clear the enemy roster");
         }
     }
+    private static void EarnGoal()
+    {
+        run.DropRandom = () => .99d;
+        foreach (EnemyBumper enemy in run.LivingEnemyObjects.ToArray())
+        {
+            if (run.WaveScore >= run.ScoreGoal) break;
+            for (int i = 0; i < enemy.MaximumHitPoints && !enemy.IsDefeated; i++)
+                enemy.TryHitFromBall(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings);
+        }
+    }
     private static void CheckHud()
     {
         var healthRow = Root.Q("health");
-        Check(Root.Q("score") == null, "combat score label is gone");
+        Check(Root.Q<Label>("score").text == $"{run.WaveScore} / {run.ScoreGoal}" && run.ScoreGoal == 350,
+            "first wave shows its score goal in the HUD");
         Check(healthRow.parent.IndexOf(Root.Q("combat-dash")) < healthRow.parent.IndexOf(healthRow)
             && Root.Q("combat-dash").parent == healthRow.parent, "Dash is above the health row");
         var dashUses = Root.Q("dash-uses");
@@ -320,9 +331,12 @@ public static class OnboardingValidation
                     Property(run, "TimeRemaining", 0f); Wait(3); break;
                 case 3:
                     Check(ui.Page == CombatPage.Results && run.Result.reason == WaveFailureReason.Timeout && run.Result.enemiesRemaining == 19, "timeout snapshot");
-                    Check(HasText("Time ran out — 19 enemies remained"), "explicit timeout reason");
+                    Check(HasText($"Time ran out — {run.WaveScore}/{run.ScoreGoal} points"), "explicit timeout reason");
                     Click("Retry Wave"); Check(ui.Page == CombatPage.Combat && run.Health.Current == 100 && run.IsCombatActive, "retry bypasses tutorial");
-                    KillAll(); Wait(4); break;
+                    EarnGoal();
+                    Check(run.WaveScore >= run.ScoreGoal && run.LivingEnemies > 0, "score goal reached before every enemy dies");
+                    Check(Root.Q("score-popups").childCount > 0, "kill score appears near the impact");
+                    Wait(4); break;
                 case 4:
                     Check(run.State == EnemyWaveState.Cleared && ui.Page == CombatPage.Results, "clear results");
                     Click("Next Wave");

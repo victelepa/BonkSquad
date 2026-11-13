@@ -55,6 +55,17 @@ public sealed class EnemyWaveController : MonoBehaviour
     [SerializeField] private PinballScore scoring = new PinballScore();
     public PinballScore Scoring => scoring;
     public int BasicMinionsPerWave => CurrentWave.basicMinions >= 0 ? CurrentWave.basicMinions : basicMinionsPerWave;
+    private int scoreGoal;
+    public int ScoreGoal => scoreGoal;
+    private int CalculateScoreGoal(int specialistCount)
+    {
+        // Roughly two thirds of the opening roster's base points; bonuses and spawned minions count too.
+        int available = BasicMinionsPerWave * scoring.MinionPoints + specialistCount * scoring.SpecialistPoints;
+        if (available <= 0) return 0;
+        int rounded = Mathf.RoundToInt(available * .65f / 50f) * 50;
+        return Mathf.Clamp(rounded, 1, available);
+    }
+    public int WaveScore => Mathf.Max(0, scoring.Points - scoreAtWaveStart.points);
     private PinballScore.Checkpoint scoreAtWaveStart;
     private BonkRobotController.DashCheckpoint dashAtWaveStart;
     private bool retryingWave;
@@ -71,6 +82,7 @@ public sealed class EnemyWaveController : MonoBehaviour
     private Transform enemyRoot, transientRoot;
     private TopplingPillar[] pillars;
     public event Action ObstacleMoved;
+    public event Action<Vector3, int> ScoreEarned;
     internal void NotifyObstacleMoved() => ObstacleMoved?.Invoke();
     private System.Random random = new System.Random();
     private bool tryingAllTypes;
@@ -156,6 +168,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         Cleanup();
         player.ResetForEncounter(playerStart, playerRotation);
         List<EnemyBumper> spawnList = CurrentWave.SpawnList();
+        scoreGoal = CalculateScoreGoal(spawnList.Count);
         float radius = 0f, height = 0f;
         foreach (EnemyBumper prefab in spawnList)
         {
@@ -258,7 +271,8 @@ public sealed class EnemyWaveController : MonoBehaviour
         minions.Remove(enemy);
         enemy.Defeated -= OnEnemyDefeated;
         if (!IsCombatActive) return;
-        scoring.RecordKill(enemy.IsBasicMinion, Time.time);
+        int earned = scoring.RecordKill(enemy.IsBasicMinion, Time.time);
+        ScoreEarned?.Invoke((player.ActivePosition + enemy.transform.position) * .5f + Vector3.up * placement.Diameter, earned);
         double roll = DropRandom != null ? DropRandom() : random.NextDouble();
         if (ShouldDrop(roll, healthDropChance) &&
             placement.TryNearby(enemy.transform.position, placement.Diameter * .35f,
@@ -270,11 +284,11 @@ public sealed class EnemyWaveController : MonoBehaviour
     {
         if (!IsCombatActive) return;
         scoring.Tick(Time.time);
-        // Resolve after all collision and attack callbacks. Death wins over a simultaneous clear.
+        // Resolve after all collision and attack callbacks. Death wins over a simultaneous score goal.
         TimeRemaining = Mathf.Max(0f, TimeRemaining - Time.deltaTime);
         if (health.IsDead) Finish(EnemyWaveState.Failed, "Robot destroyed");
-        else if (enemies.Count == 0)
-            Finish(tryingAllTypes || WaveIndex == waves.Length - 1 ? EnemyWaveState.Victory : EnemyWaveState.Cleared, "Wave cleared!");
+        else if (WaveScore >= ScoreGoal)
+            Finish(tryingAllTypes || WaveIndex == waves.Length - 1 ? EnemyWaveState.Victory : EnemyWaveState.Cleared, "Score goal reached!");
         else if (TimeRemaining <= 0f) Finish(EnemyWaveState.Failed, "Time ran out");
     }
 

@@ -19,6 +19,8 @@ public sealed class PinballScore
     public int ImpactCharges { get; private set; }
     public event Action<int> DashUsesEarned;
     public int ChainCount { get; private set; }
+    public int MinionPoints => minionPoints;
+    public int SpecialistPoints => specialistPoints;
     public int ChargeThreshold => pointsPerCharge;
     public int DashThreshold => Mathf.Max(1, pointsPerDashUse);
     public float DashRecharge01 => Mathf.Clamp01((float)DashProgress / DashThreshold);

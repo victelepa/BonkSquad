@@ -1,13 +1,13 @@
 .screen { position: absolute; top: 0; right: 0; bottom: 0; left: 0; color: rgb(240, 246, 251); font-size: 18px; }
 .hidden { display: none; }
 .panel { background-color: rgba(9, 14, 23, 0.94); border-radius: 8px; }
-.objective { position: absolute; top: 16px; align-self: center; min-width: 340px; flex-direction: row; align-items: center; justify-content: center; padding: 10px 18px; }
-.objective > Label { margin: 0 6px; }
-.objective-title { -unity-font-style: bold; }
+.objective { position: absolute; top: 16px; left: 20px; min-width: 235px; padding: 10px 16px 9px 16px; border-left-width: 5px; border-left-color: rgb(63, 229, 255); }
+.objective-score { color: rgb(255, 231, 120); font-size: 38px; -unity-font-style: bold; -unity-text-outline-width: 1px; -unity-text-outline-color: rgb(76, 44, 8); }
+.score-reached { color: rgb(108, 255, 159); }
+.objective-details { flex-direction: row; justify-content: space-between; margin-top: 2px; font-size: 14px; color: rgb(192, 207, 219); }
 .timer-low { color: rgb(255, 211, 76); }
 .help-button { position: absolute; top: 16px; right: 20px; }
-.combo { position: absolute; align-self: center; top: 72px; padding: 5px 14px; -unity-font-style: bold; }
-.reward { color: rgb(255, 211, 76); }
+.score-popup { position: absolute; translate: -50% -50%; color: rgb(255, 232, 91); -unity-font-style: bold; -unity-text-outline-width: 2px; -unity-text-outline-color: rgb(9, 14, 23); }
 .player-warning { position: absolute; margin: 0; translate: -50% 0; color: rgb(255, 211, 76); -unity-text-outline-width: 1px; -unity-text-outline-color: black; }
 .player-status { position: absolute; bottom: 18px; left: 20px; }
 .meter-row { flex-direction: row; align-items: center; }

@@ -14,13 +14,14 @@ public sealed class CombatPresentation : MonoBehaviour
 
     private EnemyWaveController run;
     private UIDocument document;
-    private VisualElement root, hud, modal, mapMarkers, mapObstacles, worldCues, combo, damage;
-    private Label wave, timer, comboText, playerWarning, guideProgress, guideImpact, resultWave, resultTitle, resultDetail;
+    private VisualElement root, hud, modal, mapMarkers, mapObstacles, worldCues, scorePopups, damage;
+    private Label wave, timer, score, playerWarning, guideProgress, guideImpact, resultWave, resultTitle, resultDetail;
     private string impactGuideFormat;
     private VisualElement[] guidePages, hearts;
     private VisualTreeAsset worldCueTemplate;
     private readonly List<VisualElement> pins = new();
     private readonly List<WorldCue> cues = new();
+    private readonly List<ScorePopup> activeScorePopups = new();
     private PlayerDamageFeedback damageFeedback;
     private Camera worldCamera;
     private float savedTimeScale;
@@ -32,6 +33,13 @@ public sealed class CombatPresentation : MonoBehaviour
     {
         public VisualElement element, health;
         public Label caption;
+    }
+
+    private sealed class ScorePopup
+    {
+        public Label label;
+        public Vector3 worldPosition;
+        public float startedAt, drift;
     }
 
     public CombatPage Page { get; private set; }
@@ -58,11 +66,11 @@ public sealed class CombatPresentation : MonoBehaviour
         mapMarkers = root.Q("map-markers");
         mapObstacles = root.Q("map-obstacles");
         worldCues = root.Q("world-cues");
-        combo = root.Q("combo");
+        scorePopups = root.Q("score-popups");
         damage = root.Q("damage");
         wave = root.Q<Label>("wave");
         timer = root.Q<Label>("timer");
-        comboText = root.Q<Label>("combo-text");
+        score = root.Q<Label>("score");
         playerWarning = root.Q<Label>("player-warning");
         guideProgress = root.Q<Label>("guide-progress");
         guideImpact = root.Q<Label>("guide-impact");
@@ -86,6 +94,7 @@ public sealed class CombatPresentation : MonoBehaviour
         Button("restart-run").clicked += PlayRun;
 
         dash = new DashHud(root, run.Player, run.Scoring);
+        run.ScoreEarned += ShowScorePopup;
         BuildMapGeometry();
         run.ObstacleMoved += BuildMapGeometry;
         ShowMainMenu();
@@ -152,6 +161,7 @@ public sealed class CombatPresentation : MonoBehaviour
 
     public void ShowMainMenu()
     {
+        ClearScorePopups();
         Resume();
         run.RestartRun();
         Pause();
@@ -161,6 +171,7 @@ public sealed class CombatPresentation : MonoBehaviour
 
     public void PlayRun()
     {
+        ClearScorePopups();
         Resume();
         run.RestartRun();
         BeginCombat(run.StartWave);
@@ -260,11 +271,11 @@ public sealed class CombatPresentation : MonoBehaviour
         resultWave.text = $"Wave {run.WaveIndex + 1} result";
         resultTitle.text = run.State switch
         {
-            EnemyWaveState.Victory => "Arena cleared!",
-            EnemyWaveState.Cleared => "Wave cleared!",
+            EnemyWaveState.Victory => "Score goal reached!",
+            EnemyWaveState.Cleared => "Score goal reached!",
             _ => run.Result.reason switch
             {
-                WaveFailureReason.Timeout => $"Time ran out — {run.Result.enemiesRemaining} enemies remained",
+                WaveFailureReason.Timeout => $"Time ran out — {run.WaveScore}/{run.ScoreGoal} points",
                 WaveFailureReason.HealthDepleted => "Health reached zero",
                 _ => "Arena could not start"
             }
@@ -340,6 +351,49 @@ public sealed class CombatPresentation : MonoBehaviour
         return true;
     }
 
+    private void ShowScorePopup(Vector3 position, int earned)
+    {
+        if (scorePopups == null || Page != CombatPage.Combat) return;
+        var label = new Label($"+{earned}");
+        label.AddToClassList("score-popup");
+        label.pickingMode = PickingMode.Ignore;
+        scorePopups.Add(label);
+        activeScorePopups.Add(new ScorePopup {
+            label = label, worldPosition = position, startedAt = Time.unscaledTime,
+            drift = activeScorePopups.Count % 2 == 0 ? -24f : 24f
+        });
+    }
+
+    private void ClearScorePopups()
+    {
+        foreach (ScorePopup popup in activeScorePopups) popup.label.RemoveFromHierarchy();
+        activeScorePopups.Clear();
+    }
+
+    private void UpdateScorePopups()
+    {
+        if (worldCamera == null) worldCamera = Camera.main;
+        for (int i = activeScorePopups.Count - 1; i >= 0; i--)
+        {
+            ScorePopup popup = activeScorePopups[i];
+            float t = (Time.unscaledTime - popup.startedAt) / 1.2f;
+            if (t >= 1f)
+            {
+                popup.label.RemoveFromHierarchy();
+                activeScorePopups.RemoveAt(i);
+                continue;
+            }
+            bool visible = TryWorldPosition(popup.worldPosition, out Vector2 point);
+            Show(popup.label, visible);
+            if (!visible) continue;
+            float rise = 1f - (1f - t) * (1f - t);
+            popup.label.style.left = point.x + popup.drift * t;
+            popup.label.style.top = point.y - 85f * rise;
+            popup.label.style.fontSize = Mathf.RoundToInt(Mathf.Lerp(26f, 40f, Mathf.Min(1f, t * 4f)));
+            popup.label.style.opacity = Mathf.Clamp01((1f - t) * 3f);
+        }
+    }
+
     private void UpdateCue(int index, Vector3 position, string text, Color color, EnemyBumper enemy = null)
     {
         if (index == cues.Count)
@@ -412,24 +466,17 @@ public sealed class CombatPresentation : MonoBehaviour
     {
         if (root == null) return;
         if (run.State != lastState) SyncRunState();
+        UpdateScorePopups();
         if (Page == CombatPage.MainMenu) return;
 
         dash.Refresh(Page == CombatPage.Combat);
         worldCamera = Camera.main;
         wave.text = $"Wave {run.WaveIndex + 1}/{run.WaveCount}";
+        score.text = $"{run.WaveScore} / {run.ScoreGoal}";
+        score.EnableInClassList("score-reached", run.WaveScore >= run.ScoreGoal);
         timer.text = $"{Mathf.CeilToInt(run.TimeRemaining)}s remaining";
         timer.EnableInClassList("timer-low", run.TimeRemaining <= 30f);
-        var scoring = run.Scoring;
         SetMeter(hearts, hearts.Length * run.Health.Current / run.Health.Maximum);
-
-        bool showCombo = Page == CombatPage.Combat && Time.time <= scoring.FeedbackUntil && !string.IsNullOrEmpty(scoring.Feedback);
-        Show(combo, showCombo);
-        if (showCombo)
-        {
-            comboText.text = scoring.Feedback;
-            combo.EnableInClassList("reward", scoring.FeedbackIsReward);
-            combo.style.opacity = Mathf.Clamp01((scoring.FeedbackUntil - Time.time) / .35f);
-        }
 
         playerWarning.text = run.Player.IsSnared ? $"NETTED — release in {run.Player.SnareRemaining:0.0}s" : run.Player.DizzinessPhase switch
         {
@@ -469,7 +516,11 @@ public sealed class CombatPresentation : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (run != null) run.ObstacleMoved -= BuildMapGeometry;
+        if (run != null)
+        {
+            run.ObstacleMoved -= BuildMapGeometry;
+            run.ScoreEarned -= ShowScorePopup;
+        }
         if (document != null) Destroy(document.gameObject);
     }
 }
