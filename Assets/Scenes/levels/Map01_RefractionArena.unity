@@ -811,6 +811,7 @@ MonoBehaviour:
     minionPoints: 10
     specialistPoints: 50
     pointsPerCharge: 100
+    pointsPerDashUse: 100
     comboWindow: 3
     ricochetBonus: 25
     doubleBonus: 30
@@ -3614,6 +3615,68 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 836772450}
   m_Mesh: {fileID: 4300000, guid: 8ab6229fd9da56f40a87c573077a1464, type: 2}
+--- !u!1 &841388292
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 841388295}
+  - component: {fileID: 841388294}
+  - component: {fileID: 841388293}
+  m_Layer: 0
+  m_Name: SimpleGameAnalytics
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &841388293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 841388292}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a4ec30879d6486c9e560b3a2ab5f293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimpleGameAnalytics
+  player: {fileID: 1094164506}
+  ball: {fileID: 1678529259}
+  health: {fileID: 1094164507}
+  movementThreshold: 0.1
+  sampleInterval: 1
+--- !u!114 &841388294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 841388292}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ce75fa9e8014a489f05202a5c3ad11a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimpleAnalyticsCharts
+--- !u!4 &841388295
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 841388292}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1058.696, y: 564.8988, z: -1.98411}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &859587965
 GameObject:
   m_ObjectHideFlags: 0
@@ -9556,3 +9619,4 @@ SceneRoots:
   - {fileID: 1307420525}
   - {fileID: 1233675465}
   - {fileID: 324729113}
+  - {fileID: 841388295}
