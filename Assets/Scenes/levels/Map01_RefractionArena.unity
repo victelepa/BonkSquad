@@ -4376,7 +4376,7 @@ MonoBehaviour:
     robotDeceleration: 7
     accelerationAngleTolerance: 30
   dizzinessSettings:
-    maximumDizziness: 150
+    maximumDizziness: 110
     useSmallEnemyKillSpeed: 1
     highSpeedThreshold: 8
     gainRateBySpeed:

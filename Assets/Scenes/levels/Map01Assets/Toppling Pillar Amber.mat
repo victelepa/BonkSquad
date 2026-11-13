@@ -53,7 +53,7 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 0.65, b: 0.045, a: 1}
-    - _Color: {r: 1, g: 0.65, b: 0.045, a: 1}
+    - _Color: {r: 1, g: 0.65, b: 0.044999972, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &1787327002681928094
@@ -69,4 +69,3 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Editor::UnityEditor.Rendering.Universal.AssetVersion
   version: 10
-
