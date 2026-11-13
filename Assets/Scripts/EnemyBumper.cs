@@ -175,6 +175,17 @@ public class EnemyBumper : MonoBehaviour
         if (isDefeated) return EnemyHitResult.Defeated;
         if ((Encounter != null && !Encounter.IsCombatActive) ||
             !settings.CanKill(incomingPlayerSpeed, isSmallEnemy)) return EnemyHitResult.Rejected;
+        return ApplyDamage(damage);
+    }
+
+    internal void TryCrush()
+    {
+        if (!isDefeated && Encounter != null && Encounter.IsCombatActive)
+            ApplyDamage(HitPoints);
+    }
+
+    private EnemyHitResult ApplyDamage(int damage)
+    {
         HitPoints = Mathf.Max(0, HitPoints - Mathf.Max(1, damage));
         hitFlashUntil = Time.time + .18f;
         HealthChanged?.Invoke(this);

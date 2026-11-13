@@ -87,6 +87,7 @@ public sealed class CombatPresentation : MonoBehaviour
 
         dash = new DashHud(root, run.Player, run.Scoring);
         BuildMapGeometry();
+        run.ObstacleMoved += BuildMapGeometry;
         ShowMainMenu();
     }
 
@@ -296,6 +297,7 @@ public sealed class CombatPresentation : MonoBehaviour
     {
         var floor = run.Placement.Floor;
         if (floor == null) return;
+        mapObstacles.Clear();
         var unitRect = new Rect(0, 0, 1, 1);
         foreach (Collider solid in floor.transform.parent.GetComponentsInChildren<Collider>())
         {
@@ -467,6 +469,7 @@ public sealed class CombatPresentation : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (run != null) run.ObstacleMoved -= BuildMapGeometry;
         if (document != null) Destroy(document.gameObject);
     }
 }

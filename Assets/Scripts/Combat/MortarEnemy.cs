@@ -7,6 +7,7 @@ public sealed class MortarEnemy : MonoBehaviour
     private EnemyBumper enemy;
     private float nextFire;
     private void Awake() { enemy = GetComponent<EnemyBumper>(); nextFire = Time.time + fireInterval; }
+    internal void DelayFirstShot(float seconds) => nextFire += seconds;
     private void Update()
     {
         EnemyWaveController run = enemy.Encounter;

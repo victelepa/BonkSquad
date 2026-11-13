@@ -339,6 +339,7 @@ public class BouncingBallController : MonoBehaviour
         bool freshSurface = enemy == null && contactSurfaces.Add(collision.collider);
         bool reflected = false;
         bool meaningfulWall = false;
+        Vector3 wallNormal = Vector3.zero;
         for (int i = 0; i < collision.contactCount; i++)
         {
             Vector3 surfaceNormal = collision.GetContact(i).normal;
@@ -351,6 +352,7 @@ public class BouncingBallController : MonoBehaviour
             {
                 meaningfulWall |= Mathf.Abs(surfaceNormal.y) < .4f && simulationVelocity.magnitude >= minimumWallImpactSpeed &&
                     -Vector3.Dot(simulationVelocity.normalized, normal.normalized) >= .2f;
+                if (meaningfulWall && wallNormal == Vector3.zero) wallNormal = normal;
                 reflected = true;
                 simulationVelocity =
                     PlayerMovementMath.ReflectPlanar(
@@ -363,7 +365,11 @@ public class BouncingBallController : MonoBehaviour
         if (freshSurface && meaningfulWall && isBallMode) WallBounced?.Invoke();
         if (freshSurface && reflected && encounter != null && encounter.IsCombatActive)
         {
-            if (meaningfulWall) TryWallBoost();
+            if (meaningfulWall)
+            {
+                collision.collider.GetComponentInParent<TopplingPillar>()?.TryTopple(encounter, wallNormal);
+                TryWallBoost();
+            }
             encounter.RegisterRicochet(simulationVelocity.magnitude);
         }
         if (enemy != null || simulationVelocity.sqrMagnitude > 0f)

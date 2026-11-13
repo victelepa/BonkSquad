@@ -33,6 +33,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         [Min(0f)] public float minionSpeedInDiameters = 1.2f;
         [Min(0)] public int count;
         [Min(1f)] public float seconds = 180f;
+        public Vector2[] openingPositions;
         public EnemyGroup[] additionalGroups = Array.Empty<EnemyGroup>();
 
         public List<EnemyBumper> SpawnList()
@@ -68,6 +69,9 @@ public sealed class EnemyWaveController : MonoBehaviour
     private readonly HashSet<EnemyBumper> enemies = new HashSet<EnemyBumper>();
     private readonly HashSet<EnemyBumper> minions = new HashSet<EnemyBumper>();
     private Transform enemyRoot, transientRoot;
+    private TopplingPillar[] pillars;
+    public event Action ObstacleMoved;
+    internal void NotifyObstacleMoved() => ObstacleMoved?.Invoke();
     private System.Random random = new System.Random();
     private bool tryingAllTypes;
     private int nextMinionPatrol;
@@ -116,6 +120,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         transientRoot = new GameObject("Wave Hazards and Drops").transform;
         transientRoot.SetParent(transform, false);
         health.Damaged += OnPlayerDamaged;
+        pillars = placement.Floor.transform.parent.GetComponentsInChildren<TopplingPillar>();
         scoring.DashUsesEarned += OnDashUsesEarned;
         player.ConfigureEncounter(this);
         player.GetComponentInChildren<BouncingBallController>(true).ConfigureEncounter(this);
@@ -159,21 +164,29 @@ public sealed class EnemyWaveController : MonoBehaviour
             height = Mathf.Max(height, shape.height);
         }
         Physics.SyncTransforms();
-        if (!placement.TryWavePositions(spawnList.Count, playerStart, radius, height,
-            random, out List<Vector3> points))
+        List<Vector3> points, basicPoints;
+        if (CurrentWave.openingPositions != null && CurrentWave.openingPositions.Length > 0)
         {
-            ResultMessage = "No safe enemy positions. Check the arena spawn regions.";
-            CaptureResult(WaveFailureReason.Placement);
-            SetState(EnemyWaveState.Failed);
-            return;
+            if (!placement.TryOpeningPositions(CurrentWave.openingPositions, spawnList.Count, BasicMinionsPerWave,
+                playerStart, radius, height, MinionRadius, MinionHeight, random, out points, out basicPoints))
+            {
+                ResultMessage = "A planned enemy spawn is blocked. Check the arena opening positions.";
+                CaptureResult(WaveFailureReason.Placement);
+                SetState(EnemyWaveState.Failed);
+                return;
+            }
         }
-        if (!placement.TryDistributedMinions(BasicMinionsPerWave, playerStart, points, MinionRadius, MinionHeight,
-            random, out List<Vector3> basicPoints))
+        else
         {
-            ResultMessage = "Not enough clear floor to distribute the basic minions.";
-            CaptureResult(WaveFailureReason.Placement);
-            SetState(EnemyWaveState.Failed);
-            return;
+            if (!placement.TryWavePositions(spawnList.Count, playerStart, radius, height, random, out points)
+                || !placement.TryDistributedMinions(BasicMinionsPerWave, playerStart, points,
+                    MinionRadius, MinionHeight, random, out basicPoints))
+            {
+                ResultMessage = "No safe enemy positions. Check the arena spawn regions.";
+                CaptureResult(WaveFailureReason.Placement);
+                SetState(EnemyWaveState.Failed);
+                return;
+            }
         }
         if (!retryingWave)
         {
@@ -184,7 +197,14 @@ public sealed class EnemyWaveController : MonoBehaviour
         scoring.BreakCombo(Time.time, false);
         TimeRemaining = CurrentWave.seconds;
         SetState(EnemyWaveState.Active);
-        for (int i = 0; i < spawnList.Count; i++) SpawnEnemy(spawnList[i], points[i], false);
+        for (int i = 0; i < spawnList.Count; i++)
+        {
+            var enemy = SpawnEnemy(spawnList[i], points[i], false);
+            if (CurrentWave.openingPositions == null || CurrentWave.openingPositions.Length == 0) continue;
+            float offset = (float)random.NextDouble() * 3f;
+            if (enemy.TryGetComponent<MortarEnemy>(out var mortar)) mortar.DelayFirstShot(offset);
+            if (enemy.TryGetComponent<NetShooterEnemy>(out var netShooter)) netShooter.DelayFirstShot(offset);
+        }
         foreach (Vector3 point in basicPoints)
         {
             EnemyBumper minion = SpawnEnemy(minionPrefab, point, false);
@@ -370,6 +390,10 @@ public sealed class EnemyWaveController : MonoBehaviour
         enemies.Clear(); minions.Clear();
         nextMinionPatrol = 0;
         ClearChildren(enemyRoot); ClearChildren(transientRoot);
+        if (pillars == null) return;
+        foreach (var pillar in pillars) pillar.ResetPillar();
+        Physics.SyncTransforms();
+        NotifyObstacleMoved();
     }
     private static void ClearChildren(Transform root)
     {

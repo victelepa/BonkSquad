@@ -74,7 +74,11 @@ public static class OnboardingValidation
     private static void KillAll()
     {
         foreach (EnemyBumper enemy in run.LivingEnemyObjects.ToArray())
-            while (!enemy.IsDefeated) enemy.TryHitFromBall(run.Player.SpeedSettings.SmallEnemyKillSpeed, run.Player.SpeedSettings);
+        {
+            for (int i = 0; i < enemy.MaximumHitPoints && !enemy.IsDefeated; i++)
+                enemy.TryHitFromBall(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings);
+            Check(enemy.IsDefeated, "combat validation can clear the enemy roster");
+        }
     }
     private static void CheckHud()
     {
@@ -192,7 +196,9 @@ public static class OnboardingValidation
         var specialist = (EnemyBumper)typeof(EnemyWaveController).GetMethod("SpawnEnemy", flags).Invoke(run, new object[] { specialistPrefab, point, false });
         Physics.SyncTransforms(); halo.Invoke(ball, null);
         Check(specialist.HitPoints == specialist.MaximumHitPoints, "halo leaves specialists to physical bonks");
-        while (!specialist.IsDefeated) specialist.TryHitFromBall(threshold, run.Player.SpeedSettings);
+        for (int i = 0; i < specialist.MaximumHitPoints && !specialist.IsDefeated; i++)
+            specialist.TryHitFromBall(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings);
+        Check(specialist.IsDefeated, "specialist can be defeated by physical bonks");
         ball.SendMessage("LateUpdate");
         Check(ball.GetComponentsInChildren<LineRenderer>().Any(r => r.name == "Attack halo" && r.enabled), "attack-ready halo is visible");
         ValidateSpeedTrails(ball);
@@ -235,12 +241,12 @@ public static class OnboardingValidation
                     Click("Back"); Check(ui.TutorialIndex == 3, "guide back"); Click("Next"); Click("Done");
                     Check(ui.Page == CombatPage.Combat && run.IsCombatActive, "Done resumes combat");
                     ValidatePredictablePatrols();
-                    Check(run.WaveCount == 5 && run.BasicMinionsPerWave == 4 && run.CurrentWave.count == 0, "gentle first-wave roster");
+                    Check(run.WaveCount == 2 && run.BasicMinionsPerWave == 10 && run.CurrentWave.count == 3, "first-wave roster");
                     Check(run.MinionRadius >= .49f * run.Placement.Diameter, "wider minion hit area");
                     var settings = new PlayerDizzinessSettings();
                     Check(Mathf.Abs(settings.GainRate(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings) - 10f) < .01f, "dizziness gain halved");
-                    Check(run.IsCombatActive && run.LivingEnemies == 4 && ui.Page == CombatPage.Combat, "start releases locks");
-                    Check(run.LivingEnemyObjects.All(e => e.UsesStraightPatrol) && run.LivingEnemyObjects.Select(e => e.PatrolDirection).Distinct().Count() == 4,
+                    Check(run.IsCombatActive && run.LivingEnemies == 19 && ui.Page == CombatPage.Combat, "start releases locks");
+                    Check(run.LivingEnemyObjects.Where(e => e.IsBasicMinion).All(e => e.UsesStraightPatrol) && run.LivingEnemyObjects.Where(e => e.IsBasicMinion).Select(e => e.PatrolDirection).Distinct().Count() == 4,
                         "first wave gets four distinct readable patrol axes");
                     ui.SendMessage("Update");
                     CheckHud();
@@ -255,19 +261,33 @@ public static class OnboardingValidation
                     Check(run.Player.DashUsesRemaining == uses - 1 && !dashButton.enabledSelf
                         && run.Player.DashCooldownRemaining > 0f, "HUD Dash consumes a use and starts cooldown");
                     var dashUses = Root.Q("dash-uses");
-                    Check(dashUses.Children().Count(indicator => indicator.ClassListContains("dash-use-spent")) == 1,
+                    Check(dashUses.Children().Count(indicator =>
+                        indicator.Q(className: "orb-progress").style.height.value.value == 0f) == 1,
                         "Dash empties one circle without removing its slot");
                     Check(!Root.Q<Label>("dash-status").text.Contains("/"), "Dash status has no numeric use counter");
                     run.Player.ResetDashForRun();
                     run.Player.ToggleForm();
-                    Check(PinCount() == 5, "player and all starting minions have visible map pins");
+                    Check(PinCount() == 20, "player and all starting minions have visible map pins");
                     run.DropRandom = () => .99d;
                     Check(run.TryFindMinionSpawn(out Vector3 childPoint), "safe reinforcement location");
                     var child = run.SpawnMinion(childPoint); Check(child.UsesStraightPatrol, "reinforcements use predictable patrols"); ui.SendMessage("Update");
-                    Check(PinCount() == 6, "spawned minion appears on map immediately");
+                    Check(PinCount() == 21, "spawned minion appears on map immediately");
                     child.TryHitFromBall(run.Player.SpeedSettings.SmallEnemyKillSpeed, run.Player.SpeedSettings);
                     ui.SendMessage("Update");
-                    Check(PinCount() == 5, "defeated reinforcement leaves map");
+                    Check(PinCount() == 20, "defeated reinforcement leaves map");
+                    var pillar = UnityEngine.Object.FindObjectsByType<TopplingPillar>(FindObjectsSortMode.None)
+                        .OrderBy(p => p.transform.position.x).First();
+                    Vector3 upright = pillar.transform.position;
+                    var crushTarget = run.SpawnMinion(new Vector3(upright.x + 3f, run.Placement.Floor.bounds.max.y, upright.z));
+                    Physics.SyncTransforms();
+                    pillar.TryTopple(run, Vector3.left);
+                    Field(pillar, "progress", .999f);
+                    pillar.SendMessage("Update");
+                    Check(pillar.transform.position.x > upright.x && Mathf.Abs(pillar.transform.up.y) < .001f
+                        && crushTarget.IsDefeated, "pillar falls away from the struck face and crushes a target");
+                    pillar.ResetPillar();
+                    Physics.SyncTransforms();
+                    Check(pillar.transform.position == upright, "pillar resets upright");
                     ValidatePinballAssistance();
                     Check(Mathf.Abs(run.Player.DizzinessSettings.GainRate(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings) - 10f) < .01f, "scene dizziness gain halved");
                     run.Health.TryDamageFrom(run.Player.ActivePosition - Vector3.right);
@@ -293,20 +313,21 @@ public static class OnboardingValidation
                     run.Scoring.RegisterBounce(Time.time); run.Scoring.RecordKill(false, Time.time);
                     run.Scoring.RegisterBounce(Time.time); run.Scoring.RecordKill(false, Time.time);
                     ui.SendMessage("Update");
-                    Check(run.Scoring.ImpactCharges == 2 && Root.Q("dash-uses").Children().All(indicator => !indicator.ClassListContains("dash-use-spent")),
+                    Check(run.Scoring.ImpactCharges == 2 && Root.Q("dash-uses").Children().All(indicator =>
+                        indicator.Q(className: "orb-progress").style.height.value.value == 100f),
                         "earning Impact charges does not affect Dash circles");
                     Property(run.Player, "DizzinessPhase", PlayerDizzinessPhase.Normal); run.Health.ResetHealth();
                     Property(run, "TimeRemaining", 0f); Wait(3); break;
                 case 3:
-                    Check(ui.Page == CombatPage.Results && run.Result.reason == WaveFailureReason.Timeout && run.Result.enemiesRemaining == 4, "timeout snapshot");
-                    Check(HasText("Time ran out — 4 enemies remained"), "explicit timeout reason");
+                    Check(ui.Page == CombatPage.Results && run.Result.reason == WaveFailureReason.Timeout && run.Result.enemiesRemaining == 19, "timeout snapshot");
+                    Check(HasText("Time ran out — 19 enemies remained"), "explicit timeout reason");
                     Click("Retry Wave"); Check(ui.Page == CombatPage.Combat && run.Health.Current == 100 && run.IsCombatActive, "retry bypasses tutorial");
                     KillAll(); Wait(4); break;
                 case 4:
                     Check(run.State == EnemyWaveState.Cleared && ui.Page == CombatPage.Results, "clear results");
                     Click("Next Wave");
                     Check(ui.Page == CombatPage.Combat && run.IsCombatActive && run.WaveIndex == 1
-                        && run.LivingEnemyObjects.Any(e => e.GetComponent<SpawnerEnemy>() != null), "next wave starts immediately with its specialist");
+                        && run.LivingEnemies == 29 && run.LivingEnemyObjects.Count(e => e.GetComponent<NetShooterEnemy>() != null) == 5, "second wave starts with 29 enemies including five net shooters");
                     run.Health.TryDamage(1000); Wait(5); break;
                 case 5:
                     Check(run.Result.reason == WaveFailureReason.HealthDepleted && HasText("Health reached zero"), "explicit death reason");
@@ -317,7 +338,7 @@ public static class OnboardingValidation
                     run.RestartRun();
                     Field(run, "<WaveIndex>k__BackingField", run.WaveCount - 1);
                     run.StartWave();
-                    Check(run.LivingEnemyObjects.Select(EnemyPresentationProfile.Kind).Distinct().Count() == 4, "mixed wave has all four enemy types");
+                    Check(run.LivingEnemyObjects.Select(EnemyPresentationProfile.Kind).Distinct().Count() == 5, "second wave has five enemy types");
                     KillAll(); Wait(6); break;
                 case 6:
                     Check(ui.Page == CombatPage.Results && run.State == EnemyWaveState.Victory, "victory screen");

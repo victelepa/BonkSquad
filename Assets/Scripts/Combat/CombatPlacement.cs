@@ -50,6 +50,52 @@ public sealed class CombatPlacement : MonoBehaviour
         return true;
     }
 
+    public bool TryOpeningPositions(Vector2[] anchors, int specialistCount, int minionCount, Vector3 playerStart,
+        float radius, float height, float minionRadius, float minionHeight, System.Random random,
+        out List<Vector3> specialists, out List<Vector3> minions)
+    {
+        specialists = new List<Vector3>();
+        minions = new List<Vector3>();
+        if (anchors.Length != specialistCount + minionCount) return false;
+
+        if (PlaceOpeningPositions(anchors, specialistCount, playerStart, radius, height, minionRadius,
+            minionHeight, random, specialists, minions) < 0) return true;
+        specialists.Clear();
+        minions.Clear();
+        int blocked = PlaceOpeningPositions(anchors, specialistCount, playerStart, radius, height, minionRadius,
+            minionHeight, null, specialists, minions);
+        if (blocked < 0) return true;
+        Debug.LogWarning($"Opening spawn {blocked + 1} at {anchors[blocked]} is blocked.", this);
+        return false;
+    }
+
+    private int PlaceOpeningPositions(Vector2[] anchors, int specialistCount, Vector3 playerStart,
+        float radius, float height, float minionRadius, float minionHeight, System.Random random,
+        List<Vector3> specialists, List<Vector3> minions)
+    {
+        for (int i = 0; i < anchors.Length; i++)
+        {
+            Vector2 anchor = anchors[i];
+            bool placed = false;
+            int attempts = random == null ? 1 : 9;
+            for (int attempt = 0; attempt < attempts && !placed; attempt++)
+            {
+                // Try small offsets first. Each authored anchor is the final fallback.
+                float x = attempt == attempts - 1 ? 0f : (float)(random.NextDouble() - .5) * Diameter;
+                float z = attempt == attempts - 1 ? 0f : (float)(random.NextDouble() - .5) * Diameter;
+                Vector3 point = new Vector3(anchor.x + x, arenaFloor.bounds.max.y, anchor.y + z);
+                if (i < specialistCount)
+                {
+                    placed = ValidWavePoint(point, playerStart, radius, height, specialists);
+                    if (placed) specialists.Add(point);
+                }
+                else placed = TryMinionPoint(point, playerStart, specialists, minionRadius, minionHeight, minions);
+            }
+            if (!placed) return i;
+        }
+        return -1;
+    }
+
     public bool TryWavePositions(int count, Vector3 playerStart, float radius, float height,
         System.Random random, out List<Vector3> positions)
     {
