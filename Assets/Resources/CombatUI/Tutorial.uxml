@@ -4,9 +4,16 @@
     <ui:Template name="input-hints" src="InputHints.uxml" />
     <ui:VisualElement class="screen" picking-mode="Ignore">
         <ui:Button name="tutorial-exit" text="Main Menu" class="help-button" />
-        <ui:Instance template="dash" class="tutorial-dash" picking-mode="Ignore" />
+        <ui:VisualElement class="player-status" picking-mode="Ignore">
+            <ui:Instance template="dash" class="combat-dash" picking-mode="Ignore" />
+            <ui:VisualElement name="dash-uses" class="meter-row dash-uses hidden" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:VisualElement name="tutorial-demo" class="tutorial-demo panel hidden" picking-mode="Ignore">
+            <ui:VisualElement name="tutorial-demo-frame" class="tutorial-demo-frame" picking-mode="Ignore" />
+            <ui:Label name="tutorial-demo-caption" class="tutorial-demo-caption" picking-mode="Ignore" />
+        </ui:VisualElement>
         <ui:VisualElement class="tutorial-card panel" picking-mode="Ignore">
-            <ui:Label name="tutorial-progress" text="Practice  1 / 5" class="eyebrow" picking-mode="Ignore" />
+            <ui:Label name="tutorial-progress" text="Practice  1 / 7" class="eyebrow" picking-mode="Ignore" />
             <ui:VisualElement name="tutorial-stages" picking-mode="Ignore">
                 <ui:VisualElement name="move" picking-mode="Ignore">
                     <ui:Label text="Move and build speed" class="tutorial-title" />
@@ -16,6 +23,16 @@
                 <ui:VisualElement name="bounce" class="hidden" picking-mode="Ignore">
                     <ui:Label text="Bounce off a wall" class="tutorial-title" />
                     <ui:Label text="Roll into a wall. The wall reflects your direction so you can keep moving after the bounce." class="tutorial-copy" />
+                </ui:VisualElement>
+                <ui:VisualElement name="low-speed-hit" class="hidden" picking-mode="Ignore">
+                    <ui:Label text="Bounce off an enemy" class="tutorial-title" />
+                    <ui:Label text="Roll slowly into the small enemy. Below its speed threshold, the hit deals no damage and the ball bounces back. Switch to robot form to slow down if needed." class="tutorial-copy" />
+                    <ui:Instance template="input-hints" class="input-hints show-form" picking-mode="Ignore" />
+                </ui:VisualElement>
+                <ui:VisualElement name="high-speed-hit" class="hidden" picking-mode="Ignore">
+                    <ui:Label text="Break through an enemy" class="tutorial-title" />
+                    <ui:Label text="Build speed until the Cosmos trail appears, then hit the small enemy. The ball defeats it in one hit and rolls through." class="tutorial-copy" />
+                    <ui:Label name="enemy-trail-hints" text="Cosmos or Dark for small enemies. Large enemies need the faster Dark trail." class="tutorial-copy practice-trail-hints" />
                 </ui:VisualElement>
                 <ui:VisualElement name="stun" class="hidden" picking-mode="Ignore">
                     <ui:Label text="Experience dizziness" class="tutorial-title" />
@@ -32,7 +49,7 @@
                 </ui:VisualElement>
                 <ui:VisualElement name="dash" class="hidden" picking-mode="Ignore">
                     <ui:Label text="Try a Dash" class="tutorial-title" />
-                    <ui:Label text="Switch to ball form and land a Dash hit on an enemy. If you miss, try again after the cooldown. Uses refill here." class="tutorial-copy" />
+                    <ui:Label text="Dash into an enemy before bouncing off a wall. If you miss, try again after the cooldown. Uses refill here." class="tutorial-copy" />
                     <ui:Instance template="input-hints" class="input-hints show-form show-dash" picking-mode="Ignore" />
                 </ui:VisualElement>
                 <ui:VisualElement name="complete" class="hidden" picking-mode="Ignore">
@@ -46,8 +63,9 @@
                 <ui:VisualElement class="practice-track" picking-mode="Ignore">
                     <ui:VisualElement name="practice-fill" class="practice-fill" picking-mode="Ignore" />
                 </ui:VisualElement>
-                <ui:Label name="dizziness-countdown" text="Warning: 3.0s" class="practice-countdown hidden" picking-mode="Ignore" />
+                <ui:Label name="dizziness-countdown" text="Warning" class="practice-countdown hidden" picking-mode="Ignore" />
             </ui:VisualElement>
+            <ui:Label name="practice-completed" text="✓" class="practice-completed hidden" picking-mode="Ignore" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

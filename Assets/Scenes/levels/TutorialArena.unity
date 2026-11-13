@@ -1470,24 +1470,24 @@ MonoBehaviour:
     accelerationAngleTolerance: 30
   dizzinessSettings:
     maximumDizziness: 150
-    useSmallEnemyKillSpeed: 0
-    highSpeedThreshold: 5
+    useSmallEnemyKillSpeed: 1
+    highSpeedThreshold: 8
     gainRateBySpeed:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 36
+        value: 8
         inSlope: 0
-        outSlope: 22
+        outSlope: 0
         tangentMode: 0
         weightedMode: 0
         inWeight: 0
         outWeight: 0
       - serializedVersion: 3
         time: 1
-        value: 58
-        inSlope: 22
+        value: 20
+        inSlope: 0
         outSlope: 0
         tangentMode: 0
         weightedMode: 0
@@ -1496,11 +1496,11 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    buildupDurationMultiplier: 1
+    buildupDurationMultiplier: 2
     ballLowSpeedRecovery: 5
-    robotRecovery: 65
-    warningDuration: 3
-    stunDuration: 1.6
+    robotRecovery: 25
+    warningDuration: 2.5
+    stunDuration: 3.5
   knockbackStrength: 6
   knockbackRecoverySeconds: 0.2
   dashUsesPerRun: 4

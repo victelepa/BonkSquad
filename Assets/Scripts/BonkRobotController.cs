@@ -39,6 +39,7 @@ public class BonkRobotController : MonoBehaviour
     public int DashUsesPerRun => dashUsesPerRun;
     public int DashUsesRemaining => dashUsesRemaining;
     public float DashCooldownRemaining => Mathf.Max(0f, nextDashReadyTime - Time.time);
+    internal bool DashEnabled { get; set; } = true;
     public bool CanDash => DashAllowedByState && TryFindDashDirection(out _);
 
     public readonly struct DashCheckpoint
@@ -68,7 +69,7 @@ public class BonkRobotController : MonoBehaviour
         nextDashReadyTime = Time.time + Mathf.Max(0f, checkpoint.cooldownRemaining);
     }
 
-    private bool DashAllowedByState => isActiveAndEnabled && IsBallForm && CanAcceptPlayerInput &&
+    private bool DashAllowedByState => DashEnabled && isActiveAndEnabled && IsBallForm && CanAcceptPlayerInput &&
         (encounter == null || encounter.IsCombatActive) && dashUsesRemaining > 0 && DashCooldownRemaining <= 0f;
 
     private bool TryFindDashDirection(out Vector3 direction)

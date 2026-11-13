@@ -32,6 +32,7 @@ public class BouncingBallController : MonoBehaviour
     public float WallBoostFlashUntil => boostFlashUntil;
     public event System.Action WallBounced;
     public event System.Action<EnemyBumper> DashHitEnemy;
+    public event System.Action<EnemyBumper, EnemyHitResult> EnemyImpact;
 
     private Rigidbody rb;
     private Transform cameraTransform;
@@ -302,6 +303,7 @@ public class BouncingBallController : MonoBehaviour
         EnemyBumper enemy =
             collision.collider.GetComponentInParent<EnemyBumper>();
 
+        bool rejectedHit = false;
         if (enemy != null)
         {
             if (!resolvedEnemies.Add(enemy)) return;
@@ -316,9 +318,11 @@ public class BouncingBallController : MonoBehaviour
                 EnemyHitResult hit = enemy.Encounter != null
                     ? enemy.Encounter.TryBonk(enemy, simulationVelocity.magnitude, SpeedSettings)
                     : enemy.TryHitFromBall(simulationVelocity.magnitude, SpeedSettings);
+                rejectedHit = hit == EnemyHitResult.Rejected;
                 if (hit == EnemyHitResult.Defeated)
                 {
                     SetPlanarVelocity(simulationVelocity);
+                    EnemyImpact?.Invoke(enemy, hit);
                     return;
                 }
             }
@@ -356,6 +360,7 @@ public class BouncingBallController : MonoBehaviour
         }
         if (enemy != null || simulationVelocity.sqrMagnitude > 0f)
             SetPlanarVelocity(simulationVelocity);
+        if (rejectedHit && reflected) EnemyImpact?.Invoke(enemy, EnemyHitResult.Rejected);
     }
 
     // Called only for a newly separated, meaningful wall contact, never for enemy hits or floor contact.

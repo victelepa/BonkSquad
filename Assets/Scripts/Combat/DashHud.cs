@@ -18,14 +18,14 @@ internal sealed class DashHud
         button = panel.Q<Button>("dash-button");
         status = panel.Q<Label>("dash-status");
         useIndicators = root.Q("dash-uses");
-        if (useIndicators != null)
-            useIndicatorTemplate = Resources.Load<VisualTreeAsset>("CombatUI/DashUse");
+        useIndicatorTemplate = Resources.Load<VisualTreeAsset>("CombatUI/DashUse");
         button.clicked += () => player.TryUseDash();
     }
 
     public void Refresh(bool visible)
     {
         panel.EnableInClassList("hidden", !visible);
+        useIndicators.EnableInClassList("hidden", !visible);
         if (!visible) return;
 
         int remaining = player.DashUsesRemaining;
@@ -37,8 +37,8 @@ internal sealed class DashHud
             : !player.IsBallForm ? "Ball only"
             : cooldown > 0f ? $"{cooldown:0.0}s"
             : ready ? "Ready" : "No target";
-        status.text = useIndicators == null ? $"{remaining}/{player.DashUsesPerRun}  ·  {state}" : state;
-        if (useIndicators != null) RefreshUseIndicators(remaining);
+        status.text = state;
+        RefreshUseIndicators(remaining);
     }
 
     private void RefreshUseIndicators(int remaining)

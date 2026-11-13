@@ -25,6 +25,8 @@ public static class OnboardingValidation
     private static Vector3 practiceDashStart;
     private static float practiceDashAttemptedAt;
     private static EnemyBumper practiceDashTarget;
+    private static EnemyBumper collisionTarget;
+    private static float completionObservedAt;
     private static int stage, frames;
     private static double waitUntil, deadline;
     private static float timer, hitTime, stunTime, dizziness, gameTime;
@@ -203,7 +205,7 @@ public static class OnboardingValidation
         if (!EditorApplication.isPlaying || EditorApplication.isCompiling) return;
         try
         {
-            if (deadline == 0) deadline = EditorApplication.timeSinceStartup + 60;
+            if (deadline == 0) deadline = EditorApplication.timeSinceStartup + 120;
             if (EditorApplication.timeSinceStartup >= deadline)
                 Check(false, $"timeout at stage {stage}; practice speed={practicePlayer?.CurrentSpeed:0.00}, ball={practicePlayer?.IsBallForm}, W={practiceKeyboard?.wKey.isPressed}");
             if (stage >= 7) { TickPractice(); return; }
@@ -345,7 +347,7 @@ public static class OnboardingValidation
 
     private static void TickPractice()
     {
-        if (stage == 22)
+        if (stage == 27)
         {
             if (SceneManager.GetActiveScene().name != "Map01_RefractionArena") return;
             var arena = UnityEngine.Object.FindFirstObjectByType<CombatPresentation>();
@@ -369,7 +371,7 @@ public static class OnboardingValidation
         {
             case 7:
                 Check(Visible(root.Q("move")), "tutorial starts on movement");
-                if (!CheckTutorialKeycaps(root.Q("move"), "Space", "W", "A", "S", "D", "↑", "←", "↓", "→")) return;
+                if (!CheckTutorialKeycaps(root.Q("move"), "Space", "W", "A", "S", "D")) return;
                 practiceTrails = SpeedTrails(practicePlayer.GetComponentInChildren<BouncingBallController>(true));
                 var pad = GameObject.Find("Directional Boost Pad").GetComponentInChildren<MeshRenderer>().bounds;
                 var floorCollider = GameObject.Find("Arena Floor").GetComponent<Collider>();
@@ -387,36 +389,91 @@ public static class OnboardingValidation
                 Press(Key.Space, Key.W);
                 stage++; break;
             case 8:
-                if (!Visible(root.Q("bounce"))) return;
-                Check(practicePlayer.IsBallForm, "Space and W advance ball acceleration lesson");
-                Press(Key.W);
+                if (!Visible(root.Q("practice-completed"))) return;
+                Check(Visible(root.Q("move")) && practicePlayer.CanAcceptPlayerInput && Time.timeScale > 0f,
+                    "movement completion keeps the current lesson visible and leaves controls active");
+                completionObservedAt = Time.unscaledTime;
                 stage++; break;
             case 9:
-                if (!Visible(root.Q("stun"))) return;
+                if (!Visible(root.Q("bounce"))) return;
+                Check(Time.unscaledTime - completionObservedAt >= 4.9f && !Visible(root.Q("practice-completed")),
+                    "the next lesson opens after the five-second checkmark");
+                Check(practicePlayer.IsBallForm, "Space and W advance ball acceleration lesson");
+                practicePlayer.ResetForEncounter(new Vector3(0f, .5f, 0f), Quaternion.identity);
+                practicePlayer.ToggleForm();
+                Press(Key.W);
+                stage++; break;
+            case 10:
+                if (!Visible(root.Q("bounce")) || !Visible(root.Q("practice-completed"))) return;
                 Check(practicePlayer.CurrentPlanarVelocity.z < 0, "wall collision reflected the ball");
                 var body = practicePlayer.GetComponentInChildren<BouncingBallController>().GetComponent<Rigidbody>();
                 Check(Mathf.Abs(body.linearVelocity.y) < .2f, "ball rolls on the ground after hitting the wall");
                 Press();
                 stage++; break;
-            case 10:
+            case 11:
+                if (!Visible(root.Q("low-speed-hit"))) return;
+                var demo = root.Q("tutorial-demo");
+                var demoFrame = demo.Q<Image>();
+                if (demoFrame.image == null || demo.Q<Label>("tutorial-demo-caption").text != "Low-speed bounce") return;
+                Check(Visible(demo) && demoFrame.image.name == "Practice-3-Ice", "the second low-speed clip plays in the demo HUD");
+                collisionTarget = StartCollisionPractice(4f);
+                stage++; break;
+            case 12:
+                if (!Visible(root.Q("practice-completed"))) return;
+                Check(collisionTarget != null && collisionTarget.HitPoints == collisionTarget.MaximumHitPoints
+                    && practicePlayer.CurrentPlanarVelocity.z < 0f, "low-speed contact reflects without damage");
+                stage++; break;
+            case 13:
+                if (!Visible(root.Q("high-speed-hit"))) return;
+                var highSpeedDemo = root.Q("tutorial-demo");
+                if (highSpeedDemo.Q<Label>("tutorial-demo-caption").text != "High-speed breakthrough") return;
+                Check(highSpeedDemo.Q<Image>().image?.name == "Practice-4-Cosmos", "the second high-speed clip plays in the demo HUD");
+                var trailHint = root.Q<Label>("enemy-trail-hints").text;
+                Check(trailHint.Contains("Cosmos or Dark for small enemies") && trailHint.Contains("Large enemies need the faster Dark trail"),
+                    "high-speed practice describes the trails for small and large enemies");
+                StartCollisionPractice(practicePlayer.SpeedSettings.SmallEnemyKillSpeed + 1f);
+                stage++; break;
+            case 14:
+                if (!Visible(root.Q("high-speed-hit")) || !Visible(root.Q("practice-completed"))) return;
+                Check(practicePlayer.CurrentPlanarVelocity.z > 0f
+                    && UnityEngine.Object.FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None).All(enemy => enemy.IsDefeated),
+                    "high-speed contact defeats the target and preserves forward momentum");
+                stage++; break;
+            case 15:
+                if (!Visible(root.Q("stun"))) return;
+                if (practicePlayer.DizzinessPhase == PlayerDizzinessPhase.Normal && practicePlayer.CurrentSpeed < practicePlayer.SpeedSettings.LargeEnemyKillSpeed)
+                    practicePlayer.GetComponentInChildren<BouncingBallController>()
+                        .EnterBallMode(practicePlayer.CurrentPlanarVelocity.normalized * practicePlayer.SpeedSettings.MaximumSpeed);
                 if (!Visible(root.Q("stunned"))) return;
                 Check(!practicePlayer.IsBallForm && !practicePlayer.CanAcceptPlayerInput, "actual stun switches form and locks controls");
                 stage++; break;
-            case 11:
+            case 16:
                 if (!Visible(root.Q("recover")) || !CheckTutorialKeycaps(root.Q("recover"), "Space")) return;
                 Press(Key.Space, Key.W);
                 stage++; break;
-            case 12:
-                if (!practicePlayer.IsBallForm || practicePlayer.DizzinessRatio < .15f) return;
+            case 17:
+                if (!practicePlayer.IsBallForm) return;
+                if (practicePlayer.DizzinessRatio < .15f)
+                {
+                    var direction = practicePlayer.CurrentPlanarVelocity.normalized;
+                    if (direction == Vector3.zero) direction = Vector3.forward;
+                    if (practicePlayer.CurrentSpeed < practicePlayer.SpeedSettings.SmallEnemyKillSpeed)
+                        practicePlayer.GetComponentInChildren<BouncingBallController>()
+                            .EnterBallMode(direction * practicePlayer.SpeedSettings.MaximumSpeed);
+                    return;
+                }
                 Check(practicePlayer.DizzinessPhase == PlayerDizzinessPhase.Normal && !Visible(root.Q("dizziness-countdown")), "partial dizziness does not require the warning countdown");
                 Press(Key.W);
                 stage++; break;
-            case 13:
+            case 18:
                 Press(Key.Space, Key.D);
                 stage++; break;
-            case 14:
-                if (!Visible(root.Q("dash")) || !CheckTutorialKeycaps(root.Q("dash"), "Space", "Q", "Click Dash")) return;
-                Check(!practicePlayer.IsBallForm && practicePlayer.DizzinessPhase == PlayerDizzinessPhase.Normal && practicePlayer.DizzinessValue > 0f, "switching with partial dizziness advances the lesson immediately");
+            case 19:
+                if (!Visible(root.Q("dash")) || !CheckTutorialKeycaps(root.Q("dash"), "Space", "Q")) return;
+                Check(!practicePlayer.IsBallForm && practicePlayer.DizzinessPhase == PlayerDizzinessPhase.Normal, "switching with partial dizziness advances to Dash after the checkmark");
+                Check(root.Q("tutorial-demo").Q<Image>().image?.name == "Practice-7-Dash", "Dash plays its own demo clip");
+                Check(root.Q("dash-uses").childCount == practicePlayer.DashUsesPerRun
+                    && !root.Q<Label>("dash-status").text.Contains("/"), "tutorial Dash HUD uses the arena's circles and status");
                 var enemies = UnityEngine.Object.FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None);
                 Check(enemies.Length == 2 && enemies.Count(e => e.IsSmallEnemy) == 1, "one basic small and one basic large enemy");
                 practiceDashStart = new Vector3(0f, practicePlayer.ActivePosition.y, -5f);
@@ -428,15 +485,15 @@ public static class OnboardingValidation
                 Physics.SyncTransforms();
                 Press();
                 stage++; break;
-            case 15:
+            case 20:
                 Press(Key.Space);
                 stage++; break;
-            case 16:
+            case 21:
                 if (!root.Q<Button>("dash-button").enabledSelf) return;
                 practiceDashAttemptedAt = Time.time;
                 Press(Key.Q);
                 stage++; break;
-            case 17:
+            case 22:
                 if (Time.time - practiceDashAttemptedAt < 1f) return;
                 Check(practicePlayer.DashUsesRemaining == 0 && Visible(root.Q("dash")), "a Dash blocked by the wall does not finish practice");
                 practicePlayer.ResetForEncounter(practiceDashStart, Quaternion.identity);
@@ -445,20 +502,20 @@ public static class OnboardingValidation
                 Physics.SyncTransforms();
                 Press();
                 stage++; break;
-            case 18:
+            case 23:
                 if (practicePlayer.DashUsesRemaining == 0) return;
                 Check(practicePlayer.DashUsesRemaining == practicePlayer.DashUsesPerRun, "practice refills spent Dash uses");
                 Press(Key.Space);
                 stage++; break;
-            case 19:
+            case 24:
                 if (!root.Q<Button>("dash-button").enabledSelf) return;
                 Press(Key.Q);
                 stage++; break;
-            case 20:
+            case 25:
                 if (practicePlayer.DashUsesRemaining == practicePlayer.DashUsesPerRun) return;
                 Check(Visible(root.Q("dash")) && practiceDashTarget != null && !practiceDashTarget.IsDefeated, "releasing Dash alone does not finish practice");
                 stage++; break;
-            case 21:
+            case 26:
                 sawPracticeDashTrail |= practiceTrails[2].Any(trail => trail.emitting);
                 if (!Visible(root.Q("complete"))) return;
                 Check(sawPracticeDashTrail, "tutorial dash plays the high-speed trail before completion");
@@ -467,6 +524,17 @@ public static class OnboardingValidation
                 Submit(root.Q<Button>("tutorial-done"));
                 stage++; break;
         }
+    }
+
+    private static EnemyBumper StartCollisionPractice(float speed)
+    {
+        var target = UnityEngine.Object.FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None).Single();
+        target.transform.position = new Vector3(0f, target.transform.position.y, 0f);
+        practicePlayer.ResetForEncounter(new Vector3(0f, .5f, -2f), Quaternion.identity);
+        practicePlayer.ToggleForm();
+        practicePlayer.GetComponentInChildren<BouncingBallController>().EnterBallMode(Vector3.forward * speed);
+        Physics.SyncTransforms();
+        return target;
     }
 
     private static void Finish(int code)

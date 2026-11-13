@@ -46,7 +46,6 @@ Button:hover, Button:focus { background-color: rgb(37, 87, 112); }
 .map-obstacle { min-width: 1px; min-height: 1px; }
 .dash-panel { align-self: flex-start; width: 174px; padding: 4px; }
 .combat-dash { align-self: flex-start; margin-bottom: 6px; }
-.tutorial-dash { position: absolute; top: 68px; right: 20px; }
 .dash-status { align-self: center; margin: 1px 0 4px 0; font-size: 14px; }
 Button:disabled { background-color: rgb(37, 48, 60); color: rgb(155, 174, 188); }
 .tutorial-card { position: absolute; left: 20px; top: 16px; width: 52%; max-width: 510px; padding: 12px 16px; border-left-width: 4px; border-left-color: rgb(63, 229, 255); }
@@ -67,3 +66,12 @@ Button:disabled { background-color: rgb(37, 48, 60); color: rgb(155, 174, 188); 
 .menu-tutorial { background-color: rgb(26, 48, 67); }
 .practice-countdown { color: rgb(255, 211, 76); font-size: 15px; margin: 0 0 0 10px; -unity-font-style: bold; }
 .guide-control-copy { min-height: 0; margin-bottom: 0; }
+
+.practice-trail-hints { color: rgb(136, 192, 216); margin-top: 6px; }
+.practice-completed { position: absolute; right: 12px; bottom: 7px; color: rgb(98, 255, 153); font-size: 29px; -unity-font-style: bold; }
+.tutorial-card { padding-bottom: 40px; }
+
+.tutorial-demo { position: absolute; left: 20px; bottom: 18px; width: 252px; padding: 6px; }
+.tutorial-demo-frame { width: 240px; height: 135px; overflow: hidden; border-radius: 4px; }
+.tutorial-demo-caption { font-size: 14px; margin: 4px 0 0 0; }
+.tutorial-demo-with-dash { bottom: 145px; }
