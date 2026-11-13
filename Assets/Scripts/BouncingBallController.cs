@@ -43,6 +43,14 @@ public class BouncingBallController : MonoBehaviour
     private readonly HashSet<Collider> contactSurfaces = new HashSet<Collider>();
     public void ConfigureEncounter(EnemyWaveController owner) => encounter = owner;
 
+    public void StopForSnare()
+    {
+        InitializeBody();
+        dashInProgress = false;
+        simulationVelocity = Vector3.zero;
+        SetPlanarVelocity(Vector3.zero);
+    }
+
     private bool isBallMode;
     private bool dashInProgress;
     private float inputTime;
@@ -182,7 +190,7 @@ public class BouncingBallController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (speedSystem != null && speedSystem.IsEncounterLocked)
+        if (speedSystem != null && (speedSystem.IsEncounterLocked || speedSystem.IsSnared))
         {
             SetPlanarVelocity(Vector3.zero);
             simulationVelocity = Vector3.zero;

@@ -393,8 +393,13 @@ public sealed class CombatPresentation : MonoBehaviour
             foreach (CombatHazard hazard in FindObjectsByType<CombatHazard>(FindObjectsSortMode.None))
                 UpdateCue(usedCues++, hazard.transform.position + Vector3.up * run.Placement.Diameter, hazard.WarningLabel, Color.yellow);
             foreach (Transform marker in run.WarningMarkers)
-                if (marker != null && marker.gameObject.activeInHierarchy && marker.name == "Minion incoming")
+            {
+                if (marker == null || !marker.gameObject.activeInHierarchy) continue;
+                if (marker.name == "Minion incoming")
                     UpdateCue(usedCues++, marker.position + Vector3.up * run.Placement.Diameter, "S  MINION INCOMING", Color.green);
+                else if (marker.name == "NET SHOT — DODGE")
+                    UpdateCue(usedCues++, marker.position + Vector3.up * run.Placement.Diameter, "N  NET SHOT — DODGE", Color.cyan);
+            }
         }
         if (hasMap) MapMarker(usedPins++, run.Player.ActivePosition, "player");
         for (int i = usedPins; i < pins.Count; i++) Show(pins[i], false);
@@ -424,7 +429,7 @@ public sealed class CombatPresentation : MonoBehaviour
             combo.style.opacity = Mathf.Clamp01((scoring.FeedbackUntil - Time.time) / .35f);
         }
 
-        playerWarning.text = run.Player.DizzinessPhase switch
+        playerWarning.text = run.Player.IsSnared ? $"NETTED — release in {run.Player.SnareRemaining:0.0}s" : run.Player.DizzinessPhase switch
         {
             PlayerDizzinessPhase.Warning => "Space: robot to recover",
             PlayerDizzinessPhase.Stunned => $"Stunned — recovering  {run.Player.PhaseTimeRemaining:0.0}s",
