@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity Web Player | Project</title>
+    <meta name="build-commit" content="8654eb8">
+    <title>BonkSquad</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
   </head>
@@ -52,12 +53,13 @@
       }
 
       var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/docs.loader.js";
+      var buildVersion = "8654eb8-20261113";
+      var loaderUrl = buildUrl + "/docs.loader.js?v=" + buildVersion;
       var config = {
         arguments: [],
-        dataUrl: buildUrl + "/docs.data.unityweb",
-        frameworkUrl: buildUrl + "/docs.framework.js.unityweb",
-        codeUrl: buildUrl + "/docs.wasm.unityweb",
+        dataUrl: buildUrl + "/docs.data.unityweb?v=" + buildVersion,
+        frameworkUrl: buildUrl + "/docs.framework.js.unityweb?v=" + buildVersion,
+        codeUrl: buildUrl + "/docs.wasm.unityweb?v=" + buildVersion,
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "Project",
