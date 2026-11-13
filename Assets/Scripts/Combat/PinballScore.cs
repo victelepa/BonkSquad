@@ -20,6 +20,8 @@ public sealed class PinballScore
     public event Action<int> DashUsesEarned;
     public int ChainCount { get; private set; }
     public int ChargeThreshold => pointsPerCharge;
+    public int DashThreshold => Mathf.Max(1, pointsPerDashUse);
+    public float DashRecharge01 => Mathf.Clamp01((float)DashProgress / DashThreshold);
     public string Feedback { get; private set; } = "";
     public float FeedbackUntil { get; private set; }
     public float FeedbackStartedAt { get; private set; }
@@ -84,9 +86,8 @@ public sealed class PinballScore
         ImpactCharges += granted;
         if (granted > 0) Feedback += (Feedback.Length > 0 ? " · " : "") + "Impact Charge ready!";
         DashProgress += earned;
-        int dashThreshold = Mathf.Max(1, pointsPerDashUse);
-        int dashUsesEarned = DashProgress / dashThreshold;
-        DashProgress %= dashThreshold;
+        int dashUsesEarned = DashProgress / DashThreshold;
+        DashProgress %= DashThreshold;
         if (dashUsesEarned > 0) DashUsesEarned?.Invoke(dashUsesEarned);
         FeedbackStartedAt = now;
         FeedbackIsReward = Feedback.Length > 0;

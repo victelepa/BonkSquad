@@ -17,8 +17,8 @@
 .heart { background-image: url("HeartTrack.png"); }
 .heart-fill { background-image: url("HeartFill.png"); }
 .orb { width: 31px; height: 31px; margin-right: 8px; background-image: url("OrbTrack.png"); }
-.orb-fill { height: 100%; background-image: url("OrbFill.png"); }
-.dash-use-spent .orb-fill { display: none; }
+.orb-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; overflow: hidden; }
+.orb-fill { position: absolute; left: 0; bottom: 0; width: 31px; height: 31px; background-image: url("OrbFill.png"); }
 .dash-uses { flex-wrap: wrap; }
 .map { position: absolute; bottom: 18px; right: 20px; width: 220px; height: 220px; overflow: hidden; background-color: rgb(31, 47, 61); border-width: 2px; border-color: rgb(100, 119, 136); border-radius: 6px; }
 .map-obstacle { position: absolute; background-color: rgb(100, 119, 136); }

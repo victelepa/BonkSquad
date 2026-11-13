@@ -85,7 +85,7 @@ public sealed class CombatPresentation : MonoBehaviour
         Button("next-wave").clicked += AdvanceWave;
         Button("restart-run").clicked += PlayRun;
 
-        dash = new DashHud(root, run.Player);
+        dash = new DashHud(root, run.Player, run.Scoring);
         BuildMapGeometry();
         ShowMainMenu();
     }
