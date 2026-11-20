@@ -71,6 +71,13 @@ public class BouncingBallController : MonoBehaviour
             ? PlayerMovementMath.Planar(rb.linearVelocity)
             : Vector3.zero;
 
+    // Physics contacts can transiently zero Rigidbody velocity between simulation
+    // callbacks. The controller-owned velocity is the authoritative momentum used
+    // for collision response and must be the value transferred between forms.
+    public Vector3 TransferVelocity => isBallMode && simulationVelocity.sqrMagnitude > .0001f
+        ? PlayerMovementMath.Planar(simulationVelocity)
+        : PlanarVelocity;
+
     public bool AddMomentum(float amount)
     {
         if (!isBallMode || amount <= 0f) return false;

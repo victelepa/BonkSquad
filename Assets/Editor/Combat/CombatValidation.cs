@@ -178,6 +178,10 @@ public static class CombatValidation
                     run.Health.ResetHealth();
                     Check(run.Health.TryDamageFrom(run.Player.ActivePosition) && run.Player.CurrentPlanarVelocity.sqrMagnitude > 0f,
                         "exact-center blast has a nonzero fallback direction");
+                    Vector3 ballMomentum = run.Player.CurrentPlanarVelocity;
+                    run.Player.ToggleForm();
+                    Check(!run.Player.IsBallForm && Vector3.Distance(run.Player.CurrentPlanarVelocity, ballMomentum) < .01f,
+                        "ball-to-robot switch preserves authoritative momentum");
                     run.Player.ResetForEncounter(encounterStart, Quaternion.identity);
                     Check(!run.Player.IsKnockedBack && run.Player.CurrentSpeed == 0, "encounter reset clears knockback");
                     run.Health.ResetHealth();

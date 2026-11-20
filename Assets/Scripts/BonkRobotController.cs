@@ -8,7 +8,7 @@ public class BonkRobotController : MonoBehaviour
     [SerializeField] private PlayerSpeedSettings speedSettings = new PlayerSpeedSettings();
     public PlayerSpeedSettings SpeedSettings => speedSettings;
     public Vector3 CurrentPlanarVelocity => IsBallForm
-        ? (ballController != null ? ballController.PlanarVelocity : Vector3.zero)
+        ? (ballController != null ? ballController.TransferVelocity : Vector3.zero)
         : (standingController != null ? standingController.CurrentPlanarVelocity : Vector3.zero);
     public float CurrentSpeed => CurrentPlanarVelocity.magnitude;
 
@@ -318,7 +318,7 @@ public class BonkRobotController : MonoBehaviour
         else
         {
             Vector3 ballVelocity = ballController != null
-                ? ballController.PlanarVelocity
+                ? ballController.TransferVelocity
                 : Vector3.zero;
             SwitchToRobot(ballVelocity);
             if (DizzinessPhase == PlayerDizzinessPhase.Warning)
