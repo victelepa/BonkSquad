@@ -12,8 +12,11 @@ public sealed class TutorialLevel : MonoBehaviour
     [SerializeField] private BonkRobotController player;
     [SerializeField] private BouncingBallController ball;
     [SerializeField] private EnemyBumper[] practiceTargets;
+    [SerializeField] private GameObject turningGate;
+    [SerializeField] private BoxCollider turningExit;
+    [SerializeField] private GameObject turningGuide;
 
-    private enum Step { Move, Bounce, LowSpeedHit, HighSpeedHit, Stun, Recover, Dash, Complete }
+    private enum Step { Move, Bounce, Turn, LowSpeedHit, HighSpeedHit, Stun, Recover, Dash, Complete }
 
     private Step step;
     private VisualElement root;
@@ -108,6 +111,7 @@ public sealed class TutorialLevel : MonoBehaviour
         step = next;
         demo.Show(next switch
         {
+            Step.Turn => TutorialDemoHud.Sequence.Turn,
             Step.LowSpeedHit => TutorialDemoHud.Sequence.LowSpeed,
             Step.HighSpeedHit => TutorialDemoHud.Sequence.HighSpeed,
             Step.Dash => TutorialDemoHud.Sequence.Dash,
@@ -116,13 +120,15 @@ public sealed class TutorialLevel : MonoBehaviour
         showingCompletion = false;
         Show(completionMark, false);
         player.DashEnabled = step == Step.Dash;
+        turningGate.SetActive((int)step < (int)Step.Turn);
+        turningGuide.SetActive(step == Step.Turn);
         for (int i = 0; i < pages.Length; i++) Show(pages[i], i == (int)step);
         Show(progress, step != Step.Complete);
         progress.text = $"Practice  {(int)step + 1} / {(int)Step.Complete}";
         Show(dizzinessMeter, step == Step.Stun || step == Step.Recover);
 
         ClearPracticeTargets();
-        if (step == Step.LowSpeedHit || step == Step.HighSpeedHit || step == Step.Dash)
+        if (step == Step.Turn || step == Step.LowSpeedHit || step == Step.HighSpeedHit || step == Step.Dash)
         {
             SpawnPracticeTargets();
         }
@@ -184,6 +190,10 @@ public sealed class TutorialLevel : MonoBehaviour
                 break;
             case Step.Stun:
                 UpdateStunPractice();
+                break;
+            case Step.Turn:
+                SpawnPracticeTargets();
+                if (turningExit.bounds.Contains(player.ActivePosition)) CompleteStep();
                 break;
             case Step.Recover:
                 UpdateRecoveryPractice();

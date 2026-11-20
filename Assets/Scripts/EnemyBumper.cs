@@ -80,7 +80,13 @@ public class EnemyBumper : MonoBehaviour
         arenaMax = maximum;
     }
 
-    public void Bind(EnemyWaveController encounter) => Encounter = encounter;
+    public void Bind(EnemyWaveController encounter)
+    {
+        Encounter = encounter;
+        if (encounter == null) return;
+        arenaMin = encounter.Placement.ArenaMin;
+        arenaMax = encounter.Placement.ArenaMax;
+    }
 
     public void ContactPlayer(PlayerHealth health)
     {

@@ -14,6 +14,7 @@ using UnityEngine.SceneManagement;
 public static class OnboardingValidation
 {
     private const string Running = "BonkSquad.OnboardingValidation";
+    private const string PracticeOnly = "BonkSquad.OnboardingValidation.PracticeOnly";
     private static CombatPresentation ui;
     private static EnemyWaveController run;
     private static Keyboard practiceKeyboard;
@@ -27,16 +28,34 @@ public static class OnboardingValidation
     private static EnemyBumper practiceDashTarget;
     private static EnemyBumper collisionTarget;
     private static float completionObservedAt;
+    private static bool practiceStunPrepared;
+    private static int reportedStage = -1;
+    private static int turnWaypoint;
     private static int stage, frames;
     private static double waitUntil, deadline;
     private static float timer, hitTime, stunTime, dizziness, gameTime;
     private static Vector3 position, velocity;
-    static OnboardingValidation() { if (SessionState.GetBool(Running, false)) EditorApplication.update += Tick; }
+    static OnboardingValidation()
+    {
+        if (!SessionState.GetBool(Running, false)) return;
+        if (SessionState.GetBool(PracticeOnly, false)) stage = 7;
+        EditorApplication.update += Tick;
+    }
     [MenuItem("Tools/BonkSquad/Validate Onboarding (Play Mode)")]
     public static void Run()
     {
         EditorSceneManager.OpenScene(Map01CombatSetup.ScenePath);
+        SessionState.SetBool(PracticeOnly, false);
         SessionState.SetBool(Running, true); EditorApplication.EnterPlaymode();
+    }
+
+    [MenuItem("Tools/BonkSquad/Validate Tutorial (Play Mode)")]
+    public static void RunTutorial()
+    {
+        EditorSceneManager.OpenScene("Assets/Scenes/levels/TutorialArena.unity");
+        SessionState.SetBool(PracticeOnly, true);
+        SessionState.SetBool(Running, true);
+        EditorApplication.EnterPlaymode();
     }
     private static void Check(bool value, string message) { if (!value) throw new Exception("ONBOARDING_TEST_FAILED: " + message); }
     private static void Field(object target, string name, object value) => target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(target, value);
@@ -222,9 +241,17 @@ public static class OnboardingValidation
         if (!EditorApplication.isPlaying || EditorApplication.isCompiling) return;
         try
         {
-            if (deadline == 0) deadline = EditorApplication.timeSinceStartup + 120;
+            if (deadline == 0)
+            {
+                deadline = EditorApplication.timeSinceStartup + 180;
+            }
+            if (reportedStage != stage)
+            {
+                Debug.Log($"ONBOARDING_STAGE {stage}: gameTime={Time.time:0.00}, timeScale={Time.timeScale}, dizziness={practicePlayer?.DizzinessValue:0.0}, phase={practicePlayer?.DizzinessPhase}");
+                reportedStage = stage;
+            }
             if (EditorApplication.timeSinceStartup >= deadline)
-                Check(false, $"timeout at stage {stage}; practice speed={practicePlayer?.CurrentSpeed:0.00}, ball={practicePlayer?.IsBallForm}, W={practiceKeyboard?.wKey.isPressed}");
+                Check(false, $"timeout at stage {stage}; gameTime={Time.time:0.00}, timeScale={Time.timeScale}, practice position={practicePlayer?.ActivePosition}, waypoint={turnWaypoint}, speed={practicePlayer?.CurrentSpeed:0.00}, ball={practicePlayer?.IsBallForm}, dizziness={practicePlayer?.DizzinessValue:0.0}, phase={practicePlayer?.DizzinessPhase}");
             if (stage >= 7) { TickPractice(); return; }
             if (ui == null) ui = UnityEngine.Object.FindFirstObjectByType<CombatPresentation>();
             if (ui == null || frames++ < 6) return;
@@ -364,7 +391,11 @@ public static class OnboardingValidation
         }
         catch (Exception exception) { Debug.LogException(exception); Finish(1); }
     }
-    private static void Press(params Key[] keys) => InputSystem.QueueStateEvent(practiceKeyboard, new KeyboardState(keys));
+    private static void Press(params Key[] keys)
+    {
+        practiceKeyboard.MakeCurrent();
+        InputSystem.QueueStateEvent(practiceKeyboard, new KeyboardState(keys));
+    }
 
     private static bool CheckTutorialKeycaps(VisualElement page, params string[] expected)
     {
@@ -388,7 +419,9 @@ public static class OnboardingValidation
             var arena = UnityEngine.Object.FindFirstObjectByType<CombatPresentation>();
             if (arena == null || arena.GetComponentInChildren<UIDocument>() == null) return;
             Check(arena.Page == CombatPage.MainMenu, "tutorial returns to main menu");
-            Debug.Log("ONBOARDING_VALIDATION_OK: arena HUD, Dash, direct waves, and all tutorial steps with real keyboard input and wall collision.");
+            Debug.Log(SessionState.GetBool(PracticeOnly, false)
+                ? "TUTORIAL_VALIDATION_OK: all eight lessons, recorded GIFs, actual movement, collisions, stun, recovery, Dash and menu return."
+                : "ONBOARDING_VALIDATION_OK: arena HUD, Dash, direct waves, and all tutorial steps with real keyboard input and wall collision.");
             Finish(0);
             return;
         }
@@ -408,6 +441,7 @@ public static class OnboardingValidation
                 Check(Visible(root.Q("move")), "tutorial starts on movement");
                 if (!CheckTutorialKeycaps(root.Q("move"), "Space", "W", "A", "S", "D")) return;
                 practiceTrails = SpeedTrails(practicePlayer.GetComponentInChildren<BouncingBallController>(true));
+                ValidateRobotGroundContacts();
                 var pad = GameObject.Find("Directional Boost Pad").GetComponentInChildren<MeshRenderer>().bounds;
                 var floorCollider = GameObject.Find("Arena Floor").GetComponent<Collider>();
                 Check(floorCollider.sharedMaterial == null || floorCollider.sharedMaterial.bounciness == 0f, "tutorial floor is non-bouncy");
@@ -446,6 +480,24 @@ public static class OnboardingValidation
                 Press();
                 stage++; break;
             case 11:
+                if (Visible(root.Q("turn")))
+                {
+                    if (!CheckTutorialKeycaps(root.Q("turn"), "Space", "W", "A", "S", "D")) return;
+                    Check(GameObject.Find("Turning Gate") == null, "turning lesson opens the passage gate");
+                    Check(root.Q("tutorial-demo").Q<Image>().image?.name == "Practice-3-Turn", "turning lesson plays its recorded demo");
+                    if (turnWaypoint == 0)
+                    {
+                        practicePlayer.ResetForEncounter(new Vector3(15f, 1.05f, 0f), Quaternion.LookRotation(Vector3.right));
+                        turnWaypoint = 1;
+                    }
+                    FollowTurnRoute();
+                    if (Visible(root.Q("practice-completed")))
+                    {
+                        Check(practicePlayer.ActivePosition.z >= 18f, "turning lesson completes at the new arena entrance");
+                        Press();
+                    }
+                    return;
+                }
                 if (!Visible(root.Q("low-speed-hit"))) return;
                 var demo = root.Q("tutorial-demo");
                 var demoFrame = demo.Q<Image>();
@@ -476,9 +528,15 @@ public static class OnboardingValidation
                 stage++; break;
             case 15:
                 if (!Visible(root.Q("stun"))) return;
-                if (practicePlayer.DizzinessPhase == PlayerDizzinessPhase.Normal && practicePlayer.CurrentSpeed < practicePlayer.SpeedSettings.LargeEnemyKillSpeed)
+                if (!practiceStunPrepared)
+                {
+                    // Keep the real buildup test in the new arena's clear east/west lane.
+                    practicePlayer.ResetForEncounter(new Vector3(18f, .5f, 32f), Quaternion.LookRotation(Vector3.right));
+                    practicePlayer.ToggleForm();
                     practicePlayer.GetComponentInChildren<BouncingBallController>()
-                        .EnterBallMode(practicePlayer.CurrentPlanarVelocity.normalized * practicePlayer.SpeedSettings.MaximumSpeed);
+                        .EnterBallMode(Vector3.right * practicePlayer.SpeedSettings.MaximumSpeed);
+                    practiceStunPrepared = true;
+                }
                 if (!Visible(root.Q("stunned"))) return;
                 Check(!practicePlayer.IsBallForm && !practicePlayer.CanAcceptPlayerInput, "actual stun switches form and locks controls");
                 stage++; break;
@@ -511,12 +569,12 @@ public static class OnboardingValidation
                     && !root.Q<Label>("dash-status").text.Contains("/"), "tutorial Dash HUD uses the arena's circles and status");
                 var enemies = UnityEngine.Object.FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None);
                 Check(enemies.Length == 2 && enemies.Count(e => e.IsSmallEnemy) == 1, "one basic small and one basic large enemy");
-                practiceDashStart = new Vector3(0f, practicePlayer.ActivePosition.y, -5f);
+                practiceDashStart = new Vector3(18f, practicePlayer.ActivePosition.y, 29f);
                 practicePlayer.ResetForEncounter(practiceDashStart, Quaternion.identity);
                 practicePlayer.RestoreDashCheckpoint(new BonkRobotController.DashCheckpoint(1, 0f));
                 // Put both targets behind the practice wall so the first Dash cannot reach them.
                 for (int i = 0; i < enemies.Length; i++)
-                    enemies[i].transform.position = new Vector3(0f, enemies[i].transform.position.y, 11f + i * 2f);
+                    enemies[i].transform.position = new Vector3(18f, enemies[i].transform.position.y, 43f + i * 2f);
                 Physics.SyncTransforms();
                 Press();
                 stage++; break;
@@ -533,7 +591,7 @@ public static class OnboardingValidation
                 Check(practicePlayer.DashUsesRemaining == 0 && Visible(root.Q("dash")), "a Dash blocked by the wall does not finish practice");
                 practicePlayer.ResetForEncounter(practiceDashStart, Quaternion.identity);
                 practiceDashTarget = UnityEngine.Object.FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None).First(e => e.IsSmallEnemy);
-                practiceDashTarget.transform.position = new Vector3(0f, practiceDashTarget.transform.position.y, 2f);
+                practiceDashTarget.transform.position = new Vector3(18f, practiceDashTarget.transform.position.y, 36f);
                 Physics.SyncTransforms();
                 Press();
                 stage++; break;
@@ -564,12 +622,64 @@ public static class OnboardingValidation
     private static EnemyBumper StartCollisionPractice(float speed)
     {
         var target = UnityEngine.Object.FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None).Single();
-        target.transform.position = new Vector3(0f, target.transform.position.y, 0f);
-        practicePlayer.ResetForEncounter(new Vector3(0f, .5f, -2f), Quaternion.identity);
+        target.transform.position = new Vector3(18f, target.transform.position.y, 25f);
+        practicePlayer.ResetForEncounter(new Vector3(18f, .5f, 23f), Quaternion.identity);
         practicePlayer.ToggleForm();
         practicePlayer.GetComponentInChildren<BouncingBallController>().EnterBallMode(Vector3.forward * speed);
         Physics.SyncTransforms();
         return target;
+    }
+
+    private static void FollowTurnRoute()
+    {
+        Vector3 position = practicePlayer.ActivePosition;
+        Vector3 destination = new Vector3(18f, 0f, 0f);
+        if (turnWaypoint == 1 && position.x >= 17.8f) turnWaypoint = 2;
+        if (turnWaypoint == 2)
+        {
+            float currentAngle = Mathf.Atan2(position.z - 6f, position.x - 18f) * Mathf.Rad2Deg;
+            if (currentAngle >= 29f) turnWaypoint = 3;
+            float angle = Mathf.Min(currentAngle + 6f, 30f);
+            float radius = 6f - .15f * Mathf.Clamp01(1f - Mathf.Abs(angle + 65f) / 20f)
+                + .15f * Mathf.Clamp01(1f - Mathf.Abs(angle + 15f) / 20f);
+            destination = new Vector3(18f + radius * Mathf.Cos(angle * Mathf.Deg2Rad), 0f,
+                6f + radius * Mathf.Sin(angle * Mathf.Deg2Rad));
+        }
+        if (turnWaypoint == 3)
+        {
+            Vector3 start = new Vector3(23.196152f, 0f, 9f);
+            Vector3 end = new Vector3(18f, 0f, 19f);
+            Vector3 direction = (end - start).normalized;
+            float progress = Vector3.Dot(PlayerMovementMath.Planar(position - start), direction);
+            destination = start + direction * Mathf.Clamp(progress + .9f, 0f, Vector3.Distance(start, end));
+        }
+        Vector3 offset = destination - position;
+        var keys = new System.Collections.Generic.List<Key>();
+        if (offset.x > .05f) keys.Add(Key.D);
+        if (offset.x < -.05f) keys.Add(Key.A);
+        if (offset.z > .05f) keys.Add(Key.W);
+        if (offset.z < -.05f) keys.Add(Key.S);
+        Press(keys.ToArray());
+    }
+
+    private static void ValidateRobotGroundContacts()
+    {
+        var robot = practicePlayer.GetComponentInChildren<PlayerController>();
+        Vector3 originalVelocity = robot.CurrentPlanarVelocity;
+        Vector3 velocity = Vector3.forward * practicePlayer.SpeedSettings.MaximumSpeed;
+        robot.EnterStandingMode(velocity);
+        var hit = (ControllerColliderHit)Activator.CreateInstance(typeof(ControllerColliderHit), true);
+        Field(hit, "m_Collider", GameObject.Find("Connected Practice Floor Collision").GetComponent<Collider>());
+        Field(hit, "m_Normal", new Vector3(.02f, 1f, .05f).normalized);
+        robot.SendMessage("OnControllerColliderHit", hit);
+        Check((robot.CurrentPlanarVelocity - velocity).sqrMagnitude < .0001f,
+            "floor edge contact preserves robot movement and inherited speed");
+        Field(hit, "m_Collider", GameObject.Find("Boundary East").GetComponent<Collider>());
+        Field(hit, "m_Normal", Vector3.back);
+        robot.SendMessage("OnControllerColliderHit", hit);
+        Check((robot.CurrentPlanarVelocity + velocity).sqrMagnitude < .0001f,
+            "vertical wall contact still reflects robot movement");
+        robot.EnterStandingMode(originalVelocity);
     }
 
     private static void Finish(int code)
@@ -582,6 +692,7 @@ public static class OnboardingValidation
             UnityEngine.Object.Destroy(testSettings);
         }
         SessionState.SetBool(Running, false); EditorApplication.update -= Tick;
+        SessionState.SetBool(PracticeOnly, false);
         if (Application.isBatchMode) EditorApplication.Exit(code); else EditorApplication.ExitPlaymode();
     }
 }

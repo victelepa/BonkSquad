@@ -13,7 +13,7 @@
             <ui:Label name="tutorial-demo-caption" class="tutorial-demo-caption" picking-mode="Ignore" />
         </ui:VisualElement>
         <ui:VisualElement class="tutorial-card panel" picking-mode="Ignore">
-            <ui:Label name="tutorial-progress" text="Practice  1 / 7" class="eyebrow" picking-mode="Ignore" />
+            <ui:Label name="tutorial-progress" text="Practice  1 / 8" class="eyebrow" picking-mode="Ignore" />
             <ui:VisualElement name="tutorial-stages" picking-mode="Ignore">
                 <ui:VisualElement name="move" picking-mode="Ignore">
                     <ui:Label text="Move and build speed" class="tutorial-title" />
@@ -23,6 +23,11 @@
                 <ui:VisualElement name="bounce" class="hidden" picking-mode="Ignore">
                     <ui:Label text="Bounce off a wall" class="tutorial-title" />
                     <ui:Label text="Roll into a wall. The wall reflects your direction so you can keep moving after the bounce." class="tutorial-copy" />
+                </ui:VisualElement>
+                <ui:VisualElement name="turn" class="hidden" picking-mode="Ignore">
+                    <ui:Label text="Turn in robot form" class="tutorial-title" />
+                    <ui:Label text="The gate is open. Switch to robot form to turn more easily, then follow the curved passage to the enemy." class="tutorial-copy" />
+                    <ui:Instance template="input-hints" class="input-hints show-form show-move" picking-mode="Ignore" />
                 </ui:VisualElement>
                 <ui:VisualElement name="low-speed-hit" class="hidden" picking-mode="Ignore">
                     <ui:Label text="Bounce off an enemy" class="tutorial-title" />
@@ -42,8 +47,8 @@
                 </ui:VisualElement>
                 <ui:VisualElement name="recover" class="hidden" picking-mode="Ignore">
                     <ui:Label text="Recover in robot form" class="tutorial-title" />
-                    <ui:Label name="recover-build" text="Build up some dizziness in ball form, then switch back to robot form to move on. Robot form turns more easily and clears dizziness quickly." class="tutorial-copy" />
-                    <ui:Label name="recover-switch" text="Switch to robot form before the countdown ends. Robot form turns more easily and clears dizziness quickly." class="tutorial-copy hidden" />
+                    <ui:Label name="recover-build" text="Build up some dizziness in ball form, then switch back to robot form to move on. Robot form clears dizziness quickly." class="tutorial-copy" />
+                    <ui:Label name="recover-switch" text="Switch to robot form before the countdown ends. Robot form clears dizziness quickly." class="tutorial-copy hidden" />
                     <ui:Label name="recover-missed" text="The warning ran out. When you can move again, build up some dizziness and switch back to robot form yourself." class="tutorial-copy hidden" />
                     <ui:Instance template="input-hints" class="input-hints show-form" picking-mode="Ignore" />
                 </ui:VisualElement>

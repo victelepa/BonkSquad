@@ -153,6 +153,9 @@ public class PlayerController : MonoBehaviour
     {
         if (controlLocked && (speedSystem == null || !speedSystem.IsKnockedBack)) return;
         hit.collider.GetComponentInParent<EnemyBumper>()?.ContactPlayer(GetComponentInParent<PlayerHealth>());
+        // Mesh-floor contacts can have small sideways normals at triangle edges.
+        // Walkable ground must not reflect momentum as if the robot hit a wall.
+        if (hit.normal.y > 0f && hit.normal.y >= Mathf.Cos(controller.slopeLimit * Mathf.Deg2Rad)) return;
         Vector3 normal = PlayerMovementMath.Planar(hit.normal);
         if (normal.sqrMagnitude < 0.0001f || Vector3.Dot(planarVelocity, normal) >= 0f) return;
         // CharacterController can report several contacts during one Move. Resolve

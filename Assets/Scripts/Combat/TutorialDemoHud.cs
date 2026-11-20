@@ -3,7 +3,7 @@ using UnityEngine.UIElements;
 
 internal sealed class TutorialDemoHud
 {
-    public enum Sequence { None, LowSpeed, HighSpeed, Dash }
+    public enum Sequence { None, Turn, LowSpeed, HighSpeed, Dash }
 
     private readonly VisualElement panel;
     private readonly Label caption;
@@ -36,6 +36,7 @@ internal sealed class TutorialDemoHud
 
         string name = next switch
         {
+            Sequence.Turn => "Practice-3-Turn",
             Sequence.LowSpeed => "Practice-3-Ice",
             Sequence.HighSpeed => "Practice-4-Cosmos",
             _ => "Practice-7-Dash"
@@ -71,6 +72,7 @@ internal sealed class TutorialDemoHud
         bool secondClip = frame >= gif.Frames.Length / 2;
         caption.text = sequence switch
         {
+            Sequence.Turn => "Switch to robot form to turn",
             Sequence.LowSpeed => secondClip ? "Low-speed bounce" : "Ice trail",
             Sequence.HighSpeed => secondClip ? "High-speed breakthrough" : "Cosmos trail",
             _ => "Dash toward an enemy"
