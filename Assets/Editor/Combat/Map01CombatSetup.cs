@@ -264,14 +264,109 @@ public static class Map01CombatSetup
                     new EnemyWaveController.EnemyGroup { prefab = layer, count = 4 },
                     new EnemyWaveController.EnemyGroup { prefab = spawner, count = 2 }
                 }
+            },
+            new EnemyWaveController.WaveDefinition
+            {
+                title = "Crossfire maze", prefab = spawner, count = 3, basicMinions = 20,
+                minionSpeedInDiameters = 1.6f, seconds = 115f,
+                additionalGroups = new[]
+                {
+                    new EnemyWaveController.EnemyGroup { prefab = runner, count = 5 },
+                    new EnemyWaveController.EnemyGroup { prefab = net, count = 5 },
+                    new EnemyWaveController.EnemyGroup { prefab = mortar, count = 5 },
+                    new EnemyWaveController.EnemyGroup { prefab = layer, count = 4 }
+                }
+            },
+            new EnemyWaveController.WaveDefinition
+            {
+                title = "Pinwheel siege", prefab = mortar, count = 6, basicMinions = 22,
+                minionSpeedInDiameters = 1.75f, seconds = 100f,
+                additionalGroups = new[]
+                {
+                    new EnemyWaveController.EnemyGroup { prefab = runner, count = 7 },
+                    new EnemyWaveController.EnemyGroup { prefab = net, count = 6 },
+                    new EnemyWaveController.EnemyGroup { prefab = layer, count = 5 },
+                    new EnemyWaveController.EnemyGroup { prefab = spawner, count = 3 }
+                }
             }
         }).ToArray();
         field.SetValue(run, waves);
+        WaveArenaLayoutController layoutController = InstallWaveLayouts(run);
+        var placementData = new SerializedObject(run.Placement);
+        placementData.FindProperty("randomAttempts").intValue = 800;
+        placementData.ApplyModifiedPropertiesWithoutUndo();
+        ValidateWaveLayouts(run, layoutController, waves);
         EditorUtility.SetDirty(run);
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
-        Debug.Log("ESCALATING_WAVES_OK: four waves, visible runner acceleration, shorter timers and pressure movement.");
+        Debug.Log("ESCALATING_WAVES_OK: six waves, six obstacle layouts, shorter timers and escalating pressure movement.");
+    }
+
+    private static WaveArenaLayoutController InstallWaveLayouts(EnemyWaveController run)
+    {
+        WaveArenaLayoutController oldController = run.GetComponent<WaveArenaLayoutController>();
+        if (oldController != null) UnityEngine.Object.DestroyImmediate(oldController);
+        Transform oldRoot = run.transform.Find("Wave Layout Obstacles");
+        if (oldRoot != null) UnityEngine.Object.DestroyImmediate(oldRoot.gameObject);
+
+        Material steel = Material("Arena Modular Steel", new Color(.36f, .4f, .46f));
+        var root = new GameObject("Wave Layout Obstacles").transform;
+        root.SetParent(run.transform, false);
+        var blocks = new Transform[8];
+        for (int i = 0; i < blocks.Length; i++)
+        {
+            GameObject block = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            block.name = "Layout block " + (i + 1);
+            block.transform.SetParent(root, false);
+            block.GetComponent<MeshRenderer>().sharedMaterial = steel;
+            blocks[i] = block.transform;
+            block.SetActive(false);
+        }
+
+        WaveArenaLayoutController.ArenaLayout Layout(string name, params WaveArenaLayoutController.BlockPose[] poses)
+            => new WaveArenaLayoutController.ArenaLayout { name = name, blocks = poses };
+        WaveArenaLayoutController.BlockPose B(float x, float z, float width, float depth, float yaw = 0f)
+            => new WaveArenaLayoutController.BlockPose(x, z, width, depth, yaw);
+
+        var layouts = new[]
+        {
+            Layout("Split gates", B(-12, 9, 9, 1.4f), B(12, -9, 9, 1.4f), B(-18, -15, 1.4f, 7), B(18, 15, 1.4f, 7)),
+            Layout("Slalom", B(-18, -10, 1.4f, 8), B(-7, 10, 1.4f, 8), B(7, -10, 1.4f, 8), B(18, 10, 1.4f, 8)),
+            Layout("Diamond lanes", B(-11, 11, 8, 1.3f, 45), B(11, 11, 8, 1.3f, -45), B(-11, -11, 8, 1.3f, -45), B(11, -11, 8, 1.3f, 45)),
+            Layout("Crossfire", B(0, 16, 11, 1.3f), B(0, -16, 11, 1.3f), B(-16, 0, 1.3f, 11), B(16, 0, 1.3f, 11), B(-20, 20, 5, 1.2f, 45), B(20, -20, 5, 1.2f, 45)),
+            Layout("Corner traps", B(-18, 18, 7, 1.3f, 45), B(18, 18, 7, 1.3f, -45), B(-18, -18, 7, 1.3f, -45), B(18, -18, 7, 1.3f, 45), B(-10, 0, 5, 1.2f), B(10, 0, 5, 1.2f)),
+            Layout("Pinwheel", B(-8, 5, 9, 1.3f, 25), B(8, -5, 9, 1.3f, 25), B(-5, -8, 1.3f, 9, 25), B(5, 8, 1.3f, 9, 25), B(-19, 0, 1.2f, 6), B(19, 0, 1.2f, 6))
+        };
+        var controller = run.gameObject.AddComponent<WaveArenaLayoutController>();
+        controller.Configure(run, blocks, layouts);
+        EditorUtility.SetDirty(controller);
+        return controller;
+    }
+
+    private static void ValidateWaveLayouts(EnemyWaveController run, WaveArenaLayoutController controller,
+        EnemyWaveController.WaveDefinition[] waves)
+    {
+        for (int waveIndex = 0; waveIndex < waves.Length; waveIndex++)
+        {
+            controller.ApplyLayout(waveIndex);
+            List<EnemyBumper> roster = waves[waveIndex].SpawnList();
+            float radius = 0f, height = 0f;
+            foreach (EnemyBumper prefab in roster)
+            {
+                CapsuleCollider shape = prefab.GetComponent<CapsuleCollider>();
+                radius = Mathf.Max(radius, shape.radius);
+                height = Mathf.Max(height, shape.height);
+            }
+            var random = new System.Random(4700 + waveIndex);
+            if (!run.Placement.TryWavePositions(roster.Count, run.Player.ActivePosition, radius, height,
+                    random, out List<Vector3> specialists) ||
+                !run.Placement.TryDistributedMinions(waves[waveIndex].basicMinions,
+                    run.Player.ActivePosition, specialists, run.MinionRadius, run.MinionHeight,
+                    random, out List<Vector3> minions))
+                throw new InvalidOperationException($"Wave {waveIndex + 1} layout '{controller.CurrentLayoutName}' has insufficient safe spawn space.");
+        }
+        controller.ApplyLayout(0);
     }
 
     [MenuItem("Tools/BonkSquad/Apply Enemy Visual Language")]

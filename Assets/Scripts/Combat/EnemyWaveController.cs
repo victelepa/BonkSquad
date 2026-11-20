@@ -80,6 +80,7 @@ public sealed class EnemyWaveController : MonoBehaviour
     private readonly HashSet<EnemyBumper> enemies = new HashSet<EnemyBumper>();
     private readonly HashSet<EnemyBumper> minions = new HashSet<EnemyBumper>();
     private Transform enemyRoot, transientRoot;
+    private WaveArenaLayoutController arenaLayouts;
     private TopplingPillar[] pillars;
     public event Action ObstacleMoved;
     public event Action<Vector3, int> ScoreEarned;
@@ -148,6 +149,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         enemyRoot.SetParent(transform, false);
         transientRoot = new GameObject("Wave Hazards and Drops").transform;
         transientRoot.SetParent(transform, false);
+        arenaLayouts = GetComponent<WaveArenaLayoutController>();
         health.Damaged += OnPlayerDamaged;
         pillars = placement.Floor.transform.parent.GetComponentsInChildren<TopplingPillar>();
         scoring.DashUsesEarned += OnDashUsesEarned;
@@ -185,6 +187,8 @@ public sealed class EnemyWaveController : MonoBehaviour
         Cleanup();
         player.ResetForEncounter(playerStart, playerRotation);
         foreach (RotatingPinballBat bat in GetComponentsInChildren<RotatingPinballBat>()) bat.ResetForWave();
+        if (arenaLayouts == null) arenaLayouts = GetComponent<WaveArenaLayoutController>();
+        arenaLayouts?.ApplyLayout(WaveIndex);
         List<EnemyBumper> spawnList = CurrentWave.SpawnList();
         scoreGoal = CalculateScoreGoal(spawnList.Count);
         float radius = 0f, height = 0f;
