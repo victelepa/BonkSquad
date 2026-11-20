@@ -87,7 +87,6 @@ public sealed class CombatPlacement : MonoBehaviour
         int blocked = PlaceOpeningPositions(anchors, specialistCount, playerStart, radius, height, minionRadius,
             minionHeight, null, specialists, minions);
         if (blocked < 0) return true;
-        Debug.LogWarning($"Opening spawn {blocked + 1} at {anchors[blocked]} is blocked.", this);
         return false;
     }
 

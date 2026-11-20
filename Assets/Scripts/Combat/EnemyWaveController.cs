@@ -180,28 +180,33 @@ public sealed class EnemyWaveController : MonoBehaviour
         }
         Physics.SyncTransforms();
         List<Vector3> points, basicPoints;
+        bool positionsReady = false;
         if (CurrentWave.openingPositions != null && CurrentWave.openingPositions.Length > 0)
         {
-            if (!placement.TryOpeningPositions(CurrentWave.openingPositions, spawnList.Count, BasicMinionsPerWave,
-                playerStart, radius, height, MinionRadius, MinionHeight, random, out points, out basicPoints))
-            {
-                ResultMessage = "A planned enemy spawn is blocked. Check the arena opening positions.";
-                CaptureResult(WaveFailureReason.Placement);
-                SetState(EnemyWaveState.Failed);
-                return;
-            }
+            positionsReady = placement.TryOpeningPositions(CurrentWave.openingPositions, spawnList.Count,
+                BasicMinionsPerWave, playerStart, radius, height, MinionRadius, MinionHeight,
+                random, out points, out basicPoints);
         }
         else
         {
-            if (!placement.TryWavePositions(spawnList.Count, playerStart, radius, height, random, out points)
-                || !placement.TryDistributedMinions(BasicMinionsPerWave, playerStart, points,
-                    MinionRadius, MinionHeight, random, out basicPoints))
-            {
-                ResultMessage = "No safe enemy positions. Check the arena spawn regions.";
-                CaptureResult(WaveFailureReason.Placement);
-                SetState(EnemyWaveState.Failed);
-                return;
-            }
+            points = null;
+            basicPoints = null;
+        }
+        // Authored anchors are preferences, not a reason to abort the run. Arena
+        // resizing or designer obstacle edits can invalidate one anchor, so rebuild
+        // the whole roster from the configured safe regions when that happens.
+        if (!positionsReady)
+        {
+            positionsReady = placement.TryWavePositions(spawnList.Count, playerStart, radius, height,
+                random, out points) && placement.TryDistributedMinions(BasicMinionsPerWave,
+                playerStart, points, MinionRadius, MinionHeight, random, out basicPoints);
+        }
+        if (!positionsReady)
+        {
+            ResultMessage = "No safe enemy positions. Check the arena spawn regions.";
+            CaptureResult(WaveFailureReason.Placement);
+            SetState(EnemyWaveState.Failed);
+            return;
         }
         if (!retryingWave)
         {
