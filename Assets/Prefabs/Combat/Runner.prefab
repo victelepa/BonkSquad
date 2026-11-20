@@ -188,13 +188,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
   isSmallEnemy: 1
   moveSpeed: 0
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -24.6, y: -24.6}
   arenaMax: {x: 24.6, y: 24.6}
+  usePressureMovement: 1
+  chaseSteering: 0.32
+  orbitSteering: 0.2
+  surgeInterval: 5
+  surgeDuration: 1.1
+  surgeMultiplier: 1.65
   useStraightPatrol: 1
   patrolAxis: 2
   reversalPause: 0.2
@@ -211,10 +217,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 42fc3076364984691abb1e28b1781047, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::RunnerEnemy
-  baseSpeedInDiameters: 0.8
-  speedPerLostSegment: 0.4
+  baseSpeedInDiameters: 1.25
+  speedPerLostSegment: 1
 --- !u!1 &6576445705834912912
 GameObject:
   m_ObjectHideFlags: 0

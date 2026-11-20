@@ -279,13 +279,14 @@ public static class OnboardingValidation
                     Click("Back"); Check(ui.TutorialIndex == 3, "guide back"); Click("Next"); Click("Done");
                     Check(ui.Page == CombatPage.Combat && run.IsCombatActive, "Done resumes combat");
                     ValidatePredictablePatrols();
-                    Check(run.WaveCount == 2 && run.BasicMinionsPerWave == 10 && run.CurrentWave.count == 3, "first-wave roster");
+                    Check(run.WaveCount == 4 && run.BasicMinionsPerWave == 10 && run.CurrentWave.count == 3, "four-wave first roster");
                     Check(run.MinionRadius >= .49f * run.Placement.Diameter, "wider minion hit area");
                     var settings = new PlayerDizzinessSettings();
                     Check(Mathf.Abs(settings.GainRate(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings) - 10f) < .01f, "dizziness gain halved");
                     Check(run.IsCombatActive && run.LivingEnemies == 19 && ui.Page == CombatPage.Combat, "start releases locks");
-                    Check(run.LivingEnemyObjects.Where(e => e.IsBasicMinion).All(e => e.UsesStraightPatrol) && run.LivingEnemyObjects.Where(e => e.IsBasicMinion).Select(e => e.PatrolDirection).Distinct().Count() == 4,
-                        "first wave gets four distinct readable patrol axes");
+                    Check(run.LivingEnemyObjects.Where(e => e.IsBasicMinion).All(e => e.UsesStraightPatrol) &&
+                        run.LivingEnemyObjects.Where(e => e.IsBasicMinion).Select(e => e.PatrolDirection).Distinct().Count() >= 4,
+                        "first wave represents all four readable patrol axes");
                     ui.SendMessage("Update");
                     CheckHud();
                     var dashButton = Root.Q<Button>("dash-button");

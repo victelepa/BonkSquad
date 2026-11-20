@@ -14,8 +14,8 @@ public sealed class CombatPresentation : MonoBehaviour
 
     private EnemyWaveController run;
     private UIDocument document;
-    private VisualElement root, hud, modal, mapMarkers, mapObstacles, worldCues, scorePopups, damage;
-    private Label wave, timer, score, playerWarning, guideProgress, guideImpact, resultWave, resultTitle, resultDetail;
+    private VisualElement root, hud, modal, mapMarkers, mapObstacles, worldCues, scorePopups, damage, criticalHealthFlash;
+    private Label wave, timer, score, playerWarning, guideProgress, guideImpact, resultWave, resultTitle, resultDetail, timeCallout;
     private string impactGuideFormat;
     private VisualElement[] guidePages, hearts;
     private VisualTreeAsset worldCueTemplate;
@@ -28,6 +28,8 @@ public sealed class CombatPresentation : MonoBehaviour
     private bool ownsPause;
     private DashHud dash;
     private EnemyWaveState lastState;
+    private int previousHealth, nextTimeCallout;
+    private float criticalFlashStarted = float.NegativeInfinity, timeCalloutUntil;
 
     private sealed class WorldCue
     {
@@ -68,8 +70,10 @@ public sealed class CombatPresentation : MonoBehaviour
         worldCues = root.Q("world-cues");
         scorePopups = root.Q("score-popups");
         damage = root.Q("damage");
+        criticalHealthFlash = root.Q("critical-health-flash");
         wave = root.Q<Label>("wave");
         timer = root.Q<Label>("timer");
+        timeCallout = root.Q<Label>("time-callout");
         score = root.Q<Label>("score");
         playerWarning = root.Q<Label>("player-warning");
         guideProgress = root.Q<Label>("guide-progress");
@@ -98,6 +102,7 @@ public sealed class CombatPresentation : MonoBehaviour
         BuildMapGeometry();
         run.ObstacleMoved += BuildMapGeometry;
         ShowMainMenu();
+        previousHealth = Mathf.CeilToInt(run.Health.Current);
     }
 
     private Button Button(string name) => root.Q<Button>(name);
@@ -241,6 +246,10 @@ public sealed class CombatPresentation : MonoBehaviour
     {
         Resume();
         start();
+        previousHealth = Mathf.CeilToInt(run.Health.Current);
+        nextTimeCallout = Mathf.FloorToInt((run.TimeRemaining - .01f) / 30f) * 30;
+        timeCalloutUntil = 0f;
+        criticalFlashStarted = float.NegativeInfinity;
         SyncRunState();
     }
 
@@ -484,6 +493,26 @@ public sealed class CombatPresentation : MonoBehaviour
         timer.text = $"{Mathf.CeilToInt(run.TimeRemaining)}s remaining";
         timer.EnableInClassList("timer-low", run.TimeRemaining <= 30f);
         SetMeter(hearts, hearts.Length * run.Health.Current / run.Health.Maximum);
+
+        int healthNow = Mathf.CeilToInt(run.Health.Current);
+        if (Page == CombatPage.Combat && previousHealth >= 3 && healthNow < 3)
+            criticalFlashStarted = Time.unscaledTime;
+        previousHealth = healthNow;
+        float criticalAge = Time.unscaledTime - criticalFlashStarted;
+        bool criticalPulse = criticalAge >= 0f && criticalAge < 2.5f &&
+            Mathf.FloorToInt(criticalAge / .25f) % 2 == 0;
+        Show(criticalHealthFlash, Page == CombatPage.Combat && criticalPulse);
+
+        if (Page == CombatPage.Combat && nextTimeCallout > 0 && run.TimeRemaining <= nextTimeCallout)
+        {
+            timeCallout.text = $"{nextTimeCallout} SECONDS LEFT";
+            timeCalloutUntil = Time.unscaledTime + 1.5f;
+            nextTimeCallout -= 30;
+        }
+        bool showTimeCallout = Page == CombatPage.Combat && Time.unscaledTime < timeCalloutUntil;
+        Show(timeCallout, showTimeCallout);
+        if (showTimeCallout)
+            timeCallout.style.opacity = .45f + .55f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 10f));
 
         playerWarning.text = run.Player.IsSnared ? $"NETTED — release in {run.Player.SnareRemaining:0.0}s" : run.Player.DizzinessPhase switch
         {

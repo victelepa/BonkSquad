@@ -1193,6 +1193,38 @@ MonoBehaviour:
       count: 5
     - prefab: {fileID: 2895454400599791702, guid: b6b7310281db84de3bc405b105628086, type: 3}
       count: 2
+  - title: Pressure circuit
+    prefab: {fileID: 2895454400599791702, guid: b6b7310281db84de3bc405b105628086, type: 3}
+    basicMinions: 16
+    minionSpeedInDiameters: 1.35
+    count: 4
+    seconds: 150
+    openingPositions: []
+    additionalGroups:
+    - prefab: {fileID: 3881049046410161922, guid: af2cee030599247a5b5f297a5e0ce5e4, type: 3}
+      count: 3
+    - prefab: {fileID: 1804741076410313430, guid: 4a2db4bc0afe74ce4b4e297ff9a61090, type: 3}
+      count: 3
+    - prefab: {fileID: 3021923979590987134, guid: 5717f51dd1e6a4f2e8580c4e584694b9, type: 3}
+      count: 3
+    - prefab: {fileID: 7076426847113777988, guid: 978949b8623a64d8b8d1a0e16540c2b8, type: 3}
+      count: 1
+  - title: Final overdrive
+    prefab: {fileID: 2895454400599791702, guid: b6b7310281db84de3bc405b105628086, type: 3}
+    basicMinions: 18
+    minionSpeedInDiameters: 1.5
+    count: 6
+    seconds: 120
+    openingPositions: []
+    additionalGroups:
+    - prefab: {fileID: 3881049046410161922, guid: af2cee030599247a5b5f297a5e0ce5e4, type: 3}
+      count: 4
+    - prefab: {fileID: 1804741076410313430, guid: 4a2db4bc0afe74ce4b4e297ff9a61090, type: 3}
+      count: 4
+    - prefab: {fileID: 3021923979590987134, guid: 5717f51dd1e6a4f2e8580c4e584694b9, type: 3}
+      count: 4
+    - prefab: {fileID: 7076426847113777988, guid: 978949b8623a64d8b8d1a0e16540c2b8, type: 3}
+      count: 2
   minionPrefab: {fileID: 7400253094583230179, guid: 08887905a2dac4087ba971118e5b2afa, type: 3}
   basicMinionsPerWave: 12
   scoring:

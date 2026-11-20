@@ -239,6 +239,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         staging.SetActive(false);
         EnemyBumper enemy = Instantiate(prefab, point, Quaternion.identity, staging.transform);
         enemy.Bind(this);
+        enemy.ConfigureDifficulty(WaveIndex);
         if (enemy.IsBasicMinion) enemy.ConfigurePatrol((MinionPatrolAxis)(nextMinionPatrol++ % 4));
         enemies.Add(enemy);
         if (minion) minions.Add(enemy);

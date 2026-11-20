@@ -215,6 +215,65 @@ public static class Map01CombatSetup
         Debug.Log("EXPANDED_PINBALL_ARENA_OK: 35% larger arena, four blades, 1000-point waves, health and speed drops.");
     }
 
+    [MenuItem("Tools/BonkSquad/Apply Escalating Enemy Waves")]
+    public static void ApplyEscalatingEnemyWaves()
+    {
+        var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        var run = UnityEngine.Object.FindFirstObjectByType<EnemyWaveController>();
+        if (run == null) throw new InvalidOperationException("Map01 needs an EnemyWaveController.");
+
+        EnemyBumper runner = AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/Runner.prefab");
+        EnemyBumper net = AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/NetShooter.prefab");
+        EnemyBumper mortar = AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/Mortar.prefab");
+        EnemyBumper layer = AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/MineLayer.prefab");
+        EnemyBumper spawner = AssetDatabase.LoadAssetAtPath<EnemyBumper>(Folder + "/Spawner.prefab");
+
+        var runnerRoot = PrefabUtility.LoadPrefabContents(Folder + "/Runner.prefab");
+        var runnerData = new SerializedObject(runnerRoot.GetComponent<RunnerEnemy>());
+        runnerData.FindProperty("baseSpeedInDiameters").floatValue = 1.25f;
+        runnerData.FindProperty("speedPerLostSegment").floatValue = 1f;
+        runnerData.ApplyModifiedPropertiesWithoutUndo();
+        PrefabUtility.SaveAsPrefabAsset(runnerRoot, Folder + "/Runner.prefab");
+        PrefabUtility.UnloadPrefabContents(runnerRoot);
+
+        var field = typeof(EnemyWaveController).GetField("waves",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        var existing = (EnemyWaveController.WaveDefinition[])field.GetValue(run);
+        var waves = existing.Take(2).Concat(new[]
+        {
+            new EnemyWaveController.WaveDefinition
+            {
+                title = "Pressure circuit", prefab = runner, count = 4, basicMinions = 16,
+                minionSpeedInDiameters = 1.35f, seconds = 150f,
+                additionalGroups = new[]
+                {
+                    new EnemyWaveController.EnemyGroup { prefab = net, count = 3 },
+                    new EnemyWaveController.EnemyGroup { prefab = mortar, count = 3 },
+                    new EnemyWaveController.EnemyGroup { prefab = layer, count = 3 },
+                    new EnemyWaveController.EnemyGroup { prefab = spawner, count = 1 }
+                }
+            },
+            new EnemyWaveController.WaveDefinition
+            {
+                title = "Final overdrive", prefab = runner, count = 6, basicMinions = 18,
+                minionSpeedInDiameters = 1.5f, seconds = 120f,
+                additionalGroups = new[]
+                {
+                    new EnemyWaveController.EnemyGroup { prefab = net, count = 4 },
+                    new EnemyWaveController.EnemyGroup { prefab = mortar, count = 4 },
+                    new EnemyWaveController.EnemyGroup { prefab = layer, count = 4 },
+                    new EnemyWaveController.EnemyGroup { prefab = spawner, count = 2 }
+                }
+            }
+        }).ToArray();
+        field.SetValue(run, waves);
+        EditorUtility.SetDirty(run);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("ESCALATING_WAVES_OK: four waves, visible runner acceleration, shorter timers and pressure movement.");
+    }
+
     private static SpeedPickup MakeSpeedPickup(float d)
     {
         var existing = AssetDatabase.LoadAssetAtPath<SpeedPickup>(Folder + "/SpeedPickup.prefab");

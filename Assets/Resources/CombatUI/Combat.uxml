@@ -5,6 +5,8 @@
     <ui:Template name="main-menu" src="MainMenu.uxml" />
     <ui:VisualElement class="screen" picking-mode="Ignore">
         <ui:VisualElement name="hud" class="screen" picking-mode="Ignore">
+            <ui:VisualElement name="critical-health-flash" class="screen critical-health-flash hidden" picking-mode="Ignore" />
+            <ui:Label name="time-callout" text="150 SECONDS LEFT" class="time-callout hidden" picking-mode="Ignore" />
             <ui:VisualElement name="world-cues" class="screen" picking-mode="Ignore" />
             <ui:VisualElement name="objective" class="objective panel" picking-mode="Ignore">
                 <ui:Label name="score" text="0 / 350" class="objective-score" picking-mode="Ignore" />

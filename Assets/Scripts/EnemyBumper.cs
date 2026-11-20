@@ -29,6 +29,17 @@ public class EnemyBumper : MonoBehaviour
     private CapsuleCollider capsule;
     private Vector3 direction;
     private float nextDirectionChange;
+    [Header("Large enemy pressure movement")]
+    [SerializeField] private bool usePressureMovement = true;
+    [Range(0f, 1f)] [SerializeField] private float chaseSteering = .32f;
+    [Range(0f, 1f)] [SerializeField] private float orbitSteering = .2f;
+    [Min(1f)] [SerializeField] private float surgeInterval = 5f;
+    [Min(.1f)] [SerializeField] private float surgeDuration = 1.1f;
+    [Min(1f)] [SerializeField] private float surgeMultiplier = 1.65f;
+    [Min(0f)] [SerializeField] private float stationaryPressureSpeedInDiameters = .65f;
+    private float difficultyMultiplier = 1f;
+    private float nextSurge, surgeUntil;
+    private int orbitSign = 1;
     [Header("Predictable minion patrol")]
     [SerializeField] private bool useStraightPatrol;
     [SerializeField] private MinionPatrolAxis patrolAxis;
@@ -86,6 +97,15 @@ public class EnemyBumper : MonoBehaviour
         if (encounter == null) return;
         arenaMin = encounter.Placement.ArenaMin;
         arenaMax = encounter.Placement.ArenaMax;
+        GetComponent<RunnerEnemy>()?.RefreshForEncounter();
+    }
+
+    public void ConfigureDifficulty(int waveIndex)
+    {
+        difficultyMultiplier = 1f + Mathf.Max(0, waveIndex) * .12f;
+        if (maximumHitPoints > 1 && moveSpeed <= 0f && Encounter != null)
+            moveSpeed = stationaryPressureSpeedInDiameters * Encounter.Placement.Diameter;
+        nextSurge = Time.time + Mathf.Max(1f, surgeInterval - waveIndex * .35f) * Random.Range(.55f, 1f);
     }
 
     public void ContactPlayer(PlayerHealth health)
@@ -117,6 +137,7 @@ public class EnemyBumper : MonoBehaviour
     private void OnEnable()
     {
         if (useStraightPatrol) ConfigurePatrol(patrolAxis); else ChooseDirection();
+        nextSurge = Time.time + surgeInterval * Random.Range(.55f, 1f);
     }
 
     private void ChooseDirection()
@@ -141,7 +162,26 @@ public class EnemyBumper : MonoBehaviour
             ChooseDirection();
         }
 
-        float distance = moveSpeed * Time.fixedDeltaTime;
+        float pressureSpeed = 1f;
+        if (maximumHitPoints > 1 && usePressureMovement && Encounter != null)
+        {
+            if (Time.time >= nextSurge)
+            {
+                surgeUntil = Time.time + surgeDuration;
+                nextSurge = Time.time + Mathf.Max(1f, surgeInterval / difficultyMultiplier);
+                orbitSign = -orbitSign;
+            }
+            Vector3 toPlayer = PlayerMovementMath.Planar(Encounter.Player.ActivePosition - body.position).normalized;
+            if (toPlayer.sqrMagnitude > .01f)
+            {
+                Vector3 orbit = Vector3.Cross(Vector3.up, toPlayer) * orbitSign;
+                Vector3 pressureDirection = (toPlayer * chaseSteering + orbit * orbitSteering).normalized;
+                direction = Vector3.Slerp(direction, pressureDirection,
+                    Mathf.Clamp01((chaseSteering + orbitSteering) * difficultyMultiplier * Time.fixedDeltaTime));
+            }
+            pressureSpeed = difficultyMultiplier * (Time.time < surgeUntil ? surgeMultiplier : 1f);
+        }
+        float distance = moveSpeed * pressureSpeed * Time.fixedDeltaTime;
         Vector3 destination = body.position + direction * distance;
         if (useStraightPatrol && (destination.x < arenaMin.x || destination.x > arenaMax.x || destination.z < arenaMin.y || destination.z > arenaMax.y))
         {
