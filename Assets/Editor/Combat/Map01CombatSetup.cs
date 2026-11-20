@@ -277,43 +277,50 @@ public static class Map01CombatSetup
     [MenuItem("Tools/BonkSquad/Apply Enemy Visual Language")]
     public static void ApplyEnemyVisualLanguage()
     {
-        Material armor = Material("Enemy Armor Crimson", EnemyPalette.HostileCrimson);
+        Material minionRed = Material("Minion Light Red", EnemyPalette.HostileCrimson);
         Material gunmetal = Material("Enemy Gunmetal", new Color(.28f, .32f, .37f));
+        Material mortarMetal = Material("Mortar Metal Black", EnemyPalette.MortarMetal);
+        Material spawnerArmor = Material("Spawner Burgundy", new Color(.48f, .05f, .25f));
+        Material mineBrown = Material("Mine Brown", EnemyPalette.MineBrown);
+        Material netDarkBlue = Material("Net Dark Blue", EnemyPalette.NetDarkBlue);
         Material spawnerSignal = Material("Spawner Signal", EnemyPalette.SpawnerSignal);
         Material explosion = Material("Explosion Red Orange", EnemyPalette.Explosion);
         Material mineDanger = Material("Mine Danger Red", EnemyPalette.MineDanger);
         Material netSignal = Material("Net Signal Cyan", EnemyPalette.Net);
-        Material runnerSignal = Material("Runner Signal Scarlet", EnemyPalette.Runner);
+        Material runnerSignal = Material("Runner Yellow", EnemyPalette.Runner);
         Material hazardYellow = Material("Hazard Stripe Yellow", new Color(1f, .72f, .04f));
 
         EditEnemyVisual("Spawner", root =>
         {
-            SetModelMaterial(root, "Body", armor);
+            SetModelMaterial(root, "Body", spawnerArmor);
             SetAllModelMaterials(root, "Spawn pod", spawnerSignal);
         });
         EditEnemyVisual("MineLayer", root =>
         {
-            SetModelMaterial(root, "Body", armor);
-            SetModelMaterial(root, "Rear dispenser", mineDanger);
+            SetModelMaterial(root, "Body", mineBrown);
+            SetModelMaterial(root, "Rear dispenser", explosion);
             RemoveChildren(root, "Role Accent");
             Model(root, "Role Accent", PrimitiveType.Cube, new Vector3(0, .72f, .51f), new Vector3(.85f, .12f, .08f), hazardYellow);
             Model(root, "Role Accent", PrimitiveType.Cube, new Vector3(0, .48f, .51f), new Vector3(.85f, .12f, .08f), mineDanger);
         });
         EditEnemyVisual("Mortar", root =>
         {
-            SetModelMaterial(root, "Body", gunmetal);
-            SetModelMaterial(root, "Mortar barrel", gunmetal);
+            SetModelMaterial(root, "Body", mortarMetal);
+            SetModelMaterial(root, "Mortar barrel", mortarMetal);
             RemoveChildren(root, "Role Accent");
             Transform tip = Model(root, "Role Accent", PrimitiveType.Cylinder,
                 new Vector3(0, 1.72f, .43f), new Vector3(.34f, .12f, .34f), explosion);
             tip.localRotation = Quaternion.Euler(35f, 0f, 0f);
+            Transform piston = Model(root, "Role Accent", PrimitiveType.Cylinder,
+                new Vector3(0, 1.2f, -.03f), new Vector3(.16f, .48f, .16f), explosion);
+            piston.localRotation = Quaternion.Euler(35f, 0f, 0f);
         });
         EditEnemyVisual("NetShooter", root =>
         {
-            SetModelMaterial(root, "Body", armor);
+            SetModelMaterial(root, "Body", netDarkBlue);
             SetModelMaterial(root, "Net crossbar", netSignal);
         });
-        EditEnemyVisual("Minion", root => SetModelMaterial(root, "Body", armor));
+        EditEnemyVisual("Minion", root => SetModelMaterial(root, "Body", minionRed));
         EditEnemyVisual("Runner", root =>
         {
             SetModelMaterial(root, "Body", runnerSignal);

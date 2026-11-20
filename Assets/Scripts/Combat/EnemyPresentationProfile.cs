@@ -19,7 +19,7 @@ public sealed class EnemyPresentationProfile
         new EnemyPresentationProfile { kind = PresentedEnemyKind.MineLayer, displayName = "Mine layer", symbol = "L", color = EnemyPalette.MineDanger },
         new EnemyPresentationProfile { kind = PresentedEnemyKind.Mortar, displayName = "Mortar", symbol = "M", color = EnemyPalette.Explosion },
         new EnemyPresentationProfile { kind = PresentedEnemyKind.Minion, displayName = "Basic minion", symbol = "•", color = EnemyPalette.HostileCrimson },
-        new EnemyPresentationProfile { kind = PresentedEnemyKind.NetShooter, displayName = "Net shooter", symbol = "N", color = EnemyPalette.Net },
+        new EnemyPresentationProfile { kind = PresentedEnemyKind.NetShooter, displayName = "Net shooter", symbol = "N", color = EnemyPalette.NetDarkBlue },
         new EnemyPresentationProfile { kind = PresentedEnemyKind.Runner, displayName = "Runner", symbol = "R", color = EnemyPalette.Runner }
     };
 }

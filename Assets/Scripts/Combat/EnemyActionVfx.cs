@@ -2,19 +2,22 @@ using UnityEngine;
 
 public static class EnemyPalette
 {
-    public static readonly Color HostileCrimson = new Color(.72f, .09f, .14f);
-    public static readonly Color SpawnerSignal = new Color(1f, .12f, .32f);
+    public static readonly Color HostileCrimson = new Color(1f, .32f, .3f);
+    public static readonly Color SpawnerSignal = new Color(.95f, .08f, .48f);
     public static readonly Color Explosion = new Color(1f, .22f, .05f);
-    public static readonly Color MineDanger = new Color(1f, .08f, .03f);
+    public static readonly Color MineDanger = new Color(1f, .34f, .04f);
     public static readonly Color Net = new Color(.05f, .85f, 1f);
-    public static readonly Color Runner = new Color(1f, .06f, .1f);
+    public static readonly Color Runner = new Color(1f, .78f, .04f);
+    public static readonly Color MortarMetal = new Color(.12f, .14f, .17f);
+    public static readonly Color MineBrown = new Color(.42f, .2f, .07f);
+    public static readonly Color NetDarkBlue = new Color(.04f, .14f, .34f);
 
     public static Color For(PresentedEnemyKind kind) => kind switch
     {
         PresentedEnemyKind.Spawner => SpawnerSignal,
         PresentedEnemyKind.MineLayer => MineDanger,
         PresentedEnemyKind.Mortar => Explosion,
-        PresentedEnemyKind.NetShooter => Net,
+        PresentedEnemyKind.NetShooter => NetDarkBlue,
         PresentedEnemyKind.Runner => Runner,
         _ => HostileCrimson
     };
