@@ -17,6 +17,14 @@ public sealed class PlayerHealth : MonoBehaviour
     public event Action Died;
     public event Action Damaged;
     private float protectedUntil;
+    private float invulnerableUntil;
+    public float InvulnerabilityRemaining => Mathf.Max(0f, invulnerableUntil - Time.time);
+    public bool IsInvulnerable => Time.time < invulnerableUntil;
+
+    public void GrantInvulnerability(float seconds)
+    {
+        invulnerableUntil = Mathf.Max(invulnerableUntil, Time.time + Mathf.Max(0f, seconds));
+    }
 
     private void Awake()
     {
@@ -27,6 +35,7 @@ public sealed class PlayerHealth : MonoBehaviour
     {
         Current = maximumHealth;
         protectedUntil = float.NegativeInfinity;
+        invulnerableUntil = float.NegativeInfinity;
         LastHitTime = float.NegativeInfinity;
         LastDamageLabel = "";
         GetComponent<PlayerDamageFeedback>()?.Clear();
@@ -44,7 +53,7 @@ public sealed class PlayerHealth : MonoBehaviour
 
     private bool ApplyDamage(float damage, Vector3? sourcePosition)
     {
-        if (!CombatEnabled || IsDead || damage <= 0f || Time.time < protectedUntil) return false;
+        if (!CombatEnabled || IsDead || damage <= 0f || Time.time < protectedUntil || IsInvulnerable) return false;
         Current = Mathf.Max(0f, Current - damage);
         protectedUntil = Time.time + protectionSeconds;
         LastHitTime = Time.time;

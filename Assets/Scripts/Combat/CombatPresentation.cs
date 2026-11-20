@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
@@ -14,8 +15,9 @@ public sealed class CombatPresentation : MonoBehaviour
 
     private EnemyWaveController run;
     private UIDocument document;
-    private VisualElement root, hud, modal, mapMarkers, mapObstacles, worldCues, scorePopups, damage, criticalHealthFlash;
+    private VisualElement root, hud, modal, mapMarkers, mapObstacles, worldCues, scorePopups, damage, criticalHealthFlash, powerOffer;
     private Label wave, timer, score, playerWarning, guideProgress, guideImpact, resultWave, resultTitle, resultDetail, timeCallout;
+    private Label powerOfferTimer, powerOfferName, powerOfferDescription, powerOfferCost, powerStatus;
     private string impactGuideFormat;
     private VisualElement[] guidePages, hearts;
     private VisualTreeAsset worldCueTemplate;
@@ -71,9 +73,15 @@ public sealed class CombatPresentation : MonoBehaviour
         scorePopups = root.Q("score-popups");
         damage = root.Q("damage");
         criticalHealthFlash = root.Q("critical-health-flash");
+        powerOffer = root.Q("power-offer");
         wave = root.Q<Label>("wave");
         timer = root.Q<Label>("timer");
         timeCallout = root.Q<Label>("time-callout");
+        powerOfferTimer = root.Q<Label>("power-offer-timer");
+        powerOfferName = root.Q<Label>("power-offer-name");
+        powerOfferDescription = root.Q<Label>("power-offer-description");
+        powerOfferCost = root.Q<Label>("power-offer-cost");
+        powerStatus = root.Q<Label>("power-status");
         score = root.Q<Label>("score");
         playerWarning = root.Q<Label>("player-warning");
         guideProgress = root.Q<Label>("guide-progress");
@@ -513,6 +521,33 @@ public sealed class CombatPresentation : MonoBehaviour
         Show(timeCallout, showTimeCallout);
         if (showTimeCallout)
             timeCallout.style.opacity = .45f + .55f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 10f));
+
+        bool enterPressed = Keyboard.current != null
+            ? Keyboard.current.enterKey.wasPressedThisFrame || Keyboard.current.numpadEnterKey.wasPressedThisFrame
+            : UnityEngine.Input.GetKeyDown(KeyCode.Return);
+        if (Page == CombatPage.Combat && run.HasPowerOffer && enterPressed)
+            run.TryPurchasePowerOffer();
+        bool showOffer = Page == CombatPage.Combat && run.HasPowerOffer;
+        Show(powerOffer, showOffer);
+        if (showOffer)
+        {
+            powerOfferTimer.text = $"POWER OFFER • {Mathf.CeilToInt(run.PowerOfferRemaining)}s";
+            powerOfferName.text = run.PowerOfferName;
+            powerOfferDescription.text = run.PowerOfferDescription;
+            bool affordable = run.WaveScore >= run.PowerOfferCost;
+            powerOfferCost.text = affordable
+                ? $"Enter to take • −{run.PowerOfferCost} points"
+                : $"Need {run.PowerOfferCost} points • current {run.WaveScore}";
+            powerOfferCost.EnableInClassList("power-offer-unaffordable", !affordable);
+            powerOffer.style.opacity = .72f + .28f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 7f));
+        }
+
+        string activePower = "";
+        if (run.Health.IsInvulnerable) activePower = $"SHIELD {run.Health.InvulnerabilityRemaining:0}s";
+        if (run.Player.IsDizzinessImmune)
+            activePower += (activePower.Length > 0 ? "  •  " : "") + $"CLEAR HEAD {run.Player.DizzinessImmunityRemaining:0}s";
+        powerStatus.text = activePower;
+        Show(powerStatus, Page == CombatPage.Combat && activePower.Length > 0);
 
         playerWarning.text = run.Player.IsSnared ? $"NETTED — release in {run.Player.SnareRemaining:0.0}s" : run.Player.DizzinessPhase switch
         {

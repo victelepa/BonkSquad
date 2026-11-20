@@ -13,6 +13,7 @@ public struct WaveResultSnapshot
 }
 
 public enum EnemyWaveState { Introduction, Active, Cleared, Failed, Victory }
+public enum PowerOfferType { DamageShield, ClearHead }
 
 public sealed class EnemyWaveController : MonoBehaviour
 {
@@ -85,6 +86,21 @@ public sealed class EnemyWaveController : MonoBehaviour
     internal void NotifyObstacleMoved() => ObstacleMoved?.Invoke();
     private System.Random random = new System.Random();
     private bool tryingAllTypes;
+    [Header("Point-trade power offers")]
+    [Min(1f)] [SerializeField] private float offerInterval = 15f;
+    [Min(1f)] [SerializeField] private float offerDuration = 5f;
+    [Min(1)] [SerializeField] private int shieldPointCost = 150;
+    [Min(1)] [SerializeField] private int clearHeadPointCost = 100;
+    [Min(1f)] [SerializeField] private float shieldSeconds = 10f;
+    [Min(1f)] [SerializeField] private float clearHeadSeconds = 30f;
+    private float nextOfferAt, offerExpiresAt;
+    public bool HasPowerOffer => IsCombatActive && Time.time < offerExpiresAt;
+    public PowerOfferType CurrentPowerOffer { get; private set; }
+    public int PowerOfferCost => CurrentPowerOffer == PowerOfferType.DamageShield ? shieldPointCost : clearHeadPointCost;
+    public float PowerOfferRemaining => Mathf.Max(0f, offerExpiresAt - Time.time);
+    public string PowerOfferName => CurrentPowerOffer == PowerOfferType.DamageShield ? "DAMAGE SHIELD" : "CLEAR HEAD";
+    public string PowerOfferDescription => CurrentPowerOffer == PowerOfferType.DamageShield
+        ? $"No player damage for {shieldSeconds:0}s" : $"No dizziness for {clearHeadSeconds:0}s";
     private int nextMinionPatrol;
     // Injectable for deterministic drop tests, independent of placement randomness.
     public Func<double> DropRandom { get; set; }
@@ -216,6 +232,8 @@ public sealed class EnemyWaveController : MonoBehaviour
         retryingWave = false;
         scoring.BreakCombo(Time.time, false);
         TimeRemaining = CurrentWave.seconds;
+        nextOfferAt = Time.time + offerInterval;
+        offerExpiresAt = float.NegativeInfinity;
         SetState(EnemyWaveState.Active);
         for (int i = 0; i < spawnList.Count; i++)
         {
@@ -296,6 +314,7 @@ public sealed class EnemyWaveController : MonoBehaviour
     private void LateUpdate()
     {
         if (!IsCombatActive) return;
+        UpdatePowerOffer();
         scoring.Tick(Time.time);
         // Resolve after all collision and attack callbacks. Death wins over a simultaneous score goal.
         TimeRemaining = Mathf.Max(0f, TimeRemaining - Time.deltaTime);
@@ -303,6 +322,24 @@ public sealed class EnemyWaveController : MonoBehaviour
         else if (WaveScore >= ScoreGoal)
             Finish(tryingAllTypes || WaveIndex == waves.Length - 1 ? EnemyWaveState.Victory : EnemyWaveState.Cleared, "Score goal reached!");
         else if (TimeRemaining <= 0f) Finish(EnemyWaveState.Failed, "Time ran out");
+    }
+
+    private void UpdatePowerOffer()
+    {
+        if (Time.time < nextOfferAt) return;
+        CurrentPowerOffer = random.Next(2) == 0 ? PowerOfferType.DamageShield : PowerOfferType.ClearHead;
+        offerExpiresAt = Time.time + offerDuration;
+        nextOfferAt += offerInterval;
+        if (nextOfferAt <= Time.time) nextOfferAt = Time.time + offerInterval;
+    }
+
+    public bool TryPurchasePowerOffer()
+    {
+        if (!HasPowerOffer || WaveScore < PowerOfferCost || !scoring.SpendPoints(PowerOfferCost)) return false;
+        if (CurrentPowerOffer == PowerOfferType.DamageShield) health.GrantInvulnerability(shieldSeconds);
+        else player.GrantDizzinessImmunity(clearHeadSeconds);
+        offerExpiresAt = float.NegativeInfinity;
+        return true;
     }
 
     private void Finish(EnemyWaveState state, string message)

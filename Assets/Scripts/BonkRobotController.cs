@@ -19,6 +19,9 @@ public class BonkRobotController : MonoBehaviour
     public float DizzinessValue { get; private set; }
     public float DizzinessRatio => DizzinessValue / dizzinessSettings.MaximumDizziness;
     public float PhaseTimeRemaining { get; private set; }
+    private float dizzinessImmuneUntil;
+    public float DizzinessImmunityRemaining => Mathf.Max(0f, dizzinessImmuneUntil - Time.time);
+    public bool IsDizzinessImmune => Time.time < dizzinessImmuneUntil;
     public event System.Action SwitchedToRobotManually;
     public bool IsEncounterLocked { get; private set; }
     public bool CanAcceptPlayerInput => !IsEncounterLocked && !IsSnared && DizzinessPhase != PlayerDizzinessPhase.Stunned;
@@ -130,6 +133,14 @@ public class BonkRobotController : MonoBehaviour
         ? ballController != null && ballController.AddMomentum(amount)
         : standingController != null && standingController.AddMomentum(amount);
 
+    public void GrantDizzinessImmunity(float seconds)
+    {
+        dizzinessImmuneUntil = Mathf.Max(dizzinessImmuneUntil, Time.time + Mathf.Max(0f, seconds));
+        DizzinessPhase = PlayerDizzinessPhase.Normal;
+        DizzinessValue = 0f;
+        PhaseTimeRemaining = 0f;
+    }
+
     public void SetEncounterLocked(bool locked, bool clearKnockback = true)
     {
         IsEncounterLocked = locked;
@@ -156,6 +167,7 @@ public class BonkRobotController : MonoBehaviour
     public void ResetForEncounter(Vector3 position, Quaternion rotation)
     {
         snaredUntil = netImmuneUntil = float.NegativeInfinity;
+        dizzinessImmuneUntil = float.NegativeInfinity;
         knockbackUntil = 0f;
         DizzinessPhase = PlayerDizzinessPhase.Normal;
         DizzinessValue = 0f;
@@ -345,6 +357,14 @@ public class BonkRobotController : MonoBehaviour
 
         float deltaTime = Time.deltaTime;
         if (deltaTime <= 0f) return;
+
+        if (IsDizzinessImmune)
+        {
+            DizzinessPhase = PlayerDizzinessPhase.Normal;
+            DizzinessValue = 0f;
+            PhaseTimeRemaining = 0f;
+            return;
+        }
 
         switch (DizzinessPhase)
         {

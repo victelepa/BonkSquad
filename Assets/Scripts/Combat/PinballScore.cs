@@ -102,4 +102,16 @@ public sealed class PinballScore
         ImpactCharges--;
         return true;
     }
+
+    public bool SpendPoints(int amount)
+    {
+        amount = Mathf.Max(0, amount);
+        if (amount == 0 || Points < amount) return false;
+        Points -= amount;
+        Feedback = $"Powerup purchased −{amount}";
+        FeedbackStartedAt = Time.time;
+        FeedbackUntil = Time.time + 2f;
+        FeedbackIsReward = false;
+        return true;
+    }
 }
