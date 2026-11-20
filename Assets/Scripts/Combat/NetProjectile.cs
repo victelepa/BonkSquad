@@ -23,14 +23,14 @@ public sealed class NetProjectile : MonoBehaviour
         projectile.speedInDiameters = Mathf.Max(.1f,speed); projectile.lifetime = Mathf.Max(.1f,duration);
         projectile.snareSeconds = Mathf.Max(0,snare); projectile.immunitySeconds = Mathf.Max(0,immunity);
         projectile.direction = (target - origin).normalized; projectile.expires = Time.time + projectile.lifetime;
-        projectile.material = new Material(Shader.Find("Universal Render Pipeline/Unlit")); projectile.material.color = Color.cyan;
+        projectile.material = new Material(Shader.Find("Universal Render Pipeline/Unlit")); projectile.material.color = EnemyPalette.Net;
         go.GetComponent<Renderer>().sharedMaterial = projectile.material;
         return projectile;
     }
     private void FixedUpdate()
     {
         if (run == null || !run.IsCombatActive) return;
-        if (Time.time >= expires) { Destroy(gameObject); return; }
+        if (Time.time >= expires) { DropNet(); return; }
         float distance = speedInDiameters * run.Placement.Diameter * Time.fixedDeltaTime;
         int count = Physics.SphereCastNonAlloc(transform.position, .2f * run.Placement.Diameter, direction,
             hits, distance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
@@ -41,9 +41,19 @@ public sealed class NetProjectile : MonoBehaviour
             if (shooter != null && solid.GetComponentInParent<EnemyBumper>() == shooter) continue;
             var player = solid.GetComponentInParent<BonkRobotController>();
             if (player == run.Player) player.TrySnare(snareSeconds, immunitySeconds);
-            Destroy(gameObject); return;
+            DropNet(); return;
         }
         transform.position += direction * distance;
+    }
+    private void DropNet()
+    {
+        if (run != null)
+        {
+            Vector3 point = transform.position;
+            if (run.Placement.Floor != null) point.y = run.Placement.Floor.bounds.max.y;
+            EnemyActionVfx.NetPatch(run.TransientRoot, point, run.Placement.Diameter);
+        }
+        Destroy(gameObject);
     }
     private sealed class HitComparer : System.Collections.Generic.IComparer<RaycastHit>
     {

@@ -274,6 +274,110 @@ public static class Map01CombatSetup
         Debug.Log("ESCALATING_WAVES_OK: four waves, visible runner acceleration, shorter timers and pressure movement.");
     }
 
+    [MenuItem("Tools/BonkSquad/Apply Enemy Visual Language")]
+    public static void ApplyEnemyVisualLanguage()
+    {
+        Material armor = Material("Enemy Armor Crimson", EnemyPalette.HostileCrimson);
+        Material gunmetal = Material("Enemy Gunmetal", new Color(.28f, .32f, .37f));
+        Material spawnerSignal = Material("Spawner Signal", EnemyPalette.SpawnerSignal);
+        Material explosion = Material("Explosion Red Orange", EnemyPalette.Explosion);
+        Material mineDanger = Material("Mine Danger Red", EnemyPalette.MineDanger);
+        Material netSignal = Material("Net Signal Cyan", EnemyPalette.Net);
+        Material runnerSignal = Material("Runner Signal Scarlet", EnemyPalette.Runner);
+        Material hazardYellow = Material("Hazard Stripe Yellow", new Color(1f, .72f, .04f));
+
+        EditEnemyVisual("Spawner", root =>
+        {
+            SetModelMaterial(root, "Body", armor);
+            SetAllModelMaterials(root, "Spawn pod", spawnerSignal);
+        });
+        EditEnemyVisual("MineLayer", root =>
+        {
+            SetModelMaterial(root, "Body", armor);
+            SetModelMaterial(root, "Rear dispenser", mineDanger);
+            RemoveChildren(root, "Role Accent");
+            Model(root, "Role Accent", PrimitiveType.Cube, new Vector3(0, .72f, .51f), new Vector3(.85f, .12f, .08f), hazardYellow);
+            Model(root, "Role Accent", PrimitiveType.Cube, new Vector3(0, .48f, .51f), new Vector3(.85f, .12f, .08f), mineDanger);
+        });
+        EditEnemyVisual("Mortar", root =>
+        {
+            SetModelMaterial(root, "Body", gunmetal);
+            SetModelMaterial(root, "Mortar barrel", gunmetal);
+            RemoveChildren(root, "Role Accent");
+            Transform tip = Model(root, "Role Accent", PrimitiveType.Cylinder,
+                new Vector3(0, 1.72f, .43f), new Vector3(.34f, .12f, .34f), explosion);
+            tip.localRotation = Quaternion.Euler(35f, 0f, 0f);
+        });
+        EditEnemyVisual("NetShooter", root =>
+        {
+            SetModelMaterial(root, "Body", armor);
+            SetModelMaterial(root, "Net crossbar", netSignal);
+        });
+        EditEnemyVisual("Minion", root => SetModelMaterial(root, "Body", armor));
+        EditEnemyVisual("Runner", root =>
+        {
+            SetModelMaterial(root, "Body", runnerSignal);
+            SetAllModelMaterials(root, "Runner leg", gunmetal);
+            Transform body = root.Find("Body");
+            if (body != null) body.localScale = new Vector3(.85f, 1f, .95f);
+            foreach (Transform child in root.Cast<Transform>().Where(child => child.name == "Runner leg"))
+            {
+                child.localPosition = new Vector3(Mathf.Sign(child.localPosition.x) * .45f, .3f, 0f);
+                child.localScale = new Vector3(.2f, .45f, 1.05f);
+            }
+            CapsuleCollider collider = root.GetComponent<CapsuleCollider>();
+            collider.radius = .55f;
+            var runnerData = new SerializedObject(root.GetComponent<RunnerEnemy>());
+            runnerData.FindProperty("baseSpeedInDiameters").floatValue = 2.25f;
+            runnerData.FindProperty("speedPerLostSegment").floatValue = 1.5f;
+            runnerData.ApplyModifiedPropertiesWithoutUndo();
+        });
+
+        EditEnemyVisual("Mine", root => SetModelMaterial(root, "Visual", mineDanger));
+        EditEnemyVisual("MortarShell", root => SetModelMaterial(root, "Visual", explosion));
+
+        var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        CombatPresentation presentation = UnityEngine.Object.FindFirstObjectByType<CombatPresentation>();
+        if (presentation != null)
+        {
+            var field = typeof(CombatPresentation).GetField("enemyProfiles",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            field.SetValue(presentation, EnemyPresentationProfile.Defaults());
+            EditorUtility.SetDirty(presentation);
+        }
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("ENEMY_VISUAL_LANGUAGE_OK: crimson hostile family, role accents, slimmer faster Runner and matching action colors.");
+    }
+
+    private static void EditEnemyVisual(string prefabName, Action<Transform> edit)
+    {
+        string path = Folder + "/" + prefabName + ".prefab";
+        GameObject root = PrefabUtility.LoadPrefabContents(path);
+        edit(root.transform);
+        PrefabUtility.SaveAsPrefabAsset(root, path);
+        PrefabUtility.UnloadPrefabContents(root);
+    }
+
+    private static void SetModelMaterial(Transform root, string childName, Material material)
+    {
+        Transform child = root.Find(childName);
+        if (child != null && child.TryGetComponent(out Renderer renderer)) renderer.sharedMaterial = material;
+    }
+
+    private static void SetAllModelMaterials(Transform root, string childName, Material material)
+    {
+        foreach (Transform child in root.Cast<Transform>().Where(child => child.name == childName))
+            if (child.TryGetComponent(out Renderer renderer)) renderer.sharedMaterial = material;
+    }
+
+    private static void RemoveChildren(Transform root, string childName)
+    {
+        foreach (Transform child in root.Cast<Transform>().Where(child => child.name == childName).ToArray())
+            UnityEngine.Object.DestroyImmediate(child.gameObject);
+    }
+
     private static SpeedPickup MakeSpeedPickup(float d)
     {
         var existing = AssetDatabase.LoadAssetAtPath<SpeedPickup>(Folder + "/SpeedPickup.prefab");

@@ -1247,6 +1247,12 @@ MonoBehaviour:
   speedDropChance: 0.18
   playerStart: {x: 0, y: 1, z: 0}
   playerRotation: {x: -0, y: -0, z: -0, w: 1}
+  offerInterval: 15
+  offerDuration: 5
+  shieldPointCost: 150
+  clearHeadPointCost: 100
+  shieldSeconds: 10
+  clearHeadSeconds: 30
 --- !u!114 &324729112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1324,19 +1330,27 @@ MonoBehaviour:
   - kind: 0
     displayName: Spawner
     symbol: S
-    color: {r: 0.3, g: 1, b: 0.5, a: 1}
+    color: {r: 1, g: 0.12, b: 0.32, a: 1}
   - kind: 1
     displayName: Mine layer
     symbol: L
-    color: {r: 1, g: 0.6, b: 0.18, a: 1}
+    color: {r: 1, g: 0.08, b: 0.03, a: 1}
   - kind: 2
     displayName: Mortar
     symbol: M
-    color: {r: 0.8, g: 0.5, b: 1, a: 1}
+    color: {r: 1, g: 0.22, b: 0.05, a: 1}
   - kind: 3
     displayName: Basic minion
     symbol: "\u2022"
-    color: {r: 1, g: 0.88, b: 0.2, a: 1}
+    color: {r: 0.72, g: 0.09, b: 0.14, a: 1}
+  - kind: 4
+    displayName: Net shooter
+    symbol: N
+    color: {r: 0.05, g: 0.85, b: 1, a: 1}
+  - kind: 5
+    displayName: Runner
+    symbol: R
+    color: {r: 1, g: 0.06, b: 0.1, a: 1}
 --- !u!1 &330196631
 GameObject:
   m_ObjectHideFlags: 0

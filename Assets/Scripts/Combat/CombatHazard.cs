@@ -38,7 +38,7 @@ public sealed class CombatHazard : MonoBehaviour
         createdAt = Time.time;
         launchPoint = origin;
         marker = run.CreateMarker(isMine ? "Mine arming" : "Mortar landing zone", transform.position,
-            Radius, isMine ? new Color(1f, .6f, .05f) : new Color(1f, .15f, .4f));
+            Radius, isMine ? EnemyPalette.MineDanger : EnemyPalette.Explosion);
         if (!isMine && visual != null) visual.position = origin;
     }
 
@@ -52,7 +52,8 @@ public sealed class CombatHazard : MonoBehaviour
                 float fraction = Mathf.Clamp01((Time.time - blastStarted) / .45f);
                 marker.transform.localScale = Vector3.one * Mathf.Lerp(.45f, 1f, fraction);
                 var line = marker.GetComponent<LineRenderer>();
-                Color color = isMine ? new Color(1f, .45f, .05f, 1f-fraction) : new Color(1f, .2f, .5f, 1f-fraction);
+                Color color = isMine ? EnemyPalette.MineDanger : EnemyPalette.Explosion;
+                color.a = 1f - fraction;
                 line.startColor = line.endColor = color;
             }
             if (Time.time >= blastUntil) Destroy(gameObject);
@@ -82,6 +83,8 @@ public sealed class CombatHazard : MonoBehaviour
         if (exploded) return;
         exploded = true;
         PlayBlastSound();
+        EnemyActionVfx.Explosion(run.TransientRoot, transform.position + Vector3.up * .08f,
+            Mathf.Max(run.Placement.Diameter, Radius * .55f));
         if (InBlast()) run.Health.TryDamageFrom(transform.position, isMine ? "Mine blast" : "Mortar blast");
         if (!isMine && shooter != null && !shooter.IsDefeated &&
             Contains(shooter.transform.position, shooter.GetComponent<CapsuleCollider>().radius)) shooter.TakeOwnMortarHit();

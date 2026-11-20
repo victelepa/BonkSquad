@@ -46,7 +46,14 @@ public sealed class SpawnerEnemy : MonoBehaviour
                 run.IsMinionSpawnSafe(spawnPoint))
             {
                 EnemyBumper child = run.SpawnMinion(spawnPoint);
-                if (child != null) { children.Add(child); totalSpawned++; spawned = true; }
+                if (child != null)
+                {
+                    children.Add(child); totalSpawned++; spawned = true;
+                    EnemyActionVfx.Glimmer(run.TransientRoot, transform.position + Vector3.up * run.Placement.Diameter,
+                        EnemyPalette.SpawnerSignal, run.Placement.Diameter * 1.5f);
+                    EnemyActionVfx.Glimmer(run.TransientRoot, child.transform.position + Vector3.up * run.Placement.Diameter * .5f,
+                        EnemyPalette.SpawnerSignal, run.Placement.Diameter * 1.2f);
+                }
             }
             nextSpawn = Time.time + (spawned ? Mathf.Max(.1f, spawnInterval - warningSeconds) : 1f);
         }
@@ -54,8 +61,10 @@ public sealed class SpawnerEnemy : MonoBehaviour
         {
             nextSpawn = Time.time + spawnInterval;
             if (children.Count >= livingMinionCap || !run.CanSpawnMinion) return;
-            if (!run.TryFindMinionSpawn(out spawnPoint)) { nextSpawn = Time.time + 1f; return; }
-            marker = run.CreateMarker("Minion incoming", spawnPoint, run.Placement.Diameter, Color.green);
+            if (!run.TryFindMinionSpawnNear(transform.position, out spawnPoint)) { nextSpawn = Time.time + 1f; return; }
+            marker = run.CreateMarker("Minion incoming", spawnPoint, run.Placement.Diameter, EnemyPalette.SpawnerSignal);
+            EnemyActionVfx.Glimmer(run.TransientRoot, transform.position + Vector3.up * run.Placement.Diameter,
+                EnemyPalette.SpawnerSignal, run.Placement.Diameter);
             warningPending = true;
             warningEnd = Time.time + warningSeconds;
         }

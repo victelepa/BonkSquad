@@ -3,8 +3,8 @@ using UnityEngine;
 [RequireComponent(typeof(EnemyBumper))]
 public sealed class RunnerEnemy : MonoBehaviour
 {
-    [Min(0f)] [SerializeField] private float baseSpeedInDiameters = 1.25f;
-    [Min(0f)] [SerializeField] private float speedPerLostSegment = 1f;
+    [Min(0f)] [SerializeField] private float baseSpeedInDiameters = 2.25f;
+    [Min(0f)] [SerializeField] private float speedPerLostSegment = 1.5f;
     private EnemyBumper enemy;
     private int observedHitPoints = -1;
     public float Speed => enemy != null ? enemy.MoveSpeed : 0f;

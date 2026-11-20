@@ -66,7 +66,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 9384b5d840b3048bf89829ac253f6472, type: 2}
+  - {fileID: 2100000, guid: 85d776a6098bd4d758c37d8008b33852, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -156,7 +156,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: db372b665962d4ce5b1a0d17ebab068d, type: 2}
+  - {fileID: 2100000, guid: a85e1f82d189f442ea5f2a347d632892, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -277,13 +277,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d493ea182da94f6096e758fabc6d4579, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBumper
   isSmallEnemy: 1
   moveSpeed: 0
   directionChangeInterval: {x: 2, y: 5}
   arenaMin: {x: -24.6, y: -24.6}
   arenaMax: {x: 24.6, y: 24.6}
+  usePressureMovement: 1
+  chaseSteering: 0.32
+  orbitSteering: 0.2
+  surgeInterval: 5
+  surgeDuration: 1.1
+  surgeMultiplier: 1.65
+  stationaryPressureSpeedInDiameters: 0.65
   useStraightPatrol: 0
   patrolAxis: 0
   reversalPause: 0.2
@@ -300,7 +307,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af00ed10942bf409295b5dc90cde8d9f, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::NetShooterEnemy
   fireInterval: 6
   warningSeconds: 1

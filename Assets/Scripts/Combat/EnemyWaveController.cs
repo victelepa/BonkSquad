@@ -283,6 +283,25 @@ public sealed class EnemyWaveController : MonoBehaviour
         return false;
     }
 
+    public bool TryFindMinionSpawnNear(Vector3 parentPosition, out Vector3 position)
+    {
+        float d = placement.Diameter;
+        float floorY = placement.Floor.bounds.max.y;
+        for (float distance = 2f * d; distance <= 5f * d; distance += .5f * d)
+        {
+            int angleOffset = random.Next(16);
+            for (int step = 0; step < 16; step++)
+            {
+                float angle = (angleOffset + step) * Mathf.PI / 8f;
+                Vector3 point = new Vector3(parentPosition.x + Mathf.Cos(angle) * distance,
+                    floorY, parentPosition.z + Mathf.Sin(angle) * distance);
+                if (IsMinionSpawnSafe(point)) { position = point; return true; }
+            }
+        }
+        position = default;
+        return false;
+    }
+
     public bool IsMinionSpawnSafe(Vector3 position) =>
         PlayerMovementMath.Planar(position - player.ActivePosition).magnitude >= 6f * placement.Diameter &&
         placement.IsClear(position, MinionRadius, MinionHeight);
