@@ -3,8 +3,6 @@ using UnityEngine.Serialization;
 
 public enum MinionPatrolAxis { Horizontal, Vertical, DiagonalUp, DiagonalDown }
 
-public enum EnemyDamageCause { Ball, OwnMortar }
-
 public enum EnemyHitResult { Rejected, Damaged, Defeated }
 
 // Size selects the shared player-speed threshold; hit points count qualifying impacts.
@@ -61,9 +59,6 @@ public class EnemyBumper : MonoBehaviour
     public void SetMoveSpeed(float speed) => moveSpeed = Mathf.Max(0f, speed);
     public bool ShowHealthBar => showHealthBar;
     public bool IsHitFlashing => Time.time < hitFlashUntil;
-    public EnemyDamageCause LastDamageCause { get; private set; }
-    public float MoveSpeed => moveSpeed;
-    public void SetMoveSpeed(float speed) => moveSpeed = Mathf.Max(0f, speed);
     public bool IsDefeated => isDefeated;
     public bool IsBasicMinion => contactDamage && maximumHitPoints == 1;
     public EnemyWaveController Encounter { get; private set; }
@@ -187,6 +182,13 @@ public class EnemyBumper : MonoBehaviour
         if ((Encounter != null && !Encounter.IsCombatActive) ||
             !settings.CanKill(incomingPlayerSpeed, isSmallEnemy)) return EnemyHitResult.Rejected;
         return ApplyDamage(damage);
+    }
+
+    public EnemyHitResult TakeOwnMortarHit()
+    {
+        if (isDefeated) return EnemyHitResult.Defeated;
+        if (Encounter == null || !Encounter.IsCombatActive) return EnemyHitResult.Rejected;
+        return ApplyDamage(1);
     }
 
     internal void TryCrush()

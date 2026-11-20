@@ -58,14 +58,8 @@ public sealed class PinballScore
         FeedbackIsReward = false;
         FeedbackUntil = now + 1.5f;
     }
-    public int RecordKill(bool minion, float now, bool ballKill = true)
+    public int RecordKill(bool minion, float now)
     {
-        if (!ballKill)
-        {
-            int basePoints = minion ? minionPoints : specialistPoints;
-            Feedback = $"Mortar bait +{basePoints}"; FeedbackStartedAt = now; FeedbackUntil = now + 2f; FeedbackIsReward = true;
-            AddPoints(basePoints, now); return basePoints;
-        }
         ChainCount = now - lastKill <= comboWindow ? ChainCount + 1 : 1;
         lastKill = now;
         int earned = minion ? minionPoints : specialistPoints;
@@ -101,16 +95,6 @@ public sealed class PinballScore
         FeedbackIsReward = Feedback.Length > 0;
         FeedbackUntil = now + 2f;
         return earned;
-    }
-    private void AddPoints(int earned, float now)
-    {
-        Points += earned; Progress += earned;
-        int granted = Progress / pointsPerCharge; Progress %= pointsPerCharge;
-        if (granted <= 0) return;
-        SkillTokens += granted;
-        Feedback += (Feedback.Length > 0 ? " · " : "") + "Green charge earned! Q to Dash";
-        FeedbackStartedAt = now; FeedbackUntil = now + 3f; FeedbackIsReward = true;
-        TokensEarned?.Invoke(granted);
     }
     public bool ConsumeImpactCharge()
     {

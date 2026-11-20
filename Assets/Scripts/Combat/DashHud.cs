@@ -46,7 +46,7 @@ internal sealed class DashHud
 
     private void RefreshUseIndicators(int remaining)
     {
-        int total = Mathf.Max(player.DashUsesPerRun, remaining);
+        int total = player.DashUsesPerRun;
         while (useIndicators.childCount > total) useIndicators.RemoveAt(useIndicators.childCount - 1);
         while (useIndicators.childCount < total)
         {

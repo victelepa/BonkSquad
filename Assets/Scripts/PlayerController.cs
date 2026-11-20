@@ -45,6 +45,18 @@ public class PlayerController : MonoBehaviour
         driftHoldRemaining = 0f;
     }
 
+    public bool AddMomentum(float amount)
+    {
+        if (amount <= 0f) return false;
+        Vector3 direction = planarVelocity.sqrMagnitude > .001f
+            ? planarVelocity.normalized : transform.forward;
+        float speed = Mathf.Min(SpeedSettings.MaximumSpeed, planarVelocity.magnitude + amount);
+        planarVelocity = PlayerMovementMath.Planar(direction).normalized * speed;
+        carryingMomentum = true;
+        driftHoldRemaining = driftHoldSeconds;
+        return true;
+    }
+
     public void SetControlLocked(bool locked)
     {
         controlLocked = locked;

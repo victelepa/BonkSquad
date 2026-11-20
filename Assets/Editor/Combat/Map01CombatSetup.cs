@@ -29,6 +29,8 @@ public static class Map01CombatSetup
         if (oldEnemies != null) UnityEngine.Object.DestroyImmediate(oldEnemies);
         foreach (var oldPickup in UnityEngine.Object.FindObjectsByType<HealthPickup>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             UnityEngine.Object.DestroyImmediate(oldPickup.gameObject);
+        foreach (var oldPickup in UnityEngine.Object.FindObjectsByType<SpeedPickup>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            UnityEngine.Object.DestroyImmediate(oldPickup.gameObject);
 
         Directory.CreateDirectory(Folder);
         AssetDatabase.Refresh();
@@ -59,6 +61,7 @@ public static class Map01CombatSetup
         Model(pickupObject.transform, "Plus vertical", PrimitiveType.Cube, new Vector3(0, .85f, 0) * d, new Vector3(.2f, .1f, .8f) * d, white);
         pickupObject.AddComponent<HealthPickup>();
         HealthPickup pickup = Save(pickupObject, "HealthPickup").GetComponent<HealthPickup>();
+        SpeedPickup speedPickup = MakeSpeedPickup(d);
         PlayerHealth health = player.GetComponent<PlayerHealth>();
         if (health == null) health = player.gameObject.AddComponent<PlayerHealth>();
         var encounter = new GameObject("Map01 Enemy Waves");
@@ -89,6 +92,7 @@ public static class Map01CombatSetup
         Quaternion rotation = player.GetComponentInChildren<PlayerController>(true).transform.rotation;
         run.Configure(player, health, placement, TeachingWaves(spawner, layer, mortar),
             minion, mine, shell, pickup, marker, start, rotation);
+        run.ConfigurePowerups(speedPickup);
         encounter.AddComponent<CombatPresentation>();
         encounter.AddComponent<CombatHUD>();
         InstallBats(run, dark);
@@ -172,9 +176,67 @@ public static class Map01CombatSetup
             }
             var bat = go.AddComponent<RotatingPinballBat>(); bat.Configure(run); bat.SetReservedRadius(3.4f*d);
             batPositions.Add(point); Physics.SyncTransforms(); placed++;
-            if (placed == 2) break;
+            if (placed == 4) break;
         }
-        if (placed != 2) throw new InvalidOperationException("Could not place two bats with clear sweep space.");
+        if (placed != 4) throw new InvalidOperationException("Could not place four bats with clear sweep space.");
+    }
+
+    [MenuItem("Tools/BonkSquad/Apply Expanded Pinball Arena")]
+    public static void ApplyExpandedPinballArena()
+    {
+        var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+        var run = UnityEngine.Object.FindFirstObjectByType<EnemyWaveController>();
+        if (run == null) throw new InvalidOperationException("Map01 needs an EnemyWaveController.");
+        GameObject arena = scene.GetRootGameObjects().FirstOrDefault(go => go.name == "Map01_RefractionArena");
+        if (arena == null) throw new InvalidOperationException("Map01 arena root was not found.");
+
+        arena.transform.localScale = new Vector3(1.35f, 1f, 1.35f);
+        Physics.SyncTransforms();
+        run.Placement.SetAuthoredCoordinateScale(1.35f);
+        SpeedPickup speedPickup = AssetDatabase.LoadAssetAtPath<SpeedPickup>(Folder + "/SpeedPickup.prefab");
+        if (speedPickup == null) speedPickup = MakeSpeedPickup(run.Placement.Diameter);
+        run.ConfigurePowerups(speedPickup);
+
+        var runData = new SerializedObject(run);
+        runData.FindProperty("scoreGoalPerWave").intValue = 1000;
+        runData.FindProperty("healthDropChance").floatValue = .12f;
+        runData.FindProperty("speedDropChance").floatValue = .18f;
+        SerializedProperty scoring = runData.FindProperty("scoring");
+        scoring.FindPropertyRelative("minionPoints").intValue = 25;
+        scoring.FindPropertyRelative("specialistPoints").intValue = 100;
+        runData.ApplyModifiedPropertiesWithoutUndo();
+
+        InstallBats(run, Material("Combat Dark", new Color(.07f, .1f, .13f)));
+        EditorUtility.SetDirty(run);
+        EditorUtility.SetDirty(run.Placement);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log("EXPANDED_PINBALL_ARENA_OK: 35% larger arena, four blades, 1000-point waves, health and speed drops.");
+    }
+
+    private static SpeedPickup MakeSpeedPickup(float d)
+    {
+        var existing = AssetDatabase.LoadAssetAtPath<SpeedPickup>(Folder + "/SpeedPickup.prefab");
+        if (existing != null) return existing;
+        Directory.CreateDirectory(Folder);
+        Material yellow = Material("Speed Yellow", new Color(1f, .82f, .05f));
+        Material cyan = Material("Speed Cyan", new Color(.05f, .9f, 1f));
+        var pickupObject = new GameObject("SpeedPickup");
+        var trigger = pickupObject.AddComponent<SphereCollider>();
+        trigger.isTrigger = true;
+        trigger.radius = .4f * d;
+        trigger.center = Vector3.up * .55f * d;
+        var body = pickupObject.AddComponent<Rigidbody>();
+        body.isKinematic = true;
+        body.useGravity = false;
+        Transform core = Model(pickupObject.transform, "Speed core", PrimitiveType.Cube,
+            Vector3.up * .55f * d, new Vector3(.55f, .55f, .55f) * d, yellow);
+        core.localRotation = Quaternion.Euler(0f, 45f, 45f);
+        Model(pickupObject.transform, "Speed trail", PrimitiveType.Cube,
+            new Vector3(0f, .55f, -.42f) * d, new Vector3(.18f, .18f, .65f) * d, cyan);
+        pickupObject.AddComponent<SpeedPickup>();
+        return Save(pickupObject, "SpeedPickup").GetComponent<SpeedPickup>();
     }
 
     [MenuItem("Tools/BonkSquad/Apply Map01 Teaching Balance")]

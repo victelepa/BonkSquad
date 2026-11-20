@@ -70,6 +70,37 @@ public class BouncingBallController : MonoBehaviour
         rb != null
             ? PlayerMovementMath.Planar(rb.linearVelocity)
             : Vector3.zero;
+
+    public bool AddMomentum(float amount)
+    {
+        if (!isBallMode || amount <= 0f) return false;
+        Vector3 velocity = simulationVelocity.sqrMagnitude > .001f
+            ? simulationVelocity : PlanarVelocity;
+        Vector3 direction = velocity.sqrMagnitude > .001f
+            ? velocity.normalized : transform.forward;
+        float speed = Mathf.Min(SpeedSettings.MaximumSpeed, velocity.magnitude + amount);
+        simulationVelocity = PlayerMovementMath.Planar(direction).normalized * speed;
+        SetPlanarVelocity(simulationVelocity);
+        boostFlashUntil = Time.time + .5f;
+        PlayBoostSound();
+        return true;
+    }
+
+    public bool LaunchFromBat(Vector3 direction, float minimumSpeed, float bonus)
+    {
+        if (!isBallMode || speedSystem == null || !speedSystem.CanAcceptPlayerInput ||
+            encounter == null || !encounter.IsCombatActive) return false;
+        Vector3 planarDirection = PlayerMovementMath.Planar(direction).normalized;
+        if (planarDirection.sqrMagnitude < .01f) return false;
+        float speed = Mathf.Min(SpeedSettings.MaximumSpeed,
+            Mathf.Max(minimumSpeed, PlanarVelocity.magnitude * (1f + bonus)));
+        simulationVelocity = planarDirection * speed;
+        dashInProgress = false;
+        SetPlanarVelocity(simulationVelocity);
+        boostFlashUntil = Time.time + .3f;
+        encounter.RegisterRicochet(speed);
+        return true;
+    }
     
     public float AccelerationEfficiency01 { get; private set; }
     
@@ -124,20 +155,6 @@ public class BouncingBallController : MonoBehaviour
     public void Configure(BonkRobotController owner)
     {
         speedSystem = owner;
-    }
-
-    public void StopForSnare()
-    {
-        InitializeBody(); simulationVelocity = Vector3.zero; SetPlanarVelocity(Vector3.zero); dashInProgress = false;
-    }
-    public bool LaunchFromBat(Vector3 direction, float minimumSpeed, float bonus)
-    {
-        if (!isBallMode || speedSystem == null || !speedSystem.CanAcceptPlayerInput || encounter == null || !encounter.IsCombatActive) return false;
-        float speed = Mathf.Min(SpeedSettings.MaximumSpeed, Mathf.Max(minimumSpeed, PlanarVelocity.magnitude * (1f + bonus)));
-        simulationVelocity = PlayerMovementMath.Planar(direction).normalized * speed;
-        if (simulationVelocity.sqrMagnitude < .01f) return false;
-        dashInProgress = false; SetPlanarVelocity(simulationVelocity); boostFlashUntil = Time.time + .3f;
-        encounter.RegisterRicochet(speed); return true;
     }
 
     public void ApplyKnockback(Vector3 direction, float strength)
@@ -322,7 +339,6 @@ public class BouncingBallController : MonoBehaviour
 
     private void ResolveCollision(Collision collision)
     {
-        if (collision.collider.GetComponentInParent<RotatingPinballBat>() != null) return;
         EnemyBumper enemy =
             collision.collider.GetComponentInParent<EnemyBumper>();
 

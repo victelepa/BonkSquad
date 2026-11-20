@@ -112,8 +112,8 @@ public static class OnboardingValidation
     private static void CheckHud()
     {
         var healthRow = Root.Q("health");
-        Check(Root.Q<Label>("score").text == $"{run.WaveScore} / {run.ScoreGoal}" && run.ScoreGoal == 350,
-            "first wave shows its score goal in the HUD");
+        Check(Root.Q<Label>("score").text == $"{run.WaveScore} / {run.ScoreGoal}" && run.ScoreGoal == 1000,
+            "first wave shows its 1000-point score goal in the HUD");
         Check(healthRow.parent.IndexOf(Root.Q("combat-dash")) < healthRow.parent.IndexOf(healthRow)
             && Root.Q("combat-dash").parent == healthRow.parent, "Dash is above the health row");
         var dashUses = Root.Q("dash-uses");
@@ -121,7 +121,7 @@ public static class OnboardingValidation
             && dashUses.parent.IndexOf(dashUses) > healthRow.parent.IndexOf(healthRow), "Dash circles are below five hearts");
         Check(dashUses.childCount == run.Player.DashUsesPerRun && dashUses.childCount == 4,
             "Dash circle count matches the configured total");
-        Check(Root.Q("map").Query<Label>().ToList().Count > 0, "minimap symbols identify specialists and bats");
+        Check(Root.Q("map").Query<Label>().ToList().Count == 0, "minimap has no labels");
         Check(Root.Q<Label>("timer").text.EndsWith("s remaining") && !HasText("starting enemies"), "objective shows timer without enemy count");
         Check(!HasText("DIZZINESS") && !HasText("READY TO BONK"), "old bottom status text is absent");
     }
@@ -269,14 +269,13 @@ public static class OnboardingValidation
                     var menuButtons = menu.Query<Button>().ToList().Select(button => button.text);
                     Check(menuButtons.SequenceEqual(new[] { "Start", "Tutorial" }), "main menu has Start and Tutorial");
                     Click("Start");
-                    Check(ui.Page == CombatPage.WavePreview && !run.IsCombatActive, "Start opens roster preview");
-                    ui.StartPresentedWave();
+                    Check(ui.Page == CombatPage.Combat && run.IsCombatActive, "Start enters combat directly");
                     Wait(1); break;
                 case 1:
                     Click("Help");
                     Check(ui.IsTourOpen && ui.TutorialIndex == 0, "Help opens the controls guide");
                     for (int i = 0; i < 4; i++) Click("Next");
-                    Check(ui.TutorialIndex == 4 && HasText("automatically") || HasText("automatically doubles"), "charge needs no activation key");
+                    Check(ui.TutorialIndex == 4 && HasText("automatically"), "charge needs no activation key");
                     Click("Back"); Check(ui.TutorialIndex == 3, "guide back"); Click("Next"); Click("Done");
                     Check(ui.Page == CombatPage.Combat && run.IsCombatActive, "Done resumes combat");
                     ValidatePredictablePatrols();
@@ -375,8 +374,7 @@ public static class OnboardingValidation
                     Check(run.Result.reason == WaveFailureReason.HealthDepleted && HasText("Health reached zero"), "explicit death reason");
                     Click("Main Menu"); Check(ui.Page == CombatPage.MainMenu && run.LivingEnemies == 0, "menu cleans encounter");
                     Click("Start");
-                    Check(ui.Page == CombatPage.WavePreview, "new run previews roster");
-                    ui.StartPresentedWave();
+                    Check(ui.Page == CombatPage.Combat && run.IsCombatActive, "new run starts combat directly");
                     // Jump to the saved mixed definition to check the final-wave result.
                     run.RestartRun();
                     Field(run, "<WaveIndex>k__BackingField", run.WaveCount - 1);
@@ -385,7 +383,7 @@ public static class OnboardingValidation
                     KillAll(); Wait(6); break;
                 case 6:
                     Check(ui.Page == CombatPage.Results && run.State == EnemyWaveState.Victory, "victory screen");
-                    Click("Restart Run"); Check(ui.Page == CombatPage.WavePreview && run.WaveIndex == 0, "victory restart previews wave one");
+                    Click("Restart Run"); Check(ui.Page == CombatPage.Combat && run.WaveIndex == 0, "victory restart starts wave one");
                     ui.ShowMainMenu();
                     Click("Tutorial");
                     stage = 7; break;

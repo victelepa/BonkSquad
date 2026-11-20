@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
-public enum CombatPage { MainMenu, Tutorial, Combat, Results, WavePreview, Skills }
+public enum CombatPage { MainMenu, Tutorial, Combat, Results }
 
 [DefaultExecutionOrder(100)]
 [RequireComponent(typeof(EnemyWaveController))]
@@ -28,9 +28,6 @@ public sealed class CombatPresentation : MonoBehaviour
     private bool ownsPause;
     private DashHud dash;
     private EnemyWaveState lastState;
-    private readonly List<EnemyModelPreview> enemyPreviews = new();
-    private float tokenPopupUntil = float.NegativeInfinity;
-    public bool IsSkillChoiceOpen => Page == CombatPage.Skills;
 
     private sealed class WorldCue
     {
@@ -154,10 +151,7 @@ public sealed class CombatPresentation : MonoBehaviour
     {
         Page = page;
         Show(hud, page != CombatPage.MainMenu);
-        Show(modal, page == CombatPage.Tutorial || page == CombatPage.Results || page == CombatPage.WavePreview || page == CombatPage.Skills);
-        Show(root.Q("wave-preview"), page == CombatPage.WavePreview);
-        Show(root.Q("skill-choice"), page == CombatPage.Skills);
-        if (page != CombatPage.WavePreview) ClearPreviews();
+        Show(modal, page == CombatPage.Tutorial || page == CombatPage.Results);
         Show(root.Q("menu"), page == CombatPage.MainMenu);
         Show(root.Q("guide"), page == CombatPage.Tutorial);
         Show(root.Q("results"), page == CombatPage.Results);
@@ -172,7 +166,6 @@ public sealed class CombatPresentation : MonoBehaviour
         run.RestartRun();
         Pause();
         lastState = run.State;
-        tokenPopupUntil = float.NegativeInfinity;
         SetPage(CombatPage.MainMenu);
     }
 
@@ -181,8 +174,7 @@ public sealed class CombatPresentation : MonoBehaviour
         ClearScorePopups();
         Resume();
         run.RestartRun();
-        tokenPopupUntil = float.NegativeInfinity;
-        ShowWavePreview();
+        BeginCombat(run.StartWave);
     }
 
     private void OpenTutorialLevel()
@@ -241,14 +233,12 @@ public sealed class CombatPresentation : MonoBehaviour
     }
     private void AdvanceWave()
     {
-        Resume();
         run.NextWave();
-        ShowWavePreview();
+        BeginCombat(run.StartWave);
     }
 
     private void BeginCombat(System.Action start)
     {
-        tokenPopupUntil = float.NegativeInfinity;
         Resume();
         start();
         SyncRunState();
@@ -260,7 +250,7 @@ public sealed class CombatPresentation : MonoBehaviour
         switch (run.State)
         {
             case EnemyWaveState.Introduction:
-                if (Page == CombatPage.Combat) ShowWavePreview();
+                if (Page == CombatPage.Combat) BeginCombat(run.StartWave);
                 break;
             case EnemyWaveState.Active:
                 Resume();
@@ -270,59 +260,6 @@ public sealed class CombatPresentation : MonoBehaviour
                 ShowResults();
                 break;
         }
-    }
-
-    private void ClearPreviews()
-    {
-        foreach (var preview in enemyPreviews) preview.Dispose();
-        enemyPreviews.Clear();
-    }
-    public void ShowWavePreview()
-    {
-        Pause(); ClearPreviews(); SetPage(CombatPage.WavePreview); lastState = run.State;
-        root.Q<Label>("preview-heading").text = $"Wave {run.WaveIndex+1}: {run.CurrentWave.title}";
-        root.Q<Label>("preview-summary").text = $"Clear every enemy before time runs out.";
-        var cards = root.Q("preview-enemies"); cards.Clear();
-        foreach (var group in run.CurrentWave.SpawnList().GroupBy(p => p))
-        {
-            var profile = Profile(group.Key);
-            var card = new VisualElement(); card.AddToClassList("enemy-card");
-            var name = new Label($"{profile.symbol} {profile.displayName}"); name.AddToClassList("enemy-name"); name.style.color = profile.color; card.Add(name);
-            var preview = new EnemyModelPreview(group.Key, enemyPreviews.Count); enemyPreviews.Add(preview);
-            var image = new Image { image = preview.Texture, scaleMode = ScaleMode.ScaleToFit }; image.AddToClassList("enemy-model"); card.Add(image);
-            card.Add(new Label(profile.ability));
-            var tip = new Label($"How to Kill: {group.Key.MaximumHitPoints} ball hits. {profile.killTip}"); tip.AddToClassList("enemy-tip"); card.Add(tip);
-            cards.Add(card);
-        }
-    }
-    public void StartPresentedWave()
-    {
-        if (Page == CombatPage.WavePreview) BeginCombat(run.StartWave);
-    }
-    private void OnTokensEarned(int count)
-    {
-        tokenPopupUntil = Time.time + 3f;
-        root.Q<Label>("token-popup").text = count == 1 ? "+1 green charge — Q to Dash!" : $"+{count} green charges — Q to Dash!";
-    }
-    // Rewards are added directly to the green Q charges. No separate purchase screen.
-    public void OpenSkills() { }
-    public bool BuySkill(bool dashSkill)
-    {
-        if (Page != CombatPage.Skills) return false;
-        bool bought = dashSkill ? run.BuyDash() : run.BuyImpact();
-        root.Q<Label>("purchase-feedback").text = bought ? (dashSkill ? "Dash use restored!" : "Impact ready — next fast hit deals double damage!") : "No token available, or Dash is already full.";
-        RefreshSkills(); return bought;
-    }
-    private void RefreshSkills()
-    {
-        root.Q<Label>("skill-balance").text = $"{run.Scoring.SkillTokens} skill tokens • Impact ×{run.Scoring.ImpactCharges} • Dash {run.Player.DashUsesRemaining}/{run.Player.DashUsesPerRun}";
-        Button("buy-impact").SetEnabled(run.Scoring.SkillTokens > 0);
-        Button("buy-dash").SetEnabled(run.Scoring.SkillTokens > 0 && run.Player.DashUsesRemaining < run.Player.DashUsesPerRun);
-    }
-    public void CloseSkills()
-    {
-        if (Page != CombatPage.Skills) return;
-        Resume(); SetPage(CombatPage.Combat);
     }
 
     private void ShowResults()
@@ -355,12 +292,8 @@ public sealed class CombatPresentation : MonoBehaviour
     private EnemyPresentationProfile Profile(EnemyBumper enemy)
     {
         var kind = EnemyPresentationProfile.Kind(enemy);
-        var configured = System.Array.Find(enemyProfiles, profile => profile != null && profile.kind == kind);
-        var defaults = EnemyPresentationProfile.Defaults()[(int)kind];
-        if (configured == null) return defaults;
-        if (string.IsNullOrEmpty(configured.ability)) configured.ability = defaults.ability;
-        if (string.IsNullOrEmpty(configured.killTip)) configured.killTip = defaults.killTip;
-        return configured;
+        return System.Array.Find(enemyProfiles, profile => profile != null && profile.kind == kind)
+            ?? EnemyPresentationProfile.Defaults()[(int)kind];
     }
 
     private VisualElement AddDecoration(VisualElement parent, string className)
@@ -396,20 +329,15 @@ public sealed class CombatPresentation : MonoBehaviour
         element.style.top = Length.Percent(point.y * 100f);
     }
 
-    private void MapMarker(int index, Vector3 position, string variant, Color? color = null, string symbol = "")
+    private void MapMarker(int index, Vector3 position, string variant, Color? color = null)
     {
-        if (index == pins.Count)
-        {
-            var added = AddDecoration(mapMarkers, "map-pin");
-            var letter = new Label(); letter.AddToClassList("map-letter"); letter.pickingMode = PickingMode.Ignore; added.Add(letter);
-            pins.Add(added);
-        }
+        if (index == pins.Count) pins.Add(AddDecoration(mapMarkers, "map-pin"));
         var pin = pins[index];
         pin.EnableInClassList("map-minion", variant == "minion");
         pin.EnableInClassList("map-health", variant == "health");
+        pin.EnableInClassList("map-speed", variant == "speed");
         pin.EnableInClassList("map-player", variant == "player");
         pin.style.backgroundColor = color.HasValue ? new StyleColor(color.Value) : new StyleColor(StyleKeyword.Null);
-        pin.Q<Label>().text = variant == "player" ? "P" : variant == "health" ? "+" : variant == "minion" ? "" : symbol;
         SetMapPosition(pin, CombatHUD.WorldToMinimap(position, run.Placement.Floor.bounds, new Rect(.06f, .06f, .88f, .88f)));
         Show(pin, true);
     }
@@ -502,14 +430,14 @@ public sealed class CombatPresentation : MonoBehaviour
     {
         int usedCues = 0, usedPins = 0;
         bool hasMap = run.Placement.Floor != null;
-        bool liveView = Page == CombatPage.Combat || IsTourOpen || Page == CombatPage.Skills;
+        bool liveView = Page == CombatPage.Combat || IsTourOpen;
         if (liveView)
         {
             foreach (EnemyBumper enemy in run.LivingEnemyObjects)
             {
                 if (enemy == null || enemy.IsDefeated) continue;
                 var profile = Profile(enemy);
-                if (hasMap) MapMarker(usedPins++, enemy.transform.position, enemy.IsBasicMinion ? "minion" : "", profile.color, profile.symbol);
+                if (hasMap) MapMarker(usedPins++, enemy.transform.position, enemy.IsBasicMinion ? "minion" : "", profile.color);
                 UpdateCue(usedCues++, enemy.transform.position + Vector3.up * (enemy.IsBasicMinion ? 1.4f : 2f) * run.Placement.Diameter,
                     profile.symbol + " " + profile.displayName + (enemy.UsesStraightPatrol ? " " + enemy.PatrolArrow : ""), profile.color, enemy);
             }
@@ -519,8 +447,12 @@ public sealed class CombatPresentation : MonoBehaviour
                 UpdateCue(usedCues++, pickup.transform.position + Vector3.up * run.Placement.Diameter,
                     Time.time < pickup.FullHealthFeedbackUntil ? "Health full" : $"+{pickup.HealAmount:0} health", Color.green);
             }
-            foreach (var runner in run.LivingEnemyObjects.Where(e => e.GetComponent<RunnerEnemy>() != null && e.HitPoints < e.MaximumHitPoints))
-                UpdateCue(usedCues++, runner.transform.position + Vector3.up*3f*run.Placement.Diameter, $"FASTER! {runner.MoveSpeed/run.Placement.Diameter:0.0}×", new Color(1f,.4f,.4f));
+            foreach (SpeedPickup pickup in FindObjectsByType<SpeedPickup>(FindObjectsSortMode.None))
+            {
+                if (hasMap) MapMarker(usedPins++, pickup.transform.position, "speed");
+                UpdateCue(usedCues++, pickup.transform.position + Vector3.up * run.Placement.Diameter,
+                    $"+{pickup.SpeedAmount:0} speed", new Color(.15f, .9f, 1f));
+            }
             foreach (CombatHazard hazard in FindObjectsByType<CombatHazard>(FindObjectsSortMode.None))
                 UpdateCue(usedCues++, hazard.transform.position + Vector3.up * run.Placement.Diameter, hazard.WarningLabel, Color.yellow);
             foreach (Transform marker in run.WarningMarkers)
@@ -532,6 +464,7 @@ public sealed class CombatPresentation : MonoBehaviour
                     UpdateCue(usedCues++, marker.position + Vector3.up * run.Placement.Diameter, "N  NET SHOT — DODGE", Color.cyan);
             }
         }
+        if (hasMap) MapMarker(usedPins++, run.Player.ActivePosition, "player");
         for (int i = usedPins; i < pins.Count; i++) Show(pins[i], false);
         for (int i = usedCues; i < cues.Count; i++) Show(cues[i].element, false);
     }

@@ -126,6 +126,10 @@ public class BonkRobotController : MonoBehaviour
         return true;
     }
 
+    public bool AddMomentum(float amount) => IsBallForm
+        ? ballController != null && ballController.AddMomentum(amount)
+        : standingController != null && standingController.AddMomentum(amount);
+
     public void SetEncounterLocked(bool locked, bool clearKnockback = true)
     {
         IsEncounterLocked = locked;

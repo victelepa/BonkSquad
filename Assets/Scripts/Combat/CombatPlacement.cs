@@ -9,6 +9,7 @@ public sealed class CombatPlacement : MonoBehaviour
     [SerializeField] private Rect[] spawnRegions;
     [SerializeField] private Vector3[] fallbackPositions;
     [Min(1)] [SerializeField] private int randomAttempts = 100;
+    [Min(1f)] [SerializeField] private float authoredCoordinateScale = 1f;
     public float Diameter = .8f;
     public Collider Floor => arenaFloor;
     public Vector3[] FallbackPositions => fallbackPositions;
@@ -21,6 +22,25 @@ public sealed class CombatPlacement : MonoBehaviour
         Diameter = diameter;
         spawnRegions = regions;
         fallbackPositions = fallbacks;
+    }
+    public void SetAuthoredCoordinateScale(float scale) => authoredCoordinateScale = Mathf.Max(1f, scale);
+
+    private Vector2 ScaleAuthored(Vector2 point)
+    {
+        Vector2 center = new Vector2(arenaFloor.bounds.center.x, arenaFloor.bounds.center.z);
+        return center + (point - center) * authoredCoordinateScale;
+    }
+
+    private Vector3 ScaleAuthored(Vector3 point)
+    {
+        Vector2 scaled = ScaleAuthored(new Vector2(point.x, point.z));
+        return new Vector3(scaled.x, point.y, scaled.y);
+    }
+
+    private Rect ScaleAuthored(Rect source)
+    {
+        Vector2 minimum = ScaleAuthored(source.min);
+        return new Rect(minimum, source.size * authoredCoordinateScale);
     }
 
     public bool IsClear(Vector3 point, float radius, float height, bool avoidHazards = true)
@@ -43,7 +63,7 @@ public sealed class CombatPlacement : MonoBehaviour
             if (obstacle == arenaFloor) continue;
             if (!obstacle.isTrigger || (avoidHazards && obstacle.GetComponentInParent<CombatHazard>() != null)) return false;
         }
-        foreach (var bat in FindObjectsByType<RotatingPinballBat>(FindObjectsSortMode.None))
+        foreach (RotatingPinballBat bat in FindObjectsByType<RotatingPinballBat>(FindObjectsSortMode.None))
             if (bat.Reserves(point, radius)) return false;
         // Mortar markers have no colliders. Reserve their full blast footprint too.
         if (avoidHazards)
@@ -77,7 +97,7 @@ public sealed class CombatPlacement : MonoBehaviour
     {
         for (int i = 0; i < anchors.Length; i++)
         {
-            Vector2 anchor = anchors[i];
+            Vector2 anchor = ScaleAuthored(anchors[i]);
             bool placed = false;
             int attempts = random == null ? 1 : 9;
             for (int attempt = 0; attempt < attempts && !placed; attempt++)
@@ -104,7 +124,7 @@ public sealed class CombatPlacement : MonoBehaviour
         positions = new List<Vector3>();
         for (int i = 0; i < randomAttempts && positions.Count < count; i++)
         {
-            Rect region = spawnRegions[random.Next(spawnRegions.Length)];
+            Rect region = ScaleAuthored(spawnRegions[random.Next(spawnRegions.Length)]);
             Vector3 point = new Vector3(Mathf.Lerp(region.xMin, region.xMax, (float)random.NextDouble()),
                 arenaFloor.bounds.max.y, Mathf.Lerp(region.yMin, region.yMax, (float)random.NextDouble()));
             if (ValidWavePoint(point, playerStart, radius, height, positions)) positions.Add(point);
@@ -112,7 +132,8 @@ public sealed class CombatPlacement : MonoBehaviour
         if (positions.Count == count) return true;
         // Rebuild the entire selection from the guaranteed fallback set, not around random leftovers.
         positions.Clear();
-        var candidates = new List<Vector3>(fallbackPositions);
+        var candidates = new List<Vector3>();
+        foreach (Vector3 fallback in fallbackPositions) candidates.Add(ScaleAuthored(fallback));
         for (int i = candidates.Count - 1; i > 0; i--)
         {
             int j = random.Next(i + 1);

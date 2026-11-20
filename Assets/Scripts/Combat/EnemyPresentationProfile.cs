@@ -9,7 +9,6 @@ public sealed class EnemyPresentationProfile
     public PresentedEnemyKind kind;
     public string displayName, symbol;
     public Color color;
-    [TextArea] public string ability, killTip;
     public static PresentedEnemyKind Kind(EnemyBumper enemy) => enemy.GetComponent<SpawnerEnemy>() != null ? PresentedEnemyKind.Spawner :
         enemy.GetComponent<MineLayerEnemy>() != null ? PresentedEnemyKind.MineLayer :
         enemy.GetComponent<MortarEnemy>() != null ? PresentedEnemyKind.Mortar :
