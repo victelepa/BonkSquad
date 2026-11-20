@@ -11,9 +11,10 @@
 .help-button { position: absolute; top: 16px; right: 20px; }
 .power-offer { position: absolute; top: 74px; right: 20px; width: 310px; padding: 14px 16px; border-right-width: 5px; border-right-color: rgb(255, 211, 76); }
 .power-offer-name { margin-top: 3px; color: rgb(255, 231, 120); font-size: 24px; -unity-font-style: bold; }
-.power-offer-cost { margin-top: 8px; color: rgb(108, 255, 159); -unity-font-style: bold; }
+.power-offer-action { margin-top: 8px; color: rgb(108, 255, 159); -unity-font-style: bold; }
+.power-offer-cost { margin-top: 2px; color: rgb(255, 92, 92); -unity-font-style: bold; }
 .power-offer-skip { margin-top: 2px; color: rgb(150, 164, 176); font-size: 13px; }
-.power-offer-unaffordable { color: rgb(255, 105, 105); }
+.power-offer-unaffordable { color: rgb(255, 92, 92); }
 .power-status { position: absolute; top: 18px; right: 105px; padding: 7px 11px; color: rgb(108, 255, 159); background-color: rgba(9, 14, 23, .88); border-radius: 5px; -unity-font-style: bold; }
 .score-popup { position: absolute; translate: -50% -50%; color: rgb(255, 232, 91); -unity-font-style: bold; -unity-text-outline-width: 2px; -unity-text-outline-color: rgb(9, 14, 23); }
 .player-warning { position: absolute; margin: 0; translate: -50% 0; color: rgb(255, 211, 76); -unity-text-outline-width: 1px; -unity-text-outline-color: black; }

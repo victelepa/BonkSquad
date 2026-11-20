@@ -20,7 +20,8 @@
                 <ui:Label name="power-offer-timer" text="POWER OFFER • 5s" class="eyebrow" />
                 <ui:Label name="power-offer-name" text="DAMAGE SHIELD" class="power-offer-name" />
                 <ui:Label name="power-offer-description" text="No player damage for 10s" />
-                <ui:Label name="power-offer-cost" text="Enter to take • −150 points" class="power-offer-cost" />
+                <ui:Label text="Press E to take powerup" class="power-offer-action" />
+                <ui:Label name="power-offer-cost" text="−150 points" class="power-offer-cost" />
                 <ui:Label text="Ignore to skip" class="power-offer-skip" />
             </ui:VisualElement>
             <ui:Label name="power-status" class="power-status hidden" picking-mode="Ignore" />
@@ -63,7 +64,7 @@
                     </ui:VisualElement>
                     <ui:VisualElement class="hidden">
                         <ui:Label text="Watch your health." class="heading" />
-                        <ui:Label text="The red hearts show your health. Collect green pickups to heal and yellow-cyan pickups for momentum. Every 15 seconds, a five-second point-trade offer appears: press Enter to buy it or ignore it to skip." class="body" />
+                        <ui:Label text="The red hearts show your health. Collect green pickups to heal and yellow-cyan pickups for momentum. Every 15 seconds, a five-second point-trade offer appears: press E to buy it or ignore it to skip." class="body" />
                     </ui:VisualElement>
                     <ui:VisualElement class="hidden">
                         <ui:Label text="Charge your impact." class="heading" />

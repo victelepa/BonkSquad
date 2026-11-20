@@ -522,10 +522,10 @@ public sealed class CombatPresentation : MonoBehaviour
         if (showTimeCallout)
             timeCallout.style.opacity = .45f + .55f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 10f));
 
-        bool enterPressed = Keyboard.current != null
-            ? Keyboard.current.enterKey.wasPressedThisFrame || Keyboard.current.numpadEnterKey.wasPressedThisFrame
-            : UnityEngine.Input.GetKeyDown(KeyCode.Return);
-        if (Page == CombatPage.Combat && run.HasPowerOffer && enterPressed)
+        bool takePowerupPressed = Keyboard.current != null
+            ? Keyboard.current.eKey.wasPressedThisFrame
+            : UnityEngine.Input.GetKeyDown(KeyCode.E);
+        if (Page == CombatPage.Combat && run.HasPowerOffer && takePowerupPressed)
             run.TryPurchasePowerOffer();
         bool showOffer = Page == CombatPage.Combat && run.HasPowerOffer;
         Show(powerOffer, showOffer);
@@ -536,8 +536,8 @@ public sealed class CombatPresentation : MonoBehaviour
             powerOfferDescription.text = run.PowerOfferDescription;
             bool affordable = run.WaveScore >= run.PowerOfferCost;
             powerOfferCost.text = affordable
-                ? $"Enter to take • −{run.PowerOfferCost} points"
-                : $"Need {run.PowerOfferCost} points • current {run.WaveScore}";
+                ? $"−{run.PowerOfferCost} points"
+                : $"−{run.PowerOfferCost} points • only {run.WaveScore} available";
             powerOfferCost.EnableInClassList("power-offer-unaffordable", !affordable);
             powerOffer.style.opacity = .72f + .28f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 7f));
         }
