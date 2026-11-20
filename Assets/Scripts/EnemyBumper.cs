@@ -57,6 +57,8 @@ public class EnemyBumper : MonoBehaviour
     [SerializeField] private bool showHealthBar;
     public int HitPoints { get; private set; }
     public int MaximumHitPoints => maximumHitPoints;
+    public float MoveSpeed => moveSpeed;
+    public void SetMoveSpeed(float speed) => moveSpeed = Mathf.Max(0f, speed);
     public bool ShowHealthBar => showHealthBar;
     public bool IsHitFlashing => Time.time < hitFlashUntil;
     public EnemyDamageCause LastDamageCause { get; private set; }
@@ -83,7 +85,13 @@ public class EnemyBumper : MonoBehaviour
         arenaMax = maximum;
     }
 
-    public void Bind(EnemyWaveController encounter) => Encounter = encounter;
+    public void Bind(EnemyWaveController encounter)
+    {
+        Encounter = encounter;
+        if (encounter == null) return;
+        arenaMin = encounter.Placement.ArenaMin;
+        arenaMax = encounter.Placement.ArenaMax;
+    }
 
     public void ContactPlayer(PlayerHealth health)
     {
@@ -178,17 +186,17 @@ public class EnemyBumper : MonoBehaviour
         if (isDefeated) return EnemyHitResult.Defeated;
         if ((Encounter != null && !Encounter.IsCombatActive) ||
             !settings.CanKill(incomingPlayerSpeed, isSmallEnemy)) return EnemyHitResult.Rejected;
-        return ApplyHit(damage, EnemyDamageCause.Ball);
+        return ApplyDamage(damage);
     }
-    public EnemyHitResult TakeOwnMortarHit()
+
+    internal void TryCrush()
     {
-        if (isDefeated) return EnemyHitResult.Defeated;
-        if (Encounter == null || !Encounter.IsCombatActive) return EnemyHitResult.Rejected;
-        return ApplyHit(1, EnemyDamageCause.OwnMortar);
+        if (!isDefeated && Encounter != null && Encounter.IsCombatActive)
+            ApplyDamage(HitPoints);
     }
-    private EnemyHitResult ApplyHit(int damage, EnemyDamageCause cause)
+
+    private EnemyHitResult ApplyDamage(int damage)
     {
-        LastDamageCause = cause;
         HitPoints = Mathf.Max(0, HitPoints - Mathf.Max(1, damage));
         hitFlashUntil = Time.time + .18f;
         HealthChanged?.Invoke(this);

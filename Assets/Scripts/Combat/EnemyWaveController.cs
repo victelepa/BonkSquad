@@ -33,6 +33,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         [Min(0f)] public float minionSpeedInDiameters = 1.5f;
         [Min(0)] public int count;
         [Min(1f)] public float seconds = 180f;
+        public Vector2[] openingPositions;
         public EnemyGroup[] additionalGroups = Array.Empty<EnemyGroup>();
 
         public List<EnemyBumper> SpawnList()
@@ -54,6 +55,17 @@ public sealed class EnemyWaveController : MonoBehaviour
     [SerializeField] private PinballScore scoring = new PinballScore();
     public PinballScore Scoring => scoring;
     public int BasicMinionsPerWave => CurrentWave.basicMinions >= 0 ? CurrentWave.basicMinions : basicMinionsPerWave;
+    private int scoreGoal;
+    public int ScoreGoal => scoreGoal;
+    private int CalculateScoreGoal(int specialistCount)
+    {
+        // Roughly two thirds of the opening roster's base points; bonuses and spawned minions count too.
+        int available = BasicMinionsPerWave * scoring.MinionPoints + specialistCount * scoring.SpecialistPoints;
+        if (available <= 0) return 0;
+        int rounded = Mathf.RoundToInt(available * .65f / 50f) * 50;
+        return Mathf.Clamp(rounded, 1, available);
+    }
+    public int WaveScore => Mathf.Max(0, scoring.Points - scoreAtWaveStart.points);
     private PinballScore.Checkpoint scoreAtWaveStart;
     private BonkRobotController.DashCheckpoint dashAtWaveStart;
     private bool retryingWave;
@@ -68,6 +80,10 @@ public sealed class EnemyWaveController : MonoBehaviour
     private readonly HashSet<EnemyBumper> enemies = new HashSet<EnemyBumper>();
     private readonly HashSet<EnemyBumper> minions = new HashSet<EnemyBumper>();
     private Transform enemyRoot, transientRoot;
+    private TopplingPillar[] pillars;
+    public event Action ObstacleMoved;
+    public event Action<Vector3, int> ScoreEarned;
+    internal void NotifyObstacleMoved() => ObstacleMoved?.Invoke();
     private System.Random random = new System.Random();
     private bool tryingAllTypes;
     private int nextMinionPatrol;
@@ -91,6 +107,7 @@ public sealed class EnemyWaveController : MonoBehaviour
     }
     public int LivingEnemies => enemies.Count;
     public IReadOnlyCollection<EnemyBumper> LivingEnemyObjects => enemies;
+    public Transform TransientRoot => transientRoot;
     public IEnumerable<Transform> WarningMarkers => transientRoot != null ? transientRoot.Cast<Transform>() : Array.Empty<Transform>();
     public bool CanSpawnMinion => IsCombatActive && minions.Count < globalMinionCap;
     public BonkRobotController Player => player;
@@ -115,6 +132,8 @@ public sealed class EnemyWaveController : MonoBehaviour
         transientRoot = new GameObject("Wave Hazards and Drops").transform;
         transientRoot.SetParent(transform, false);
         health.Damaged += OnPlayerDamaged;
+        pillars = placement.Floor.transform.parent.GetComponentsInChildren<TopplingPillar>();
+        scoring.DashUsesEarned += OnDashUsesEarned;
         player.ConfigureEncounter(this);
         player.GetComponentInChildren<BouncingBallController>(true).ConfigureEncounter(this);
         SetState(EnemyWaveState.Introduction);
@@ -125,6 +144,8 @@ public sealed class EnemyWaveController : MonoBehaviour
     {
         if (IsCombatActive) scoring.BreakCombo(Time.time);
     }
+
+    private void OnDashUsesEarned(int count) => player.RestoreDashUses(count);
 
     public void RegisterRicochet(float speed)
     {
@@ -148,6 +169,7 @@ public sealed class EnemyWaveController : MonoBehaviour
         player.ResetForEncounter(playerStart, playerRotation);
         foreach (var bat in GetComponentsInChildren<RotatingPinballBat>()) bat.ResetForWave();
         List<EnemyBumper> spawnList = CurrentWave.SpawnList();
+        scoreGoal = CalculateScoreGoal(spawnList.Count);
         float radius = 0f, height = 0f;
         foreach (EnemyBumper prefab in spawnList)
         {
@@ -156,21 +178,29 @@ public sealed class EnemyWaveController : MonoBehaviour
             height = Mathf.Max(height, shape.height);
         }
         Physics.SyncTransforms();
-        if (!placement.TryWavePositions(spawnList.Count, playerStart, radius, height,
-            random, out List<Vector3> points))
+        List<Vector3> points, basicPoints;
+        if (CurrentWave.openingPositions != null && CurrentWave.openingPositions.Length > 0)
         {
-            ResultMessage = "No safe enemy positions. Check the arena spawn regions.";
-            CaptureResult(WaveFailureReason.Placement);
-            SetState(EnemyWaveState.Failed);
-            return;
+            if (!placement.TryOpeningPositions(CurrentWave.openingPositions, spawnList.Count, BasicMinionsPerWave,
+                playerStart, radius, height, MinionRadius, MinionHeight, random, out points, out basicPoints))
+            {
+                ResultMessage = "A planned enemy spawn is blocked. Check the arena opening positions.";
+                CaptureResult(WaveFailureReason.Placement);
+                SetState(EnemyWaveState.Failed);
+                return;
+            }
         }
-        if (!placement.TryDistributedMinions(BasicMinionsPerWave, playerStart, points, MinionRadius, MinionHeight,
-            random, out List<Vector3> basicPoints))
+        else
         {
-            ResultMessage = "Not enough clear floor to distribute the basic minions.";
-            CaptureResult(WaveFailureReason.Placement);
-            SetState(EnemyWaveState.Failed);
-            return;
+            if (!placement.TryWavePositions(spawnList.Count, playerStart, radius, height, random, out points)
+                || !placement.TryDistributedMinions(BasicMinionsPerWave, playerStart, points,
+                    MinionRadius, MinionHeight, random, out basicPoints))
+            {
+                ResultMessage = "No safe enemy positions. Check the arena spawn regions.";
+                CaptureResult(WaveFailureReason.Placement);
+                SetState(EnemyWaveState.Failed);
+                return;
+            }
         }
         if (!retryingWave)
         {
@@ -181,7 +211,14 @@ public sealed class EnemyWaveController : MonoBehaviour
         scoring.BreakCombo(Time.time, false);
         TimeRemaining = CurrentWave.seconds;
         SetState(EnemyWaveState.Active);
-        for (int i = 0; i < spawnList.Count; i++) SpawnEnemy(spawnList[i], points[i], false);
+        for (int i = 0; i < spawnList.Count; i++)
+        {
+            var enemy = SpawnEnemy(spawnList[i], points[i], false);
+            if (CurrentWave.openingPositions == null || CurrentWave.openingPositions.Length == 0) continue;
+            float offset = (float)random.NextDouble() * 3f;
+            if (enemy.TryGetComponent<MortarEnemy>(out var mortar)) mortar.DelayFirstShot(offset);
+            if (enemy.TryGetComponent<NetShooterEnemy>(out var netShooter)) netShooter.DelayFirstShot(offset);
+        }
         foreach (Vector3 point in basicPoints)
         {
             EnemyBumper minion = SpawnEnemy(minionPrefab, point, false);
@@ -239,8 +276,8 @@ public sealed class EnemyWaveController : MonoBehaviour
         minions.Remove(enemy);
         enemy.Defeated -= OnEnemyDefeated;
         if (!IsCombatActive) return;
-        scoring.RecordKill(enemy.IsBasicMinion, Time.time, enemy.LastDamageCause == EnemyDamageCause.Ball);
-        while (scoring.SkillTokens > 0) scoring.SpendDashToken(player);
+        int earned = scoring.RecordKill(enemy.IsBasicMinion, Time.time);
+        ScoreEarned?.Invoke((player.ActivePosition + enemy.transform.position) * .5f + Vector3.up * placement.Diameter, earned);
         double roll = DropRandom != null ? DropRandom() : random.NextDouble();
         if (ShouldDrop(roll, healthDropChance) &&
             placement.TryNearby(enemy.transform.position, placement.Diameter * .35f,
@@ -252,11 +289,11 @@ public sealed class EnemyWaveController : MonoBehaviour
     {
         if (!IsCombatActive) return;
         scoring.Tick(Time.time);
-        // Resolve after all collision and attack callbacks. Death wins over a simultaneous clear.
+        // Resolve after all collision and attack callbacks. Death wins over a simultaneous score goal.
         TimeRemaining = Mathf.Max(0f, TimeRemaining - Time.deltaTime);
         if (health.IsDead) Finish(EnemyWaveState.Failed, "Robot destroyed");
-        else if (enemies.Count == 0)
-            Finish(tryingAllTypes || WaveIndex == waves.Length - 1 ? EnemyWaveState.Victory : EnemyWaveState.Cleared, "Wave cleared!");
+        else if (WaveScore >= ScoreGoal)
+            Finish(tryingAllTypes || WaveIndex == waves.Length - 1 ? EnemyWaveState.Victory : EnemyWaveState.Cleared, "Score goal reached!");
         else if (TimeRemaining <= 0f) Finish(EnemyWaveState.Failed, "Time ran out");
     }
 
@@ -372,6 +409,10 @@ public sealed class EnemyWaveController : MonoBehaviour
         enemies.Clear(); minions.Clear();
         nextMinionPatrol = 0;
         ClearChildren(enemyRoot); ClearChildren(transientRoot);
+        if (pillars == null) return;
+        foreach (var pillar in pillars) pillar.ResetPillar();
+        Physics.SyncTransforms();
+        NotifyObstacleMoved();
     }
     private static void ClearChildren(Transform root)
     {
@@ -420,5 +461,6 @@ public sealed class EnemyWaveController : MonoBehaviour
             health.Damaged -= OnPlayerDamaged;
             health.CombatEnabled = true;
         }
+        if (scoring != null) scoring.DashUsesEarned -= OnDashUsesEarned;
     }
 }

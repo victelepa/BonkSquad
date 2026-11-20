@@ -1,13 +1,13 @@
 .screen { position: absolute; top: 0; right: 0; bottom: 0; left: 0; color: rgb(240, 246, 251); font-size: 18px; }
 .hidden { display: none; }
 .panel { background-color: rgba(9, 14, 23, 0.94); border-radius: 8px; }
-.objective { position: absolute; top: 16px; align-self: center; min-width: 340px; flex-direction: row; align-items: center; justify-content: center; padding: 10px 18px; }
-.objective > Label { margin: 0 6px; }
-.objective-title { -unity-font-style: bold; }
+.objective { position: absolute; top: 16px; left: 20px; min-width: 235px; padding: 10px 16px 9px 16px; border-left-width: 5px; border-left-color: rgb(63, 229, 255); }
+.objective-score { color: rgb(255, 231, 120); font-size: 38px; -unity-font-style: bold; -unity-text-outline-width: 1px; -unity-text-outline-color: rgb(76, 44, 8); }
+.score-reached { color: rgb(108, 255, 159); }
+.objective-details { flex-direction: row; justify-content: space-between; margin-top: 2px; font-size: 14px; color: rgb(192, 207, 219); }
 .timer-low { color: rgb(255, 211, 76); }
 .help-button { position: absolute; top: 16px; right: 20px; }
-.combo { position: absolute; align-self: center; top: 72px; padding: 5px 14px; -unity-font-style: bold; }
-.reward { color: rgb(255, 211, 76); }
+.score-popup { position: absolute; translate: -50% -50%; color: rgb(255, 232, 91); -unity-font-style: bold; -unity-text-outline-width: 2px; -unity-text-outline-color: rgb(9, 14, 23); }
 .player-warning { position: absolute; margin: 0; translate: -50% 0; color: rgb(255, 211, 76); -unity-text-outline-width: 1px; -unity-text-outline-color: black; }
 .player-status { position: absolute; bottom: 18px; left: 20px; }
 .meter-row { flex-direction: row; align-items: center; }
@@ -17,8 +17,8 @@
 .heart { background-image: url("HeartTrack.png"); }
 .heart-fill { background-image: url("HeartFill.png"); }
 .orb { width: 31px; height: 31px; margin-right: 8px; background-image: url("OrbTrack.png"); }
-.orb-fill { height: 100%; background-image: url("OrbFill.png"); }
-.dash-use-spent .orb-fill { display: none; }
+.orb-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; overflow: hidden; }
+.orb-fill { position: absolute; left: 0; bottom: 0; width: 31px; height: 31px; background-image: url("OrbFill.png"); }
 .dash-uses { flex-wrap: wrap; }
 .map { position: absolute; bottom: 18px; right: 20px; width: 220px; height: 220px; overflow: hidden; background-color: rgb(31, 47, 61); border-width: 2px; border-color: rgb(100, 119, 136); border-radius: 6px; }
 .map-obstacle { position: absolute; background-color: rgb(100, 119, 136); }
@@ -46,7 +46,6 @@ Button:hover, Button:focus { background-color: rgb(37, 87, 112); }
 .map-obstacle { min-width: 1px; min-height: 1px; }
 .dash-panel { align-self: flex-start; width: 174px; padding: 4px; }
 .combat-dash { align-self: flex-start; margin-bottom: 6px; }
-.tutorial-dash { position: absolute; top: 68px; right: 20px; }
 .dash-status { align-self: center; margin: 1px 0 4px 0; font-size: 14px; }
 Button:disabled { background-color: rgb(37, 48, 60); color: rgb(155, 174, 188); }
 .tutorial-card { position: absolute; left: 20px; top: 16px; width: 52%; max-width: 510px; padding: 12px 16px; border-left-width: 4px; border-left-color: rgb(63, 229, 255); }
@@ -68,20 +67,11 @@ Button:disabled { background-color: rgb(37, 48, 60); color: rgb(155, 174, 188); 
 .practice-countdown { color: rgb(255, 211, 76); font-size: 15px; margin: 0 0 0 10px; -unity-font-style: bold; }
 .guide-control-copy { min-height: 0; margin-bottom: 0; }
 
-.skill-status { position: absolute; top: 12px; left: 18px; padding: 6px 10px; max-width: 230px; }
-.skill-status Label { font-size: 15px; white-space: normal; }
-.token-popup { position: absolute; top: 118px; align-self: center; padding: 12px 20px; color: rgb(255,225,80); -unity-font-style: bold; font-size: 23px; max-width: 76%; white-space: normal; }
-.damage-reason { position: absolute; align-self: center; top: 43%; color: rgb(255,175,70); font-size: 25px; -unity-font-style: bold; -unity-text-outline-width: 1px; -unity-text-outline-color: black; }
-.map-legend { position: absolute; right: 20px; bottom: 244px; width: 220px; padding: 7px; white-space: normal; font-size: 14px; }
-.preview-card { width: 88%; max-width: 1050px; }
-.preview-summary { white-space: normal; font-size: 18px; margin: 8px 0; }
-.preview-enemies { flex-direction: row; justify-content: space-around; margin: 8px 0 16px 0; }
-.enemy-card { flex-grow: 1; flex-basis: 0; margin: 0 6px; padding: 10px; background-color: rgb(20,32,45); border-radius: 6px; }
-.enemy-card Label { white-space: normal; font-size: 17px; }
-.enemy-name { font-size: 22px; -unity-font-style: bold; }
-.enemy-model { height: 105px; align-self: center; width: 105px; }
-.enemy-tip { margin-top: 8px; color: rgb(255,224,120); }
+.practice-trail-hints { color: rgb(136, 192, 216); margin-top: 6px; }
+.practice-completed { position: absolute; right: 12px; bottom: 7px; color: rgb(98, 255, 153); font-size: 29px; -unity-font-style: bold; }
+.tutorial-card { padding-bottom: 40px; }
 
-.map-letter { margin: 0; padding: 0; color: rgb(0,12,22); -unity-text-align: middle-center; font-size: 12px; -unity-font-style: bold; }
-
-#dash-uses { flex-wrap: wrap; max-width: 320px; }
+.tutorial-demo { position: absolute; left: 20px; bottom: 18px; width: 252px; padding: 6px; }
+.tutorial-demo-frame { width: 240px; height: 135px; overflow: hidden; border-radius: 4px; }
+.tutorial-demo-caption { font-size: 14px; margin: 4px 0 0 0; }
+.tutorial-demo-with-dash { bottom: 145px; }

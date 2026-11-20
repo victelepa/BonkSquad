@@ -32,6 +32,7 @@ public class BouncingBallController : MonoBehaviour
     public float WallBoostFlashUntil => boostFlashUntil;
     public event System.Action WallBounced;
     public event System.Action<EnemyBumper> DashHitEnemy;
+    public event System.Action<EnemyBumper, EnemyHitResult> EnemyImpact;
 
     private Rigidbody rb;
     private Transform cameraTransform;
@@ -42,6 +43,14 @@ public class BouncingBallController : MonoBehaviour
     private EnemyWaveController encounter;
     private readonly HashSet<Collider> contactSurfaces = new HashSet<Collider>();
     public void ConfigureEncounter(EnemyWaveController owner) => encounter = owner;
+
+    public void StopForSnare()
+    {
+        InitializeBody();
+        dashInProgress = false;
+        simulationVelocity = Vector3.zero;
+        SetPlanarVelocity(Vector3.zero);
+    }
 
     private bool isBallMode;
     private bool dashInProgress;
@@ -317,6 +326,7 @@ public class BouncingBallController : MonoBehaviour
         EnemyBumper enemy =
             collision.collider.GetComponentInParent<EnemyBumper>();
 
+        bool rejectedHit = false;
         if (enemy != null)
         {
             if (!resolvedEnemies.Add(enemy)) return;
@@ -331,9 +341,11 @@ public class BouncingBallController : MonoBehaviour
                 EnemyHitResult hit = enemy.Encounter != null
                     ? enemy.Encounter.TryBonk(enemy, simulationVelocity.magnitude, SpeedSettings)
                     : enemy.TryHitFromBall(simulationVelocity.magnitude, SpeedSettings);
+                rejectedHit = hit == EnemyHitResult.Rejected;
                 if (hit == EnemyHitResult.Defeated)
                 {
                     SetPlanarVelocity(simulationVelocity);
+                    EnemyImpact?.Invoke(enemy, hit);
                     return;
                 }
             }
@@ -342,6 +354,7 @@ public class BouncingBallController : MonoBehaviour
         bool freshSurface = enemy == null && contactSurfaces.Add(collision.collider);
         bool reflected = false;
         bool meaningfulWall = false;
+        Vector3 wallNormal = Vector3.zero;
         for (int i = 0; i < collision.contactCount; i++)
         {
             Vector3 surfaceNormal = collision.GetContact(i).normal;
@@ -354,6 +367,7 @@ public class BouncingBallController : MonoBehaviour
             {
                 meaningfulWall |= Mathf.Abs(surfaceNormal.y) < .4f && simulationVelocity.magnitude >= minimumWallImpactSpeed &&
                     -Vector3.Dot(simulationVelocity.normalized, normal.normalized) >= .2f;
+                if (meaningfulWall && wallNormal == Vector3.zero) wallNormal = normal;
                 reflected = true;
                 simulationVelocity =
                     PlayerMovementMath.ReflectPlanar(
@@ -366,11 +380,16 @@ public class BouncingBallController : MonoBehaviour
         if (freshSurface && meaningfulWall && isBallMode) WallBounced?.Invoke();
         if (freshSurface && reflected && encounter != null && encounter.IsCombatActive)
         {
-            if (meaningfulWall) TryWallBoost();
+            if (meaningfulWall)
+            {
+                collision.collider.GetComponentInParent<TopplingPillar>()?.TryTopple(encounter, wallNormal);
+                TryWallBoost();
+            }
             encounter.RegisterRicochet(simulationVelocity.magnitude);
         }
         if (enemy != null || simulationVelocity.sqrMagnitude > 0f)
             SetPlanarVelocity(simulationVelocity);
+        if (rejectedHit && reflected) EnemyImpact?.Invoke(enemy, EnemyHitResult.Rejected);
     }
 
     // Called only for a newly separated, meaningful wall contact, never for enemy hits or floor contact.

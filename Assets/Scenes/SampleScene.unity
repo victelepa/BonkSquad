@@ -1370,7 +1370,11 @@ MonoBehaviour:
   turnSpeed: 14
   groundAcceleration: 28
   groundDeceleration: 20
-  momentumTurnSpeed: 120
+  momentumTurnSpeed: 240
+  driftHoldSeconds: 0.4
+  driftHoldDeceleration: 1.5
+  driftFacingTurnSpeed: 540
+  driftMaxSlipAngle: 55
 --- !u!143 &1179798305
 CharacterController:
   m_ObjectHideFlags: 0

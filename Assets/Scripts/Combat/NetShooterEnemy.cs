@@ -14,6 +14,7 @@ public sealed class NetShooterEnemy : MonoBehaviour
     private Vector3 target;
     private GameObject marker;
     private void Awake() { enemy = GetComponent<EnemyBumper>(); nextFire = Time.time + fireInterval; }
+    internal void DelayFirstShot(float seconds) => nextFire += seconds;
     private void Update()
     {
         var run = enemy.Encounter;

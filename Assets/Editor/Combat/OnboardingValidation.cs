@@ -14,6 +14,7 @@ using UnityEngine.SceneManagement;
 public static class OnboardingValidation
 {
     private const string Running = "BonkSquad.OnboardingValidation";
+    private const string PracticeOnly = "BonkSquad.OnboardingValidation.PracticeOnly";
     private static CombatPresentation ui;
     private static EnemyWaveController run;
     private static Keyboard practiceKeyboard;
@@ -25,16 +26,36 @@ public static class OnboardingValidation
     private static Vector3 practiceDashStart;
     private static float practiceDashAttemptedAt;
     private static EnemyBumper practiceDashTarget;
+    private static EnemyBumper collisionTarget;
+    private static float completionObservedAt;
+    private static bool practiceStunPrepared;
+    private static int reportedStage = -1;
+    private static int turnWaypoint;
     private static int stage, frames;
     private static double waitUntil, deadline;
     private static float timer, hitTime, stunTime, dizziness, gameTime;
     private static Vector3 position, velocity;
-    static OnboardingValidation() { if (SessionState.GetBool(Running, false)) EditorApplication.update += Tick; }
+    static OnboardingValidation()
+    {
+        if (!SessionState.GetBool(Running, false)) return;
+        if (SessionState.GetBool(PracticeOnly, false)) stage = 7;
+        EditorApplication.update += Tick;
+    }
     [MenuItem("Tools/BonkSquad/Validate Onboarding (Play Mode)")]
     public static void Run()
     {
         EditorSceneManager.OpenScene(Map01CombatSetup.ScenePath);
+        SessionState.SetBool(PracticeOnly, false);
         SessionState.SetBool(Running, true); EditorApplication.EnterPlaymode();
+    }
+
+    [MenuItem("Tools/BonkSquad/Validate Tutorial (Play Mode)")]
+    public static void RunTutorial()
+    {
+        EditorSceneManager.OpenScene("Assets/Scenes/levels/TutorialArena.unity");
+        SessionState.SetBool(PracticeOnly, true);
+        SessionState.SetBool(Running, true);
+        EditorApplication.EnterPlaymode();
     }
     private static void Check(bool value, string message) { if (!value) throw new Exception("ONBOARDING_TEST_FAILED: " + message); }
     private static void Field(object target, string name, object value) => target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(target, value);
@@ -72,12 +93,27 @@ public static class OnboardingValidation
     private static void KillAll()
     {
         foreach (EnemyBumper enemy in run.LivingEnemyObjects.ToArray())
-            while (!enemy.IsDefeated) enemy.TryHitFromBall(run.Player.SpeedSettings.SmallEnemyKillSpeed, run.Player.SpeedSettings);
+        {
+            for (int i = 0; i < enemy.MaximumHitPoints && !enemy.IsDefeated; i++)
+                enemy.TryHitFromBall(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings);
+            Check(enemy.IsDefeated, "combat validation can clear the enemy roster");
+        }
+    }
+    private static void EarnGoal()
+    {
+        run.DropRandom = () => .99d;
+        foreach (EnemyBumper enemy in run.LivingEnemyObjects.ToArray())
+        {
+            if (run.WaveScore >= run.ScoreGoal) break;
+            for (int i = 0; i < enemy.MaximumHitPoints && !enemy.IsDefeated; i++)
+                enemy.TryHitFromBall(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings);
+        }
     }
     private static void CheckHud()
     {
         var healthRow = Root.Q("health");
-        Check(Root.Q("score") == null, "combat score label is gone");
+        Check(Root.Q<Label>("score").text == $"{run.WaveScore} / {run.ScoreGoal}" && run.ScoreGoal == 350,
+            "first wave shows its score goal in the HUD");
         Check(healthRow.parent.IndexOf(Root.Q("combat-dash")) < healthRow.parent.IndexOf(healthRow)
             && Root.Q("combat-dash").parent == healthRow.parent, "Dash is above the health row");
         var dashUses = Root.Q("dash-uses");
@@ -190,7 +226,9 @@ public static class OnboardingValidation
         var specialist = (EnemyBumper)typeof(EnemyWaveController).GetMethod("SpawnEnemy", flags).Invoke(run, new object[] { specialistPrefab, point, false });
         Physics.SyncTransforms(); halo.Invoke(ball, null);
         Check(specialist.HitPoints == specialist.MaximumHitPoints, "halo leaves specialists to physical bonks");
-        while (!specialist.IsDefeated) specialist.TryHitFromBall(threshold, run.Player.SpeedSettings);
+        for (int i = 0; i < specialist.MaximumHitPoints && !specialist.IsDefeated; i++)
+            specialist.TryHitFromBall(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings);
+        Check(specialist.IsDefeated, "specialist can be defeated by physical bonks");
         ball.SendMessage("LateUpdate");
         Check(ball.GetComponentsInChildren<LineRenderer>().Any(r => r.name == "Attack halo" && r.enabled), "attack-ready halo is visible");
         ValidateSpeedTrails(ball);
@@ -203,9 +241,17 @@ public static class OnboardingValidation
         if (!EditorApplication.isPlaying || EditorApplication.isCompiling) return;
         try
         {
-            if (deadline == 0) deadline = EditorApplication.timeSinceStartup + 60;
+            if (deadline == 0)
+            {
+                deadline = EditorApplication.timeSinceStartup + 180;
+            }
+            if (reportedStage != stage)
+            {
+                Debug.Log($"ONBOARDING_STAGE {stage}: gameTime={Time.time:0.00}, timeScale={Time.timeScale}, dizziness={practicePlayer?.DizzinessValue:0.0}, phase={practicePlayer?.DizzinessPhase}");
+                reportedStage = stage;
+            }
             if (EditorApplication.timeSinceStartup >= deadline)
-                Check(false, $"timeout at stage {stage}; practice speed={practicePlayer?.CurrentSpeed:0.00}, ball={practicePlayer?.IsBallForm}, W={practiceKeyboard?.wKey.isPressed}");
+                Check(false, $"timeout at stage {stage}; gameTime={Time.time:0.00}, timeScale={Time.timeScale}, practice position={practicePlayer?.ActivePosition}, waypoint={turnWaypoint}, speed={practicePlayer?.CurrentSpeed:0.00}, ball={practicePlayer?.IsBallForm}, dizziness={practicePlayer?.DizzinessValue:0.0}, phase={practicePlayer?.DizzinessPhase}");
             if (stage >= 7) { TickPractice(); return; }
             if (ui == null) ui = UnityEngine.Object.FindFirstObjectByType<CombatPresentation>();
             if (ui == null || frames++ < 6) return;
@@ -234,12 +280,12 @@ public static class OnboardingValidation
                     Click("Back"); Check(ui.TutorialIndex == 3, "guide back"); Click("Next"); Click("Done");
                     Check(ui.Page == CombatPage.Combat && run.IsCombatActive, "Done resumes combat");
                     ValidatePredictablePatrols();
-                    Check(run.WaveCount == 5 && run.BasicMinionsPerWave == 3 && run.CurrentWave.count == 1, "gentle first-wave roster");
+                    Check(run.WaveCount == 2 && run.BasicMinionsPerWave == 10 && run.CurrentWave.count == 3, "first-wave roster");
                     Check(run.MinionRadius >= .49f * run.Placement.Diameter, "wider minion hit area");
                     var settings = new PlayerDizzinessSettings();
                     Check(Mathf.Abs(settings.GainRate(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings) - 10f) < .01f, "dizziness gain halved");
-                    Check(run.IsCombatActive && run.LivingEnemies == 4 && ui.Page == CombatPage.Combat, "start releases locks");
-                    Check(run.LivingEnemyObjects.Where(e => e.IsBasicMinion).All(e => e.UsesStraightPatrol) && run.LivingEnemyObjects.Where(e => e.IsBasicMinion).Select(e => e.PatrolDirection).Distinct().Count() == 3,
+                    Check(run.IsCombatActive && run.LivingEnemies == 19 && ui.Page == CombatPage.Combat, "start releases locks");
+                    Check(run.LivingEnemyObjects.Where(e => e.IsBasicMinion).All(e => e.UsesStraightPatrol) && run.LivingEnemyObjects.Where(e => e.IsBasicMinion).Select(e => e.PatrolDirection).Distinct().Count() == 4,
                         "first wave gets four distinct readable patrol axes");
                     ui.SendMessage("Update");
                     CheckHud();
@@ -254,19 +300,33 @@ public static class OnboardingValidation
                     Check(run.Player.DashUsesRemaining == uses - 1 && !dashButton.enabledSelf
                         && run.Player.DashCooldownRemaining > 0f, "HUD Dash consumes a use and starts cooldown");
                     var dashUses = Root.Q("dash-uses");
-                    Check(dashUses.Children().Count(indicator => indicator.ClassListContains("dash-use-spent")) == run.Player.DashUsesPerRun - run.Player.DashUsesRemaining,
+                    Check(dashUses.Children().Count(indicator =>
+                        indicator.Q(className: "orb-progress").style.height.value.value == 0f) == 1,
                         "Dash empties one circle without removing its slot");
                     Check(!Root.Q<Label>("dash-status").text.Contains("/"), "Dash status has no numeric use counter");
                     run.Player.ResetDashForRun();
                     run.Player.ToggleForm();
-                    Check(PinCount() == 7, "player and all starting minions have visible map pins");
+                    Check(PinCount() == 20, "player and all starting minions have visible map pins");
                     run.DropRandom = () => .99d;
                     Check(run.TryFindMinionSpawn(out Vector3 childPoint), "safe reinforcement location");
                     var child = run.SpawnMinion(childPoint); Check(child.UsesStraightPatrol, "reinforcements use predictable patrols"); ui.SendMessage("Update");
-                    Check(PinCount() == 8, "spawned minion appears on map immediately");
+                    Check(PinCount() == 21, "spawned minion appears on map immediately");
                     child.TryHitFromBall(run.Player.SpeedSettings.SmallEnemyKillSpeed, run.Player.SpeedSettings);
                     ui.SendMessage("Update");
-                    Check(PinCount() == 7, "defeated reinforcement leaves map");
+                    Check(PinCount() == 20, "defeated reinforcement leaves map");
+                    var pillar = UnityEngine.Object.FindObjectsByType<TopplingPillar>(FindObjectsSortMode.None)
+                        .OrderBy(p => p.transform.position.x).First();
+                    Vector3 upright = pillar.transform.position;
+                    var crushTarget = run.SpawnMinion(new Vector3(upright.x + 3f, run.Placement.Floor.bounds.max.y, upright.z));
+                    Physics.SyncTransforms();
+                    pillar.TryTopple(run, Vector3.left);
+                    Field(pillar, "progress", .999f);
+                    pillar.SendMessage("Update");
+                    Check(pillar.transform.position.x > upright.x && Mathf.Abs(pillar.transform.up.y) < .001f
+                        && crushTarget.IsDefeated, "pillar falls away from the struck face and crushes a target");
+                    pillar.ResetPillar();
+                    Physics.SyncTransforms();
+                    Check(pillar.transform.position == upright, "pillar resets upright");
                     ValidatePinballAssistance();
                     Check(Mathf.Abs(run.Player.DizzinessSettings.GainRate(run.Player.SpeedSettings.MaximumSpeed, run.Player.SpeedSettings) - 10f) < .01f, "scene dizziness gain halved");
                     run.Health.TryDamageFrom(run.Player.ActivePosition - Vector3.right);
@@ -292,21 +352,24 @@ public static class OnboardingValidation
                     run.Scoring.RegisterBounce(Time.time); run.Scoring.RecordKill(false, Time.time);
                     run.Scoring.RegisterBounce(Time.time); run.Scoring.RecordKill(false, Time.time);
                     ui.SendMessage("Update");
-                    Check(run.Scoring.SkillTokens == 2 && run.Scoring.ImpactCharges == 0 && Root.Q("dash-uses").Children().Count(indicator => !indicator.ClassListContains("dash-use-spent")) == run.Player.DashUsesRemaining,
+                    Check(run.Scoring.ImpactCharges == 2 && Root.Q("dash-uses").Children().All(indicator =>
+                        indicator.Q(className: "orb-progress").style.height.value.value == 100f),
                         "earning Impact charges does not affect Dash circles");
                     Property(run.Player, "DizzinessPhase", PlayerDizzinessPhase.Normal); run.Health.ResetHealth();
                     Property(run, "TimeRemaining", 0f); Wait(3); break;
                 case 3:
-                    Check(ui.Page == CombatPage.Results && run.Result.reason == WaveFailureReason.Timeout && run.Result.enemiesRemaining == 4, "timeout snapshot");
-                    Check(HasText("Time ran out — 4 enemies remained"), "explicit timeout reason");
+                    Check(ui.Page == CombatPage.Results && run.Result.reason == WaveFailureReason.Timeout && run.Result.enemiesRemaining == 19, "timeout snapshot");
+                    Check(HasText($"Time ran out — {run.WaveScore}/{run.ScoreGoal} points"), "explicit timeout reason");
                     Click("Retry Wave"); Check(ui.Page == CombatPage.Combat && run.Health.Current == 100 && run.IsCombatActive, "retry bypasses tutorial");
-                    KillAll(); Wait(4); break;
+                    EarnGoal();
+                    Check(run.WaveScore >= run.ScoreGoal && run.LivingEnemies > 0, "score goal reached before every enemy dies");
+                    Check(Root.Q("score-popups").childCount > 0, "kill score appears near the impact");
+                    Wait(4); break;
                 case 4:
                     Check(run.State == EnemyWaveState.Cleared && ui.Page == CombatPage.Results, "clear results");
                     Click("Next Wave");
-                    Check(ui.Page == CombatPage.WavePreview, "next wave previews its specialists");
-                    ui.StartPresentedWave();
-                    Check(run.IsCombatActive && run.WaveIndex == 1 && run.LivingEnemyObjects.Any(e => e.GetComponent<MineLayerEnemy>() != null), "mixed second wave starts");
+                    Check(ui.Page == CombatPage.Combat && run.IsCombatActive && run.WaveIndex == 1
+                        && run.LivingEnemies == 29 && run.LivingEnemyObjects.Count(e => e.GetComponent<NetShooterEnemy>() != null) == 5, "second wave starts with 29 enemies including five net shooters");
                     run.Health.TryDamage(1000); Wait(5); break;
                 case 5:
                     Check(run.Result.reason == WaveFailureReason.HealthDepleted && HasText("Health reached zero"), "explicit death reason");
@@ -318,7 +381,7 @@ public static class OnboardingValidation
                     run.RestartRun();
                     Field(run, "<WaveIndex>k__BackingField", run.WaveCount - 1);
                     run.StartWave();
-                    Check(run.LivingEnemyObjects.Select(EnemyPresentationProfile.Kind).Distinct().Count() == 4, "mixed wave has all four enemy types");
+                    Check(run.LivingEnemyObjects.Select(EnemyPresentationProfile.Kind).Distinct().Count() == 5, "second wave has five enemy types");
                     KillAll(); Wait(6); break;
                 case 6:
                     Check(ui.Page == CombatPage.Results && run.State == EnemyWaveState.Victory, "victory screen");
@@ -330,7 +393,11 @@ public static class OnboardingValidation
         }
         catch (Exception exception) { Debug.LogException(exception); Finish(1); }
     }
-    private static void Press(params Key[] keys) => InputSystem.QueueStateEvent(practiceKeyboard, new KeyboardState(keys));
+    private static void Press(params Key[] keys)
+    {
+        practiceKeyboard.MakeCurrent();
+        InputSystem.QueueStateEvent(practiceKeyboard, new KeyboardState(keys));
+    }
 
     private static bool CheckTutorialKeycaps(VisualElement page, params string[] expected)
     {
@@ -348,13 +415,15 @@ public static class OnboardingValidation
 
     private static void TickPractice()
     {
-        if (stage == 22)
+        if (stage == 27)
         {
             if (SceneManager.GetActiveScene().name != "Map01_RefractionArena") return;
             var arena = UnityEngine.Object.FindFirstObjectByType<CombatPresentation>();
             if (arena == null || arena.GetComponentInChildren<UIDocument>() == null) return;
             Check(arena.Page == CombatPage.MainMenu, "tutorial returns to main menu");
-            Debug.Log("ONBOARDING_VALIDATION_OK: arena HUD, Dash, direct waves, and all tutorial steps with real keyboard input and wall collision.");
+            Debug.Log(SessionState.GetBool(PracticeOnly, false)
+                ? "TUTORIAL_VALIDATION_OK: all eight lessons, recorded GIFs, actual movement, collisions, stun, recovery, Dash and menu return."
+                : "ONBOARDING_VALIDATION_OK: arena HUD, Dash, direct waves, and all tutorial steps with real keyboard input and wall collision.");
             Finish(0);
             return;
         }
@@ -372,8 +441,9 @@ public static class OnboardingValidation
         {
             case 7:
                 Check(Visible(root.Q("move")), "tutorial starts on movement");
-                if (!CheckTutorialKeycaps(root.Q("move"), "Space", "W", "A", "S", "D", "↑", "←", "↓", "→")) return;
+                if (!CheckTutorialKeycaps(root.Q("move"), "Space", "W", "A", "S", "D")) return;
                 practiceTrails = SpeedTrails(practicePlayer.GetComponentInChildren<BouncingBallController>(true));
+                ValidateRobotGroundContacts();
                 var pad = GameObject.Find("Directional Boost Pad").GetComponentInChildren<MeshRenderer>().bounds;
                 var floorCollider = GameObject.Find("Arena Floor").GetComponent<Collider>();
                 Check(floorCollider.sharedMaterial == null || floorCollider.sharedMaterial.bounciness == 0f, "tutorial floor is non-bouncy");
@@ -390,78 +460,157 @@ public static class OnboardingValidation
                 Press(Key.Space, Key.W);
                 stage++; break;
             case 8:
-                if (!Visible(root.Q("bounce"))) return;
-                Check(practicePlayer.IsBallForm, "Space and W advance ball acceleration lesson");
-                Press(Key.W);
+                if (!Visible(root.Q("practice-completed"))) return;
+                Check(Visible(root.Q("move")) && practicePlayer.CanAcceptPlayerInput && Time.timeScale > 0f,
+                    "movement completion keeps the current lesson visible and leaves controls active");
+                completionObservedAt = Time.unscaledTime;
                 stage++; break;
             case 9:
-                if (!Visible(root.Q("stun"))) return;
+                if (!Visible(root.Q("bounce"))) return;
+                Check(Time.unscaledTime - completionObservedAt >= 4.9f && !Visible(root.Q("practice-completed")),
+                    "the next lesson opens after the five-second checkmark");
+                Check(practicePlayer.IsBallForm, "Space and W advance ball acceleration lesson");
+                practicePlayer.ResetForEncounter(new Vector3(0f, .5f, 0f), Quaternion.identity);
+                practicePlayer.ToggleForm();
+                Press(Key.W);
+                stage++; break;
+            case 10:
+                if (!Visible(root.Q("bounce")) || !Visible(root.Q("practice-completed"))) return;
                 Check(practicePlayer.CurrentPlanarVelocity.z < 0, "wall collision reflected the ball");
                 var body = practicePlayer.GetComponentInChildren<BouncingBallController>().GetComponent<Rigidbody>();
                 Check(Mathf.Abs(body.linearVelocity.y) < .2f, "ball rolls on the ground after hitting the wall");
                 Press();
                 stage++; break;
-            case 10:
+            case 11:
+                if (Visible(root.Q("turn")))
+                {
+                    if (!CheckTutorialKeycaps(root.Q("turn"), "Space", "W", "A", "S", "D")) return;
+                    Check(GameObject.Find("Turning Gate") == null, "turning lesson opens the passage gate");
+                    Check(root.Q("tutorial-demo").Q<Image>().image?.name == "Practice-3-Turn", "turning lesson plays its recorded demo");
+                    if (turnWaypoint == 0)
+                    {
+                        practicePlayer.ResetForEncounter(new Vector3(15f, 1.05f, 0f), Quaternion.LookRotation(Vector3.right));
+                        turnWaypoint = 1;
+                    }
+                    FollowTurnRoute();
+                    if (Visible(root.Q("practice-completed")))
+                    {
+                        Check(practicePlayer.ActivePosition.z >= 18f, "turning lesson completes at the new arena entrance");
+                        Press();
+                    }
+                    return;
+                }
+                if (!Visible(root.Q("low-speed-hit"))) return;
+                var demo = root.Q("tutorial-demo");
+                var demoFrame = demo.Q<Image>();
+                if (demoFrame.image == null || demo.Q<Label>("tutorial-demo-caption").text != "Low-speed bounce") return;
+                Check(Visible(demo) && demoFrame.image.name == "Practice-3-Ice", "the second low-speed clip plays in the demo HUD");
+                collisionTarget = StartCollisionPractice(4f);
+                stage++; break;
+            case 12:
+                if (!Visible(root.Q("practice-completed"))) return;
+                Check(collisionTarget != null && collisionTarget.HitPoints == collisionTarget.MaximumHitPoints
+                    && practicePlayer.CurrentPlanarVelocity.z < 0f, "low-speed contact reflects without damage");
+                stage++; break;
+            case 13:
+                if (!Visible(root.Q("high-speed-hit"))) return;
+                var highSpeedDemo = root.Q("tutorial-demo");
+                if (highSpeedDemo.Q<Label>("tutorial-demo-caption").text != "High-speed breakthrough") return;
+                Check(highSpeedDemo.Q<Image>().image?.name == "Practice-4-Cosmos", "the second high-speed clip plays in the demo HUD");
+                var trailHint = root.Q<Label>("enemy-trail-hints").text;
+                Check(trailHint.Contains("Cosmos or Dark for small enemies") && trailHint.Contains("Large enemies need the faster Dark trail"),
+                    "high-speed practice describes the trails for small and large enemies");
+                StartCollisionPractice(practicePlayer.SpeedSettings.SmallEnemyKillSpeed + 1f);
+                stage++; break;
+            case 14:
+                if (!Visible(root.Q("high-speed-hit")) || !Visible(root.Q("practice-completed"))) return;
+                Check(practicePlayer.CurrentPlanarVelocity.z > 0f
+                    && UnityEngine.Object.FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None).All(enemy => enemy.IsDefeated),
+                    "high-speed contact defeats the target and preserves forward momentum");
+                stage++; break;
+            case 15:
+                if (!Visible(root.Q("stun"))) return;
+                if (!practiceStunPrepared)
+                {
+                    // Keep the real buildup test in the new arena's clear east/west lane.
+                    practicePlayer.ResetForEncounter(new Vector3(18f, .5f, 32f), Quaternion.LookRotation(Vector3.right));
+                    practicePlayer.ToggleForm();
+                    practicePlayer.GetComponentInChildren<BouncingBallController>()
+                        .EnterBallMode(Vector3.right * practicePlayer.SpeedSettings.MaximumSpeed);
+                    practiceStunPrepared = true;
+                }
                 if (!Visible(root.Q("stunned"))) return;
                 Check(!practicePlayer.IsBallForm && !practicePlayer.CanAcceptPlayerInput, "actual stun switches form and locks controls");
                 stage++; break;
-            case 11:
+            case 16:
                 if (!Visible(root.Q("recover")) || !CheckTutorialKeycaps(root.Q("recover"), "Space")) return;
                 Press(Key.Space, Key.W);
                 stage++; break;
-            case 12:
-                if (!practicePlayer.IsBallForm || practicePlayer.DizzinessRatio < .15f) return;
+            case 17:
+                if (!practicePlayer.IsBallForm) return;
+                if (practicePlayer.DizzinessRatio < .15f)
+                {
+                    var direction = practicePlayer.CurrentPlanarVelocity.normalized;
+                    if (direction == Vector3.zero) direction = Vector3.forward;
+                    if (practicePlayer.CurrentSpeed < practicePlayer.SpeedSettings.SmallEnemyKillSpeed)
+                        practicePlayer.GetComponentInChildren<BouncingBallController>()
+                            .EnterBallMode(direction * practicePlayer.SpeedSettings.MaximumSpeed);
+                    return;
+                }
                 Check(practicePlayer.DizzinessPhase == PlayerDizzinessPhase.Normal && !Visible(root.Q("dizziness-countdown")), "partial dizziness does not require the warning countdown");
                 Press(Key.W);
                 stage++; break;
-            case 13:
+            case 18:
                 Press(Key.Space, Key.D);
                 stage++; break;
-            case 14:
-                if (!Visible(root.Q("dash")) || !CheckTutorialKeycaps(root.Q("dash"), "Space", "Q", "Click Dash")) return;
-                Check(!practicePlayer.IsBallForm && practicePlayer.DizzinessPhase == PlayerDizzinessPhase.Normal && practicePlayer.DizzinessValue > 0f, "switching with partial dizziness advances the lesson immediately");
+            case 19:
+                if (!Visible(root.Q("dash")) || !CheckTutorialKeycaps(root.Q("dash"), "Space", "Q")) return;
+                Check(!practicePlayer.IsBallForm && practicePlayer.DizzinessPhase == PlayerDizzinessPhase.Normal, "switching with partial dizziness advances to Dash after the checkmark");
+                Check(root.Q("tutorial-demo").Q<Image>().image?.name == "Practice-7-Dash", "Dash plays its own demo clip");
+                Check(root.Q("dash-uses").childCount == practicePlayer.DashUsesPerRun
+                    && !root.Q<Label>("dash-status").text.Contains("/"), "tutorial Dash HUD uses the arena's circles and status");
                 var enemies = UnityEngine.Object.FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None);
                 Check(enemies.Length == 2 && enemies.Count(e => e.IsSmallEnemy) == 1, "one basic small and one basic large enemy");
-                practiceDashStart = new Vector3(0f, practicePlayer.ActivePosition.y, -5f);
+                practiceDashStart = new Vector3(18f, practicePlayer.ActivePosition.y, 29f);
                 practicePlayer.ResetForEncounter(practiceDashStart, Quaternion.identity);
                 practicePlayer.RestoreDashCheckpoint(new BonkRobotController.DashCheckpoint(1, 0f));
                 // Put both targets behind the practice wall so the first Dash cannot reach them.
                 for (int i = 0; i < enemies.Length; i++)
-                    enemies[i].transform.position = new Vector3(0f, enemies[i].transform.position.y, 11f + i * 2f);
+                    enemies[i].transform.position = new Vector3(18f, enemies[i].transform.position.y, 43f + i * 2f);
                 Physics.SyncTransforms();
                 Press();
                 stage++; break;
-            case 15:
+            case 20:
                 Press(Key.Space);
                 stage++; break;
-            case 16:
+            case 21:
                 if (!root.Q<Button>("dash-button").enabledSelf) return;
                 practiceDashAttemptedAt = Time.time;
                 Press(Key.Q);
                 stage++; break;
-            case 17:
+            case 22:
                 if (Time.time - practiceDashAttemptedAt < 1f) return;
                 Check(practicePlayer.DashUsesRemaining == 0 && Visible(root.Q("dash")), "a Dash blocked by the wall does not finish practice");
                 practicePlayer.ResetForEncounter(practiceDashStart, Quaternion.identity);
                 practiceDashTarget = UnityEngine.Object.FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None).First(e => e.IsSmallEnemy);
-                practiceDashTarget.transform.position = new Vector3(0f, practiceDashTarget.transform.position.y, 2f);
+                practiceDashTarget.transform.position = new Vector3(18f, practiceDashTarget.transform.position.y, 36f);
                 Physics.SyncTransforms();
                 Press();
                 stage++; break;
-            case 18:
+            case 23:
                 if (practicePlayer.DashUsesRemaining == 0) return;
                 Check(practicePlayer.DashUsesRemaining == practicePlayer.DashUsesPerRun, "practice refills spent Dash uses");
                 Press(Key.Space);
                 stage++; break;
-            case 19:
+            case 24:
                 if (!root.Q<Button>("dash-button").enabledSelf) return;
                 Press(Key.Q);
                 stage++; break;
-            case 20:
+            case 25:
                 if (practicePlayer.DashUsesRemaining == practicePlayer.DashUsesPerRun) return;
                 Check(Visible(root.Q("dash")) && practiceDashTarget != null && !practiceDashTarget.IsDefeated, "releasing Dash alone does not finish practice");
                 stage++; break;
-            case 21:
+            case 26:
                 sawPracticeDashTrail |= practiceTrails[2].Any(trail => trail.emitting);
                 if (!Visible(root.Q("complete"))) return;
                 Check(sawPracticeDashTrail, "tutorial dash plays the high-speed trail before completion");
@@ -470,6 +619,69 @@ public static class OnboardingValidation
                 Submit(root.Q<Button>("tutorial-done"));
                 stage++; break;
         }
+    }
+
+    private static EnemyBumper StartCollisionPractice(float speed)
+    {
+        var target = UnityEngine.Object.FindObjectsByType<EnemyBumper>(FindObjectsSortMode.None).Single();
+        target.transform.position = new Vector3(18f, target.transform.position.y, 25f);
+        practicePlayer.ResetForEncounter(new Vector3(18f, .5f, 23f), Quaternion.identity);
+        practicePlayer.ToggleForm();
+        practicePlayer.GetComponentInChildren<BouncingBallController>().EnterBallMode(Vector3.forward * speed);
+        Physics.SyncTransforms();
+        return target;
+    }
+
+    private static void FollowTurnRoute()
+    {
+        Vector3 position = practicePlayer.ActivePosition;
+        Vector3 destination = new Vector3(18f, 0f, 0f);
+        if (turnWaypoint == 1 && position.x >= 17.8f) turnWaypoint = 2;
+        if (turnWaypoint == 2)
+        {
+            float currentAngle = Mathf.Atan2(position.z - 6f, position.x - 18f) * Mathf.Rad2Deg;
+            if (currentAngle >= 29f) turnWaypoint = 3;
+            float angle = Mathf.Min(currentAngle + 6f, 30f);
+            float radius = 6f - .15f * Mathf.Clamp01(1f - Mathf.Abs(angle + 65f) / 20f)
+                + .15f * Mathf.Clamp01(1f - Mathf.Abs(angle + 15f) / 20f);
+            destination = new Vector3(18f + radius * Mathf.Cos(angle * Mathf.Deg2Rad), 0f,
+                6f + radius * Mathf.Sin(angle * Mathf.Deg2Rad));
+        }
+        if (turnWaypoint == 3)
+        {
+            Vector3 start = new Vector3(23.196152f, 0f, 9f);
+            Vector3 end = new Vector3(18f, 0f, 19f);
+            Vector3 direction = (end - start).normalized;
+            float progress = Vector3.Dot(PlayerMovementMath.Planar(position - start), direction);
+            destination = start + direction * Mathf.Clamp(progress + .9f, 0f, Vector3.Distance(start, end));
+        }
+        Vector3 offset = destination - position;
+        var keys = new System.Collections.Generic.List<Key>();
+        if (offset.x > .05f) keys.Add(Key.D);
+        if (offset.x < -.05f) keys.Add(Key.A);
+        if (offset.z > .05f) keys.Add(Key.W);
+        if (offset.z < -.05f) keys.Add(Key.S);
+        Press(keys.ToArray());
+    }
+
+    private static void ValidateRobotGroundContacts()
+    {
+        var robot = practicePlayer.GetComponentInChildren<PlayerController>();
+        Vector3 originalVelocity = robot.CurrentPlanarVelocity;
+        Vector3 velocity = Vector3.forward * practicePlayer.SpeedSettings.MaximumSpeed;
+        robot.EnterStandingMode(velocity);
+        var hit = (ControllerColliderHit)Activator.CreateInstance(typeof(ControllerColliderHit), true);
+        Field(hit, "m_Collider", GameObject.Find("Connected Practice Floor Collision").GetComponent<Collider>());
+        Field(hit, "m_Normal", new Vector3(.02f, 1f, .05f).normalized);
+        robot.SendMessage("OnControllerColliderHit", hit);
+        Check((robot.CurrentPlanarVelocity - velocity).sqrMagnitude < .0001f,
+            "floor edge contact preserves robot movement and inherited speed");
+        Field(hit, "m_Collider", GameObject.Find("Boundary East").GetComponent<Collider>());
+        Field(hit, "m_Normal", Vector3.back);
+        robot.SendMessage("OnControllerColliderHit", hit);
+        Check((robot.CurrentPlanarVelocity + velocity).sqrMagnitude < .0001f,
+            "vertical wall contact still reflects robot movement");
+        robot.EnterStandingMode(originalVelocity);
     }
 
     private static void Finish(int code)
@@ -482,6 +694,7 @@ public static class OnboardingValidation
             UnityEngine.Object.Destroy(testSettings);
         }
         SessionState.SetBool(Running, false); EditorApplication.update -= Tick;
+        SessionState.SetBool(PracticeOnly, false);
         if (Application.isBatchMode) EditorApplication.Exit(code); else EditorApplication.ExitPlaymode();
     }
 }

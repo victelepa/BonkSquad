@@ -36,27 +36,13 @@ public class BonkRobotController : MonoBehaviour
     private int dashUsesRemaining;
     private float nextDashReadyTime;
     private EnemyWaveController encounter;
-    [Min(0)] [SerializeField] private int initialDashUses = 4;
     private float snaredUntil, netImmuneUntil;
     public bool IsSnared => Time.time < snaredUntil;
     public float SnareRemaining => Mathf.Max(0f, snaredUntil - Time.time);
-    public bool TrySnare(float duration, float immunity)
-    {
-        if (IsEncounterLocked || IsSnared || DizzinessPhase == PlayerDizzinessPhase.Stunned || Time.time < netImmuneUntil ||
-            (encounter != null && !encounter.IsCombatActive)) return false;
-        if (GetComponent<NetSnareFeedback>() == null) gameObject.AddComponent<NetSnareFeedback>();
-        snaredUntil = Time.time + duration; netImmuneUntil = snaredUntil + immunity;
-        ballController.StopForSnare(); standingController.StopForSnare();
-        encounter?.Scoring.BreakCombo(Time.time);
-        return true;
-    }
-    public bool TryRestoreDashUse()
-    {
-        dashUsesRemaining++; return true;
-    }
     public int DashUsesPerRun => dashUsesPerRun;
     public int DashUsesRemaining => dashUsesRemaining;
     public float DashCooldownRemaining => Mathf.Max(0f, nextDashReadyTime - Time.time);
+    internal bool DashEnabled { get; set; } = true;
     public bool CanDash => DashAllowedByState && TryFindDashDirection(out _);
 
     public readonly struct DashCheckpoint
@@ -74,19 +60,39 @@ public class BonkRobotController : MonoBehaviour
 
     public void ResetDashForRun()
     {
-        dashUsesRemaining = encounter != null ? Mathf.Min(initialDashUses, dashUsesPerRun) : dashUsesPerRun;
+        dashUsesRemaining = Mathf.Min(4, dashUsesPerRun);
         nextDashReadyTime = Time.time;
+    }
+
+    public int RestoreDashUses(int count)
+    {
+        int before = dashUsesRemaining;
+        dashUsesRemaining = Mathf.Min(Mathf.Min(4, dashUsesPerRun), dashUsesRemaining + Mathf.Max(0, count));
+        return dashUsesRemaining - before;
+    }
+
+    public bool TrySnare(float duration, float immunity)
+    {
+        if (IsEncounterLocked || IsSnared || DizzinessPhase == PlayerDizzinessPhase.Stunned ||
+            Time.time < netImmuneUntil || (encounter != null && !encounter.IsCombatActive)) return false;
+        if (GetComponent<NetSnareFeedback>() == null) gameObject.AddComponent<NetSnareFeedback>();
+        snaredUntil = Time.time + Mathf.Max(0f, duration);
+        netImmuneUntil = snaredUntil + Mathf.Max(0f, immunity);
+        ballController.StopForSnare();
+        standingController.StopForSnare();
+        encounter?.Scoring.BreakCombo(Time.time);
+        return true;
     }
 
     public DashCheckpoint SaveDashCheckpoint() => new DashCheckpoint(dashUsesRemaining, DashCooldownRemaining);
 
     public void RestoreDashCheckpoint(DashCheckpoint checkpoint)
     {
-        dashUsesRemaining = Mathf.Max(0, checkpoint.usesRemaining);
+        dashUsesRemaining = Mathf.Clamp(checkpoint.usesRemaining, 0, Mathf.Min(4, dashUsesPerRun));
         nextDashReadyTime = Time.time + Mathf.Max(0f, checkpoint.cooldownRemaining);
     }
 
-    private bool DashAllowedByState => isActiveAndEnabled && IsBallForm && CanAcceptPlayerInput &&
+    private bool DashAllowedByState => DashEnabled && isActiveAndEnabled && IsBallForm && CanAcceptPlayerInput &&
         (encounter == null || encounter.IsCombatActive) && dashUsesRemaining > 0 && DashCooldownRemaining <= 0f;
 
     private bool TryFindDashDirection(out Vector3 direction)
@@ -195,7 +201,7 @@ public class BonkRobotController : MonoBehaviour
         if (dizzinessSettings == null) dizzinessSettings = new PlayerDizzinessSettings();
         dizzinessSettings.Validate();
         DizzinessValue = Mathf.Clamp(DizzinessValue, 0f, dizzinessSettings.MaximumDizziness);
-        dashUsesPerRun = Mathf.Max(0, dashUsesPerRun);
+        dashUsesPerRun = Mathf.Clamp(dashUsesPerRun, 0, 4);
         dashCooldownSeconds = Mathf.Max(0f, dashCooldownSeconds);
     }
 
