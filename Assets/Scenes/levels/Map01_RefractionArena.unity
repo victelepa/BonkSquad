@@ -1236,7 +1236,7 @@ MonoBehaviour:
     ricochetBonus: 25
     doubleBonus: 30
     tripleBonus: 50
-  scoreGoalPerWave: 1000
+  scoreGoalPerWave: 750
   minePrefab: {fileID: 3635219438340680636, guid: b989a67c035ee493eb076d93efc1c98d, type: 3}
   shellPrefab: {fileID: 7264847990184322332, guid: 53a185bf7daad45e196257e10112233a, type: 3}
   healthPrefab: {fileID: 1532661954182238799, guid: 1f7f47fe7c1f44f34bb4a948275ce719, type: 3}

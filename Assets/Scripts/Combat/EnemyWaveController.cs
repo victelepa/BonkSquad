@@ -58,7 +58,7 @@ public sealed class EnemyWaveController : MonoBehaviour
     public int BasicMinionsPerWave => CurrentWave.basicMinions >= 0 ? CurrentWave.basicMinions : basicMinionsPerWave;
     private int scoreGoal;
     public int ScoreGoal => scoreGoal;
-    [Min(1)] [SerializeField] private int scoreGoalPerWave = 1000;
+    [Min(1)] [SerializeField] private int scoreGoalPerWave = 750;
     private int CalculateScoreGoal(int specialistCount)
     {
         return Mathf.Max(1, scoreGoalPerWave);

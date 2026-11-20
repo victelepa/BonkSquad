@@ -198,7 +198,7 @@ public static class Map01CombatSetup
         run.ConfigurePowerups(speedPickup);
 
         var runData = new SerializedObject(run);
-        runData.FindProperty("scoreGoalPerWave").intValue = 1000;
+        runData.FindProperty("scoreGoalPerWave").intValue = 750;
         runData.FindProperty("healthDropChance").floatValue = .12f;
         runData.FindProperty("speedDropChance").floatValue = .18f;
         SerializedProperty scoring = runData.FindProperty("scoring");
@@ -212,7 +212,7 @@ public static class Map01CombatSetup
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
-        Debug.Log("EXPANDED_PINBALL_ARENA_OK: 35% larger arena, four blades, 1000-point waves, health and speed drops.");
+        Debug.Log("EXPANDED_PINBALL_ARENA_OK: 35% larger arena, four blades, 750-point waves, health and speed drops.");
     }
 
     [MenuItem("Tools/BonkSquad/Apply Escalating Enemy Waves")]

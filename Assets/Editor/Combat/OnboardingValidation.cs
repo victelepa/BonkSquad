@@ -112,8 +112,8 @@ public static class OnboardingValidation
     private static void CheckHud()
     {
         var healthRow = Root.Q("health");
-        Check(Root.Q<Label>("score").text == $"{run.WaveScore} / {run.ScoreGoal}" && run.ScoreGoal == 1000,
-            "first wave shows its 1000-point score goal in the HUD");
+        Check(Root.Q<Label>("score").text == $"{run.WaveScore} / {run.ScoreGoal}" && run.ScoreGoal == 750,
+            "first wave shows its 750-point score goal in the HUD");
         Check(healthRow.parent.IndexOf(Root.Q("combat-dash")) < healthRow.parent.IndexOf(healthRow)
             && Root.Q("combat-dash").parent == healthRow.parent, "Dash is above the health row");
         var dashUses = Root.Q("dash-uses");

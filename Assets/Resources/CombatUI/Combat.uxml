@@ -9,7 +9,7 @@
             <ui:Label name="time-callout" text="150 SECONDS LEFT" class="time-callout hidden" picking-mode="Ignore" />
             <ui:VisualElement name="world-cues" class="screen" picking-mode="Ignore" />
             <ui:VisualElement name="objective" class="objective panel" picking-mode="Ignore">
-                <ui:Label name="score" text="0 / 350" class="objective-score" picking-mode="Ignore" />
+                <ui:Label name="score" text="0 / 750" class="objective-score" picking-mode="Ignore" />
                 <ui:VisualElement class="objective-details" picking-mode="Ignore">
                     <ui:Label name="wave" text="Wave 1/2" picking-mode="Ignore" />
                     <ui:Label name="timer" text="180s remaining" picking-mode="Ignore" />
