@@ -8,8 +8,13 @@ public class PlayerController : MonoBehaviour
     [Min(0f)] [SerializeField] private float turnSpeed = 14f;
     [Min(0f)] [SerializeField] private float groundAcceleration = 28f;
     [Min(0f)] [SerializeField] private float groundDeceleration = 20f;
+    [Header("High-Speed Drift")]
     [FormerlySerializedAs("driftTurnSpeed")]
-    [Range(0f, 360f)] [SerializeField] private float momentumTurnSpeed = 120f;
+    [Range(0f, 720f)] [SerializeField] private float momentumTurnSpeed = 240f;
+    [Min(0f)] [SerializeField] private float driftHoldSeconds = .4f;
+    [Min(0f)] [SerializeField] private float driftHoldDeceleration = 1.5f;
+    [Min(0f)] [SerializeField] private float driftFacingTurnSpeed = 540f;
+    [Range(0f, 180f)] [SerializeField] private float driftMaxSlipAngle = 55f;
 
     private CharacterController controller;
     private Transform cameraTransform;
@@ -17,6 +22,7 @@ public class PlayerController : MonoBehaviour
     private float verticalVelocity;
     private Vector3 planarVelocity;
     private bool carryingMomentum;
+    private float driftHoldRemaining;
     private bool resolvedSideHit;
     private bool controlLocked;
 
@@ -29,12 +35,14 @@ public class PlayerController : MonoBehaviour
     {
         planarVelocity = Vector3.zero;
         carryingMomentum = false;
+        driftHoldRemaining = 0f;
     }
 
     public void ApplyKnockback(Vector3 direction, float strength)
     {
         planarVelocity = PlayerMovementMath.KnockbackVelocity(planarVelocity, direction, strength, SpeedSettings.MaximumSpeed);
         carryingMomentum = true;
+        driftHoldRemaining = 0f;
     }
 
     public void SetControlLocked(bool locked)
@@ -43,6 +51,7 @@ public class PlayerController : MonoBehaviour
         if (!locked) return;
         planarVelocity = Vector3.zero;
         carryingMomentum = false;
+        driftHoldRemaining = 0f;
         resolvedSideHit = false;
     }
 
@@ -60,6 +69,8 @@ public class PlayerController : MonoBehaviour
         planarVelocity = PlayerMovementMath.Planar(inheritedVelocity);
         // Preserve inherited speed even when below base; passive decay never boosts it.
         carryingMomentum = planarVelocity.sqrMagnitude > 0f;
+        driftHoldRemaining = planarVelocity.magnitude > SpeedSettings.RobotBaseSpeed
+            ? driftHoldSeconds : 0f;
         verticalVelocity = -2f;
     }
 
@@ -87,13 +98,19 @@ public class PlayerController : MonoBehaviour
             ? Vector3.zero : PlayerMovementMath.ReadInputDirection(cameraTransform);
         float speed = planarVelocity.magnitude;
         if (speed > SpeedSettings.RobotBaseSpeed) carryingMomentum = true;
+        bool wasCarryingMomentum = carryingMomentum;
         if (carryingMomentum)
         {
             Vector3 direction = speed > 0f ? planarVelocity / speed : transform.forward;
             if (inputDirection.sqrMagnitude > 0f)
                 direction = Vector3.RotateTowards(direction, inputDirection,
                     momentumTurnSpeed * Mathf.Deg2Rad * Time.deltaTime, 0f).normalized;
-            speed = SpeedSettings.DecelerateRobot(speed, Time.deltaTime);
+            float holdTime = Mathf.Min(Time.deltaTime, driftHoldRemaining);
+            driftHoldRemaining -= holdTime;
+            if (holdTime > 0f)
+                speed = Mathf.Max(SpeedSettings.RobotBaseSpeed,
+                    speed - driftHoldDeceleration * holdTime);
+            speed = SpeedSettings.DecelerateRobot(speed, Time.deltaTime - holdTime);
             planarVelocity = direction * speed;
             // Keep coasting at base speed without input. Active input can return to
             // normal robot locomotion once inherited excess speed is fully gone.
@@ -102,6 +119,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
+            driftHoldRemaining = 0f;
             planarVelocity = Vector3.MoveTowards(planarVelocity,
                 inputDirection * SpeedSettings.RobotBaseSpeed,
                 (inputDirection.sqrMagnitude > 0f ? groundAcceleration : groundDeceleration) * Time.deltaTime);
@@ -115,9 +133,20 @@ public class PlayerController : MonoBehaviour
         controller.Move((planarVelocity + Vector3.up * verticalVelocity) * Time.deltaTime);
 
         Vector3 facing = planarVelocity.sqrMagnitude > 0f ? planarVelocity.normalized : inputDirection;
-        if (facing.sqrMagnitude > 0f)
+        if (wasCarryingMomentum && speed > SpeedSettings.RobotBaseSpeed &&
+            inputDirection.sqrMagnitude > 0f)
+        {
+            // Face into the turn while the inherited velocity follows behind.
+            Vector3 driftFacing = Vector3.RotateTowards(facing, inputDirection,
+                driftMaxSlipAngle * Mathf.Deg2Rad, 0f);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation,
+                Quaternion.LookRotation(driftFacing), driftFacingTurnSpeed * Time.deltaTime);
+        }
+        else if (facing.sqrMagnitude > 0f)
+        {
             transform.rotation = Quaternion.Slerp(transform.rotation,
                 Quaternion.LookRotation(facing), turnSpeed * Time.deltaTime);
+        }
     }
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
